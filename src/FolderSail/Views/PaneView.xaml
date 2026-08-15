@@ -8,11 +8,11 @@
              Drop="OnDrop"
              FontFamily="{StaticResource Font.Ui}"
              FontSize="{StaticResource Size.FontBody}"
-             Foreground="{StaticResource Text.Primary}">
+             Foreground="{DynamicResource Text.Primary}">
 
     <Border x:Name="Card"
-            Background="{StaticResource Surface.Card}"
-            BorderBrush="{StaticResource Line.Soft}"
+            Background="{DynamicResource Surface.Card}"
+            BorderBrush="{DynamicResource Line.Soft}"
             BorderThickness="2"
             CornerRadius="0"
             Margin="0"
@@ -86,7 +86,7 @@
                                                    Text="&#xE8B7;"
                                                    FontFamily="{StaticResource Font.Icon}"
                                                    FontSize="11"
-                                                   Foreground="{StaticResource Text.Tertiary}"
+                                                   Foreground="{DynamicResource Text.Tertiary}"
                                                    VerticalAlignment="Center"
                                                    Margin="0,0,6,0" />
                                         <TextBlock Grid.Column="1"
@@ -109,7 +109,7 @@
                                 </Border>
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                        <Setter TargetName="TabChrome" Property="Background" Value="{StaticResource Surface.Hover}" />
+                                        <Setter TargetName="TabChrome" Property="Background" Value="{DynamicResource Surface.Hover}" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
@@ -189,8 +189,8 @@
 
                 <!-- Breadcrumb -->
                 <Border Grid.Column="1"
-                        Background="{StaticResource Surface.Subtle}"
-                        BorderBrush="{StaticResource Line.Soft}"
+                        Background="{DynamicResource Surface.Subtle}"
+                        BorderBrush="{DynamicResource Line.Soft}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="2,0"
@@ -214,7 +214,7 @@
                                         <TextBlock Text="&#xE76C;"
                                                    FontFamily="{StaticResource Font.Icon}"
                                                    FontSize="8"
-                                                   Foreground="{StaticResource Text.Tertiary}"
+                                                   Foreground="{DynamicResource Text.Tertiary}"
                                                    VerticalAlignment="Center"
                                                    Visibility="{Binding IsLast, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
                                     </StackPanel>
@@ -242,8 +242,8 @@
 
             <!-- Column headers -->
             <Border Grid.Row="2"
-                    Background="{StaticResource Surface.Subtle}"
-                    BorderBrush="{StaticResource Line.Soft}"
+                    Background="{DynamicResource Surface.Subtle}"
+                    BorderBrush="{DynamicResource Line.Soft}"
                     BorderThickness="0,0,0,1"
                     Padding="16,6,16,6"
                     Margin="0">
@@ -272,7 +272,7 @@
                      Padding="0"
                      FontFamily="{StaticResource Font.Ui}"
                      FontSize="{StaticResource Size.FontBody}"
-                     Foreground="{StaticResource Text.Primary}"
+                     Foreground="{DynamicResource Text.Primary}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      VirtualizingPanel.IsVirtualizing="True"
                      VirtualizingPanel.VirtualizationMode="Recycling"
@@ -304,7 +304,7 @@
                             <TextBlock x:Name="SizeText"
                                        Grid.Column="1"
                                        Text="{Binding Size, Converter={StaticResource FileSize}}"
-                                       Foreground="{StaticResource Text.Secondary}"
+                                       Foreground="{DynamicResource Text.Secondary}"
                                        FontSize="{StaticResource Size.FontSmall}"
                                        TextAlignment="Right"
                                        VerticalAlignment="Center"
@@ -313,7 +313,7 @@
                             <TextBlock x:Name="TimeText"
                                        Grid.Column="2"
                                        Text="{Binding ModifiedUtc, Converter={StaticResource RelativeTime}}"
-                                       Foreground="{StaticResource Text.Secondary}"
+                                       Foreground="{DynamicResource Text.Secondary}"
                                        FontSize="11"
                                        TextAlignment="Center"
                                        VerticalAlignment="Center" />
@@ -321,7 +321,7 @@
                             <TextBlock x:Name="KindText"
                                        Grid.Column="3"
                                        Text="{Binding Kind, Converter={StaticResource ItemKindLabel}}"
-                                       Foreground="{StaticResource Text.Secondary}"
+                                       Foreground="{DynamicResource Text.Secondary}"
                                        FontSize="10"
                                        TextAlignment="Right"
                                        VerticalAlignment="Center"
@@ -329,10 +329,10 @@
                         </Grid>
                         <DataTemplate.Triggers>
                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                <Setter TargetName="NameText" Property="Foreground" Value="{StaticResource Text.OnAccent}" />
-                                <Setter TargetName="SizeText" Property="Foreground" Value="{StaticResource Text.OnAccent}" />
-                                <Setter TargetName="TimeText" Property="Foreground" Value="{StaticResource Text.OnAccent}" />
-                                <Setter TargetName="KindText" Property="Foreground" Value="{StaticResource Text.OnAccent}" />
+                                <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
+                                <Setter TargetName="SizeText" Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
+                                <Setter TargetName="TimeText" Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
+                                <Setter TargetName="KindText" Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
                             </DataTrigger>
                         </DataTemplate.Triggers>
                     </DataTemplate>
@@ -345,11 +345,11 @@
                 <TextBlock Text="&#xE721;"
                            FontFamily="{StaticResource Font.Icon}"
                            FontSize="18"
-                           Foreground="{StaticResource Text.Tertiary}"
+                           Foreground="{DynamicResource Text.Tertiary}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,8" />
                 <TextBlock Text="正在搜索…"
-                           Foreground="{StaticResource Text.Secondary}"
+                           Foreground="{DynamicResource Text.Secondary}"
                            FontSize="13"
                            HorizontalAlignment="Center" />
             </StackPanel>
@@ -358,7 +358,7 @@
             <!-- Footer: counts on the left, file actions on the right -->
             <Border Grid.Row="4"
                     Background="Transparent"
-                    BorderBrush="{StaticResource Line.Soft}"
+                    BorderBrush="{DynamicResource Line.Soft}"
                     BorderThickness="0,1,0,0"
                     CornerRadius="0"
                     Padding="10,4">
@@ -370,7 +370,7 @@
 
                     <TextBlock Grid.Column="0"
                                Text="{Binding ItemSummary}"
-                               Foreground="{StaticResource Text.Tertiary}"
+                               Foreground="{DynamicResource Text.Tertiary}"
                                FontSize="{StaticResource Size.FontSmall}"
                                VerticalAlignment="Center" />
 

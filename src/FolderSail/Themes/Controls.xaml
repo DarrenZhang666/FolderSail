@@ -76,7 +76,7 @@
         <Setter Property="Height" Value="28" />
         <Setter Property="FontFamily" Value="{StaticResource Font.Icon}" />
         <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -91,11 +91,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Hover}" />
-                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Hover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Selected}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Selected}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.28" />
@@ -120,7 +120,7 @@
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Focusable" Value="False" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Foreground" Value="{StaticResource Traffic.Glyph}" />
+        <Setter Property="Foreground" Value="{DynamicResource Traffic.Glyph}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -215,8 +215,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Danger.Soft}" />
-                            <Setter Property="Foreground" Value="{StaticResource Danger.Base}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Danger.Soft}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Danger.Base}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.32" />
@@ -233,7 +233,7 @@
         <Setter Property="Padding" Value="10,0" />
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="{StaticResource Size.FontBody}" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
@@ -246,8 +246,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Hover}" />
-                            <Setter Property="Foreground" Value="{StaticResource Accent.Deep}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Hover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Accent.Deep}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.35" />
@@ -262,7 +262,7 @@
     <Style x:Key="CrumbButton" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="{StaticResource Size.FontBody}" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
@@ -275,8 +275,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Hover}" />
-                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Hover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -288,7 +288,7 @@
     <Style x:Key="LayoutSegment" TargetType="RadioButton">
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="{StaticResource Size.FontBody}" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
@@ -302,11 +302,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Hover}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Hover}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Card}" />
-                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Card}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -318,17 +318,17 @@
     <Style x:Key="AddressBox" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="{StaticResource Size.FontBody}" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
-        <Setter Property="CaretBrush" Value="{StaticResource Accent.Base}" />
-        <Setter Property="SelectionBrush" Value="{StaticResource Accent.Base}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Accent.Base}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Accent.Base}" />
         <Setter Property="Height" Value="26" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
                     <Border x:Name="Chrome"
-                            Background="{StaticResource Surface.Subtle}"
-                            BorderBrush="{StaticResource Line.Soft}"
+                            Background="{DynamicResource Surface.Subtle}"
+                            BorderBrush="{DynamicResource Line.Soft}"
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="8,0">
@@ -336,8 +336,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource Accent.Base}" />
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Card}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Accent.Base}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Card}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -349,9 +349,9 @@
     <Style x:Key="SearchField" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="{StaticResource Size.FontSmall}" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
-        <Setter Property="CaretBrush" Value="{StaticResource Accent.Base}" />
-        <Setter Property="SelectionBrush" Value="{StaticResource Accent.Base}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Accent.Base}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Accent.Base}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="0" />
@@ -385,12 +385,12 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Hover}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Hover}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Selected}" />
-                            <Setter Property="Foreground" Value="{StaticResource Text.OnAccent}" />
-                            <Setter TargetName="Chrome" Property="TextElement.Foreground" Value="{StaticResource Text.OnAccent}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Selected}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
+                            <Setter TargetName="Chrome" Property="TextElement.Foreground" Value="{DynamicResource Text.OnAccent}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -402,7 +402,7 @@
     <Style x:Key="SidebarItemButton" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="{StaticResource Size.FontBody}" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -417,7 +417,7 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.SidebarHover}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.SidebarHover}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -430,7 +430,7 @@
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="11" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Tertiary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Tertiary}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
@@ -439,7 +439,7 @@
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="10" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Tertiary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Tertiary}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
@@ -462,12 +462,12 @@
                         <Border x:Name="Line"
                                 Width="1"
                                 HorizontalAlignment="Center"
-                                Background="{StaticResource Line.Base}" />
+                                Background="{DynamicResource Line.Base}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Line" Property="Width" Value="2" />
-                            <Setter TargetName="Line" Property="Background" Value="{StaticResource Accent.Base}" />
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.Base}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -479,7 +479,7 @@
     <Style x:Key="TagRow" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="{StaticResource Size.FontBody}" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="AllowDrop" Value="True" />
@@ -497,14 +497,14 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.SidebarHover}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.SidebarHover}" />
                         </Trigger>
                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.SidebarSelected}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.SidebarSelected}" />
                         </DataTrigger>
                         <!-- Outline in the tag's own colour while a folder hovers over it. -->
                         <DataTrigger Binding="{Binding IsDropTarget}" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Accent.Soft}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Accent.Soft}" />
                             <Setter TargetName="Chrome" Property="BorderBrush" Value="{Binding Color}" />
                         </DataTrigger>
                     </ControlTemplate.Triggers>
@@ -517,7 +517,7 @@
     <Style x:Key="TagAddressRow" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="11" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -531,10 +531,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Hover}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Hover}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Accent.Soft}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Accent.Soft}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -544,19 +544,19 @@
 
     <!-- ============ Context menus ============ -->
     <Style TargetType="ContextMenu">
-        <Setter Property="Background" Value="{StaticResource Surface.Card}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Line.Soft}" />
+        <Setter Property="Background" Value="{DynamicResource Surface.Card}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Line.Soft}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="5" />
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="{StaticResource Size.FontBody}" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
         <Setter Property="HasDropShadow" Value="True" />
     </Style>
 
     <Style TargetType="MenuItem">
         <Setter Property="Padding" Value="10,6" />
-        <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
@@ -575,7 +575,7 @@
                                               VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1"
                                        Text="{TemplateBinding InputGestureText}"
-                                       Foreground="{StaticResource Text.Tertiary}"
+                                       Foreground="{DynamicResource Text.Tertiary}"
                                        FontSize="10"
                                        Margin="20,0,0,0"
                                        VerticalAlignment="Center" />
@@ -583,7 +583,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Surface.Selected}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Selected}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.38" />
@@ -597,7 +597,7 @@
     <Style TargetType="Separator">
         <Setter Property="Height" Value="1" />
         <Setter Property="Margin" Value="6,4" />
-        <Setter Property="Background" Value="{StaticResource Line.Soft}" />
+        <Setter Property="Background" Value="{DynamicResource Line.Soft}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Separator">
@@ -629,20 +629,20 @@
         <Setter Property="Padding" Value="14,0" />
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
         <Setter Property="FontSize" Value="13" />
-        <Setter Property="Foreground" Value="{StaticResource Text.OnAccent}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="Chrome"
-                            Background="{StaticResource Accent.Base}"
+                            Background="{DynamicResource Accent.Base}"
                             CornerRadius="7"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Accent.Deep}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Accent.Deep}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.4" />

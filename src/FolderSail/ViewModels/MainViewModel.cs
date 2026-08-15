@@ -21,6 +21,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     private double _sidebarWidth = 228;
     private string _searchText = string.Empty;
     private int _searchEpoch;
+    private bool _isDarkTheme;
 
     public const double SidebarMinWidth = 156;
     public const double SidebarMaxWidth = 520;
@@ -63,6 +64,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
 
         _layoutMode = settings.LayoutMode;
         _sidebarWidth = ClampSidebarWidth(settings.SidebarWidth);
+        _isDarkTheme = settings.IsDarkTheme;
         ApplyLayout(settings.ActivePaneIndex, settings.PanePaths);
         UpdateLayoutPresetSelection();
         LoadDrives();
@@ -74,6 +76,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         OpenKnownFolderCommand = new RelayCommand<string>(OpenKnownFolder);
         SearchCommand = new RelayCommand(SubmitSearch, () => HasSearchText);
         ClearSearchCommand = new RelayCommand(ClearSearch, () => HasSearchText);
+        ToggleThemeCommand = new RelayCommand(ToggleTheme);
     }
 
     public ObservableCollection<PaneViewModel> Panes { get; } = [];
@@ -152,6 +155,25 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
 
     public bool HasSearchText => !string.IsNullOrWhiteSpace(_searchText);
 
+    public bool IsDarkTheme
+    {
+        get => _isDarkTheme;
+        set
+        {
+            if (!SetProperty(ref _isDarkTheme, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(ThemeToggleTip));
+            FolderSail.Helpers.ThemeManager.Apply(value);
+            SaveSettings();
+        }
+    }
+
+    public string ThemeToggleTip =>
+        IsDarkTheme ? "切换到浅色主题" : "切换到深色主题";
+
     public double SidebarWidth
     {
         get => _sidebarWidth;
@@ -175,6 +197,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public ICommand OpenKnownFolderCommand { get; }
     public ICommand SearchCommand { get; }
     public ICommand ClearSearchCommand { get; }
+    public ICommand ToggleThemeCommand { get; }
 
     public void SubmitSearch()
     {
@@ -193,6 +216,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         Interlocked.Increment(ref _searchEpoch);
         SearchText = string.Empty;
     }
+
+    private void ToggleTheme() => IsDarkTheme = !IsDarkTheme;
 
     private async void ScheduleLiveSearch()
     {
@@ -497,7 +522,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
             LayoutMode = LayoutMode,
             ActivePaneIndex = ActivePaneIndex,
             PanePaths = _allPanes.Select(p => p.GetExportPath()).ToList(),
-            SidebarWidth = SidebarWidth
+            SidebarWidth = SidebarWidth,
+            IsDarkTheme = IsDarkTheme
         });
     }
 
