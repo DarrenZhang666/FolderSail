@@ -1,0 +1,64 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Surfaces: layered whites keep the shell airy without going flat. -->
+    <SolidColorBrush x:Key="Surface.Canvas" Color="#F4F6F8" />
+    <SolidColorBrush x:Key="Surface.Card" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Surface.Sidebar" Color="#FBFCFD" />
+    <SolidColorBrush x:Key="Surface.Subtle" Color="#F7F9FA" />
+    <SolidColorBrush x:Key="Surface.Hover" Color="#EEF6F8" />
+    <SolidColorBrush x:Key="Surface.Selected" Color="#DFF1F6" />
+
+    <!-- Lines -->
+    <SolidColorBrush x:Key="Line.Soft" Color="#EDF0F2" />
+    <SolidColorBrush x:Key="Line.Base" Color="#E1E6EA" />
+    <SolidColorBrush x:Key="Line.Strong" Color="#CFD6DC" />
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="Text.Primary" Color="#1C2530" />
+    <SolidColorBrush x:Key="Text.Secondary" Color="#5B6875" />
+    <SolidColorBrush x:Key="Text.Tertiary" Color="#8B97A3" />
+    <SolidColorBrush x:Key="Text.OnAccent" Color="#FFFFFF" />
+
+    <!-- Accent: FolderSail sails on teal, deliberately away from stock Windows blue. -->
+    <SolidColorBrush x:Key="Accent.Base" Color="#0E8AA8" />
+    <SolidColorBrush x:Key="Accent.Deep" Color="#0A6C85" />
+    <SolidColorBrush x:Key="Accent.Soft" Color="#D6EEF4" />
+    <SolidColorBrush x:Key="Accent.Muted" Color="#8FCEDC" />
+
+    <SolidColorBrush x:Key="Danger.Base" Color="#C2410C" />
+    <SolidColorBrush x:Key="Danger.Soft" Color="#FDEDE6" />
+
+    <!-- The wake gradient marks the active pane: a sail trail rather than a hard outline. -->
+    <LinearGradientBrush x:Key="Accent.Wake" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#0E8AA8" Offset="0" />
+        <GradientStop Color="#35B0C4" Offset="0.55" />
+        <GradientStop Color="#7FD3D8" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="Accent.WakeFaded" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#E4EAEE" Offset="0" />
+        <GradientStop Color="#EDF1F3" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Metrics -->
+    <CornerRadius x:Key="Radius.Card">10</CornerRadius>
+    <CornerRadius x:Key="Radius.Control">6</CornerRadius>
+    <CornerRadius x:Key="Radius.Pill">999</CornerRadius>
+
+    <sys:Double x:Key="Size.Row">26</sys:Double>
+    <sys:Double x:Key="Size.FontBody">12</sys:Double>
+    <sys:Double x:Key="Size.FontSmall">11</sys:Double>
+
+    <FontFamily x:Key="Font.Ui">Microsoft YaHei UI, Segoe UI, sans-serif</FontFamily>
+    <FontFamily x:Key="Font.Icon">Segoe MDL2 Assets</FontFamily>
+
+    <DropShadowEffect x:Key="Shadow.Card"
+                      BlurRadius="14"
+                      ShadowDepth="1"
+                      Direction="270"
+                      Color="#22384A"
+                      Opacity="0.10" />
+
+</ResourceDictionary>

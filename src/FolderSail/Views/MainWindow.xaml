@@ -1,0 +1,410 @@
+<Window x:Class="FolderSail.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:FolderSail.Views"
+        xmlns:models="clr-namespace:FolderSail.Core.Models;assembly=FolderSail.Core"
+        xmlns:vm="clr-namespace:FolderSail.ViewModels"
+        Title="FolderSail"
+        Width="1360"
+        Height="860"
+        MinWidth="980"
+        MinHeight="620"
+        Background="{StaticResource Surface.Canvas}"
+        FontFamily="{StaticResource Font.Ui}"
+        FontSize="{StaticResource Size.FontBody}"
+        Foreground="{StaticResource Text.Primary}"
+        UseLayoutRounding="True"
+        PreviewKeyDown="OnWindowPreviewKeyDown">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="SidebarColumn"
+                              Width="228"
+                              MinWidth="{x:Static vm:MainViewModel.SidebarMinWidth}"
+                              MaxWidth="{x:Static vm:MainViewModel.SidebarMaxWidth}" />
+            <ColumnDefinition Width="*" MinWidth="420" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ================= Top bar ================= -->
+        <Border Grid.Row="0" Grid.ColumnSpan="2"
+                Background="{StaticResource Surface.Card}"
+                BorderBrush="{StaticResource Line.Base}"
+                BorderThickness="0,0,0,1"
+                Padding="16,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Wordmark: the sail is drawn as geometry so the brand mark never
+                     depends on a system icon font being present. -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="26" Height="26"
+                            CornerRadius="8"
+                            Background="{StaticResource Accent.Wake}"
+                            Margin="0,0,10,0">
+                        <Canvas Width="26" Height="26">
+                            <Path Fill="White" Data="M 13.4 5 L 13.4 15.2 L 6.6 15.2 Z" />
+                            <Path Fill="White" Opacity="0.65" Data="M 14.6 8.6 L 19.4 15.2 L 14.6 15.2 Z" />
+                            <Path Fill="White" Data="M 5.4 17.2 L 20.6 17.2 L 18.4 20.4 L 7.6 20.4 Z" />
+                        </Canvas>
+                    </Border>
+                    <TextBlock Text="FolderSail"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                    <Border Background="{StaticResource Accent.Soft}"
+                            CornerRadius="{StaticResource Radius.Pill}"
+                            Padding="7,2"
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="多窗格"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource Accent.Deep}" />
+                    </Border>
+                </StackPanel>
+
+                <!-- Q-Dir inspired global layout palette. The icons describe geometry
+                     directly, while FolderSail keeps its own light visual language. -->
+                <Border Grid.Column="2"
+                        Background="{StaticResource Surface.Canvas}"
+                        BorderBrush="{StaticResource Line.Soft}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource Radius.Control}"
+                        Padding="3">
+                    <DockPanel>
+                        <TextBlock Text="分屏"
+                                   DockPanel.Dock="Left"
+                                   Style="{StaticResource SectionLabel}"
+                                   Margin="6,0,8,0" />
+                        <ItemsControl ItemsSource="{Binding LayoutPresets}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <RadioButton Style="{StaticResource LayoutSegment}"
+                                                 GroupName="Layout"
+                                                 IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                 ToolTip="{Binding Name}"
+                                                 Command="{Binding DataContext.SetLayoutCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                 CommandParameter="{Binding Mode}">
+                                        <views:LayoutGlyph Mode="{Binding Mode}"
+                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                    </RadioButton>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ================= Sidebar ================= -->
+        <Border Grid.Row="1" Grid.Column="0"
+                Background="{StaticResource Surface.Sidebar}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          Padding="10,12,6,12"
+                          FontFamily="{StaticResource Font.Ui}"
+                          FontSize="{StaticResource Size.FontBody}"
+                          Foreground="{StaticResource Text.Primary}">
+                <StackPanel>
+
+                    <!-- Jump targets -->
+                    <TextBlock Text="快速跳转" Style="{StaticResource SectionLabel}" Margin="6,0,0,6" />
+
+                    <Button Style="{StaticResource SidebarItemButton}"
+                            Command="{Binding OpenThisPcCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE977;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
+                                       Foreground="{StaticResource Accent.Base}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="此电脑" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource SidebarItemButton}"
+                            Command="{Binding OpenKnownFolderCommand}" CommandParameter="Desktop">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
+                                       Foreground="{StaticResource Text.Tertiary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="桌面" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource SidebarItemButton}"
+                            Command="{Binding OpenKnownFolderCommand}" CommandParameter="Documents">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8A5;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
+                                       Foreground="{StaticResource Text.Tertiary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="文档" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource SidebarItemButton}"
+                            Command="{Binding OpenKnownFolderCommand}" CommandParameter="Downloads">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE896;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
+                                       Foreground="{StaticResource Text.Tertiary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="下载" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource SidebarItemButton}"
+                            Command="{Binding OpenKnownFolderCommand}" CommandParameter="Pictures">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xEB9F;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
+                                       Foreground="{StaticResource Text.Tertiary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="图片" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Drives with capacity keel bars -->
+                    <TextBlock Text="磁盘" Style="{StaticResource SectionLabel}" Margin="6,18,0,6" />
+
+                    <ItemsControl ItemsSource="{Binding Drives}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource SidebarItemButton}"
+                                        Command="{Binding DataContext.OpenDriveCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="{Binding CapacityText}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xEDA2;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
+                                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Label}"
+                                                       Foreground="{StaticResource Text.Tertiary}"
+                                                       FontSize="10"
+                                                       Margin="6,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+
+                                        <!-- Usage bar -->
+                                        <Grid x:Name="Track" Height="3" Margin="21,5,4,1">
+                                            <Border Background="{StaticResource Line.Base}" CornerRadius="2" />
+                                            <Border HorizontalAlignment="Left" CornerRadius="2">
+                                                <Border.Background>
+                                                    <SolidColorBrush Color="#35B0C4" />
+                                                </Border.Background>
+                                                <Border.Width>
+                                                    <MultiBinding Converter="{StaticResource RatioToWidth}">
+                                                        <Binding Path="UsedRatio" />
+                                                        <Binding Path="ActualWidth" ElementName="Track" />
+                                                    </MultiBinding>
+                                                </Border.Width>
+                                            </Border>
+                                        </Grid>
+
+                                        <TextBlock Text="{Binding CapacityText}"
+                                                   Foreground="{StaticResource Text.Tertiary}"
+                                                   FontSize="10"
+                                                   Margin="21,0,0,0" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Colour tags, laid out like the Finder sidebar's Tags section -->
+                    <TextBlock Text="标签"
+                               Style="{StaticResource SectionLabel}"
+                               Margin="6,18,0,6" />
+
+                    <ItemsControl ItemsSource="{Binding Tags}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0">
+                                        <Button Style="{StaticResource TagRow}"
+                                                ToolTip="点击查看该标签的全部地址，也可把文件夹拖到这里"
+                                                Command="{Binding OpenCommand}"
+                                                DragEnter="OnTagDragEnter"
+                                                DragOver="OnTagDragOver"
+                                                DragLeave="OnTagDragLeave"
+                                                Drop="OnTagDrop">
+                                            <Button.ContextMenu>
+                                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                    <MenuItem Header="为当前位置加此标签" Command="{Binding TagCurrentLocationCommand}" />
+                                                    <MenuItem Header="重命名" Command="{Binding RenameCommand}" />
+                                                    <MenuItem Header="清空此标签" Command="{Binding ClearCommand}" />
+                                                    <Separator />
+                                                    <MenuItem Header="更改颜色">
+                                                        <MenuItem Header="红色" Command="{Binding SetColorCommand}" CommandParameter="#FF5F57" />
+                                                        <MenuItem Header="橙色" Command="{Binding SetColorCommand}" CommandParameter="#FF9F0A" />
+                                                        <MenuItem Header="黄色" Command="{Binding SetColorCommand}" CommandParameter="#FFD60A" />
+                                                        <MenuItem Header="绿色" Command="{Binding SetColorCommand}" CommandParameter="#32D74B" />
+                                                        <MenuItem Header="蓝色" Command="{Binding SetColorCommand}" CommandParameter="#0A84FF" />
+                                                        <MenuItem Header="紫色" Command="{Binding SetColorCommand}" CommandParameter="#BF5AF2" />
+                                                        <MenuItem Header="灰色" Command="{Binding SetColorCommand}" CommandParameter="#98989D" />
+                                                    </MenuItem>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+
+                                            <Grid Margin="0,0,24,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Ellipse Grid.Column="0"
+                                                         Width="10" Height="10"
+                                                         Margin="0,0,9,0"
+                                                         Fill="{Binding Color}"
+                                                         VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding Name}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="2"
+                                                           Text="{Binding ItemCount}"
+                                                           Margin="6,0,0,0"
+                                                           FontSize="10"
+                                                           Foreground="{StaticResource Text.Tertiary}"
+                                                           VerticalAlignment="Center"
+                                                           Visibility="{Binding HasItems, Converter={StaticResource BoolToVisibility}}" />
+                                            </Grid>
+                                        </Button>
+
+                                        <!-- The right-hand disclosure button only expands the saved addresses. -->
+                                        <Button Width="24"
+                                                Height="24"
+                                                Margin="0,0,3,0"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource IconButtonSmall}"
+                                                ToolTip="展开或收起本地地址"
+                                                IsEnabled="{Binding HasItems}"
+                                                Command="{Binding ToggleExpandedCommand}">
+                                            <Grid>
+                                                <TextBlock Text="&#xE76C;"
+                                                           Style="{StaticResource GlyphTextSmall}"
+                                                           Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+                                                <TextBlock Text="&#xE70D;"
+                                                           Style="{StaticResource GlyphTextSmall}"
+                                                           Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}" />
+                                            </Grid>
+                                        </Button>
+                                    </Grid>
+
+                                    <ItemsControl Grid.Row="1"
+                                                  Margin="20,2,2,5"
+                                                  ItemsSource="{Binding Items}"
+                                                  Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,1">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <Button Grid.Column="0"
+                                                            Style="{StaticResource TagAddressRow}"
+                                                            ToolTip="{Binding Path}"
+                                                            Command="{Binding DataContext.OpenItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="*" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0"
+                                                                       Text="&#xE8B7;"
+                                                                       Style="{StaticResource GlyphTextSmall}"
+                                                                       Margin="0,1,7,0"
+                                                                       VerticalAlignment="Top" />
+                                                            <StackPanel Grid.Column="1">
+                                                                <TextBlock Text="{Binding Name}"
+                                                                           TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding Path}"
+                                                                           Margin="0,1,0,0"
+                                                                           FontSize="9"
+                                                                           Foreground="{StaticResource Text.Tertiary}"
+                                                                           TextTrimming="CharacterEllipsis" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Button>
+
+                                                    <Button Grid.Column="1"
+                                                            Width="22"
+                                                            Height="22"
+                                                            VerticalAlignment="Center"
+                                                            Style="{StaticResource IconButtonDanger}"
+                                                            Content="&#xE711;"
+                                                            ToolTip="从此颜色标签移除（不会删除本地文件）"
+                                                            Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Drag the seam to grow or shrink the navigation column. -->
+        <GridSplitter Grid.Row="1" Grid.Column="0"
+                      Style="{StaticResource SidebarSplitter}"
+                      DragCompleted="OnSidebarSplitterDragCompleted" />
+
+        <!-- ================= Pane host ================= -->
+        <views:LayoutHost Grid.Row="1" Grid.Column="1"
+                          Margin="5"
+                          ItemsSource="{Binding Panes}"
+                          LayoutMode="{Binding LayoutMode}" />
+
+        <!-- ================= Status bar ================= -->
+        <Border Grid.Row="2" Grid.ColumnSpan="2"
+                Background="{StaticResource Surface.Card}"
+                BorderBrush="{StaticResource Line.Base}"
+                BorderThickness="0,1,0,0"
+                Padding="16,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Border Width="6" Height="6"
+                            CornerRadius="3"
+                            Background="{StaticResource Accent.Base}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{StaticResource Text.Secondary}"
+                               FontSize="{StaticResource Size.FontSmall}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="拖拽复制 · Shift 拖拽移动 · F2 重命名 · F5 刷新"
+                           Foreground="{StaticResource Text.Tertiary}"
+                           FontSize="10"
+                           VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
