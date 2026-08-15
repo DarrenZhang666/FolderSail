@@ -241,4 +241,5 @@ public sealed class AppSettings
     public int ActivePaneIndex { get; set; }
     public List<string> PanePaths { get; set; } = [];
     public double SidebarWidth { get; set; } = 228;
+    public bool IsDarkTheme { get; set; }
 }

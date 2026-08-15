@@ -11,10 +11,10 @@
         Height="860"
         MinWidth="980"
         MinHeight="620"
-        Background="{StaticResource Surface.Window}"
+        Background="{DynamicResource Surface.Window}"
         FontFamily="{StaticResource Font.Ui}"
         FontSize="{StaticResource Size.FontBody}"
-        Foreground="{StaticResource Text.Primary}"
+        Foreground="{DynamicResource Text.Primary}"
         WindowStyle="None"
         ResizeMode="CanResize"
         UseLayoutRounding="True"
@@ -44,11 +44,11 @@
 
         <!-- Opaque stage behind the file panes so Mica never leaks as black gaps. -->
         <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="1"
-                Background="{StaticResource Surface.Canvas}" />
+                Background="{DynamicResource Surface.Canvas}" />
 
         <!-- ================= Sidebar: full height, frosted like Finder ================= -->
         <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="0"
-                Background="{StaticResource Surface.Sidebar}">
+                Background="{DynamicResource Surface.Sidebar}">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top"
                             Orientation="Horizontal"
@@ -58,7 +58,7 @@
                     <Border Width="22"
                             Height="22"
                             CornerRadius="6"
-                            Background="{StaticResource Text.Primary}"
+                            Background="{DynamicResource Surface.Brand}"
                             Opacity="0.82"
                             Margin="0,0,8,0"
                             VerticalAlignment="Center">
@@ -78,7 +78,7 @@
                               Padding="10,4,8,16"
                               FontFamily="{StaticResource Font.Ui}"
                               FontSize="{StaticResource Size.FontBody}"
-                              Foreground="{StaticResource Text.Primary}">
+                              Foreground="{DynamicResource Text.Primary}">
                 <StackPanel>
 
                     <!-- Drives with capacity keel bars -->
@@ -94,10 +94,10 @@
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xEDA2;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
-                                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                                                       Foreground="{DynamicResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                             <TextBlock Text="{Binding Label}"
-                                                       Foreground="{StaticResource Text.Tertiary}"
+                                                       Foreground="{DynamicResource Text.Tertiary}"
                                                        FontSize="10"
                                                        Margin="6,0,0,0"
                                                        VerticalAlignment="Center"
@@ -106,10 +106,10 @@
 
                                         <!-- Usage bar -->
                                         <Grid x:Name="Track" Height="4" Margin="22,6,6,2">
-                                            <Border Background="{StaticResource Line.Soft}" CornerRadius="2" />
+                                            <Border Background="{DynamicResource Line.Soft}" CornerRadius="2" />
                                             <Border HorizontalAlignment="Left"
                                                     CornerRadius="2"
-                                                    Background="{StaticResource Text.Tertiary}">
+                                                    Background="{DynamicResource Text.Tertiary}">
                                                 <Border.Width>
                                                     <MultiBinding Converter="{StaticResource RatioToWidth}">
                                                         <Binding Path="UsedRatio" />
@@ -120,7 +120,7 @@
                                         </Grid>
 
                                         <TextBlock Text="{Binding CapacityText}"
-                                                   Foreground="{StaticResource Text.Secondary}"
+                                                   Foreground="{DynamicResource Text.Secondary}"
                                                    FontSize="10"
                                                    Margin="21,0,0,0" />
                                     </StackPanel>
@@ -191,7 +191,7 @@
                                                            Text="{Binding ItemCount}"
                                                            Margin="6,0,0,0"
                                                            FontSize="10"
-                                                           Foreground="{StaticResource Text.Tertiary}"
+                                                           Foreground="{DynamicResource Text.Tertiary}"
                                                            VerticalAlignment="Center"
                                                            Visibility="{Binding HasItems, Converter={StaticResource BoolToVisibility}}" />
                                             </Grid>
@@ -251,7 +251,7 @@
                                                                 <TextBlock Text="{Binding Path}"
                                                                            Margin="0,1,0,0"
                                                                            FontSize="9"
-                                                                           Foreground="{StaticResource Text.Tertiary}"
+                                                                           Foreground="{DynamicResource Text.Tertiary}"
                                                                            TextTrimming="CharacterEllipsis" />
                                                             </StackPanel>
                                                         </Grid>
@@ -282,8 +282,8 @@
         <!-- Unified caption: layout + search sit in the same strip as the traffic lights. -->
         <Border Grid.Row="0" Grid.Column="1"
                 Height="52"
-                Background="{StaticResource Surface.Toolbar}"
-                BorderBrush="{StaticResource Line.Soft}"
+                Background="{DynamicResource Surface.Toolbar}"
+                BorderBrush="{DynamicResource Line.Soft}"
                 BorderThickness="0,0,0,1"
                 Padding="10,0,12,0">
             <DockPanel>
@@ -293,19 +293,19 @@
                             VerticalAlignment="Center"
                             Margin="12,0,4,0">
                     <Button Style="{StaticResource TrafficLightButton}"
-                            Background="{StaticResource Traffic.Min}"
+                            Background="{DynamicResource Traffic.Min}"
                             Tag="min"
                             ToolTip="最小化"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Click="OnMinimizeWindow" />
                     <Button Style="{StaticResource TrafficLightButton}"
-                            Background="{StaticResource Traffic.Max}"
+                            Background="{DynamicResource Traffic.Max}"
                             Tag="max"
                             ToolTip="最大化"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Click="OnMaximizeWindow" />
                     <Button Style="{StaticResource TrafficLightButton}"
-                            Background="{StaticResource Traffic.Close}"
+                            Background="{DynamicResource Traffic.Close}"
                             Tag="close"
                             Margin="0"
                             ToolTip="关闭"
@@ -333,8 +333,8 @@
                             CornerRadius="8"
                             VerticalAlignment="Center"
                             Margin="4"
-                            Background="{StaticResource Surface.Subtle}"
-                            BorderBrush="{StaticResource Line.Soft}"
+                            Background="{DynamicResource Surface.Subtle}"
+                            BorderBrush="{DynamicResource Line.Soft}"
                             BorderThickness="1"
                             SnapsToDevicePixels="True"
                             MouseLeftButtonDown="OnSearchChromeMouseDown">
@@ -348,14 +348,14 @@
                                        Text="&#xE721;"
                                        FontFamily="{StaticResource Font.Icon}"
                                        FontSize="12"
-                                       Foreground="{StaticResource Text.Tertiary}"
+                                       Foreground="{DynamicResource Text.Tertiary}"
                                        VerticalAlignment="Center"
                                        Margin="8,0,6,0" />
                             <TextBlock x:Name="SearchPlaceholder"
                                        Grid.Column="1"
                                        Text="搜索此电脑"
                                        IsHitTestVisible="False"
-                                       Foreground="{StaticResource Text.Tertiary}"
+                                       Foreground="{DynamicResource Text.Tertiary}"
                                        FontSize="{StaticResource Size.FontSmall}"
                                        VerticalAlignment="Center" />
                             <TextBox x:Name="GlobalSearchBox"
@@ -380,7 +380,28 @@
                     </Border>
                 </Grid>
 
-                <Border Background="{StaticResource Surface.Hover}"
+                <Button Style="{StaticResource IconButtonSmall}"
+                        Width="28"
+                        Height="28"
+                        Margin="0,0,8,0"
+                        VerticalAlignment="Center"
+                        DockPanel.Dock="Right"
+                        ToolTip="{Binding ThemeToggleTip}"
+                        Command="{Binding ToggleThemeCommand}"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Grid>
+                        <TextBlock FontFamily="{StaticResource Font.Icon}"
+                                   FontSize="13"
+                                   Text="&#xE708;"
+                                   Visibility="{Binding IsDarkTheme, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+                        <TextBlock FontFamily="{StaticResource Font.Icon}"
+                                   FontSize="13"
+                                   Text="&#xE706;"
+                                   Visibility="{Binding IsDarkTheme, Converter={StaticResource BoolToVisibility}}" />
+                    </Grid>
+                </Button>
+
+                <Border Background="{DynamicResource Surface.Hover}"
                         CornerRadius="8"
                         Padding="3"
                         HorizontalAlignment="Left"
@@ -425,8 +446,8 @@
 
         <!-- ================= Status bar ================= -->
         <Border Grid.Row="2" Grid.Column="1"
-                Background="{StaticResource Surface.Toolbar}"
-                BorderBrush="{StaticResource Line.Soft}"
+                Background="{DynamicResource Surface.Toolbar}"
+                BorderBrush="{DynamicResource Line.Soft}"
                 BorderThickness="0,1,0,0"
                 Padding="16,4">
             <Grid>
@@ -438,18 +459,18 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                     <Border Width="6" Height="6"
                             CornerRadius="3"
-                            Background="{StaticResource Accent.Base}"
+                            Background="{DynamicResource Accent.Base}"
                             VerticalAlignment="Center"
                             Margin="0,0,8,0" />
                     <TextBlock Text="{Binding StatusMessage}"
-                               Foreground="{StaticResource Text.Secondary}"
+                               Foreground="{DynamicResource Text.Secondary}"
                                FontSize="{StaticResource Size.FontSmall}"
                                VerticalAlignment="Center" />
                 </StackPanel>
 
                 <TextBlock Grid.Column="1"
                            Text="Ctrl+F 搜索 · 拖拽复制 · Shift 拖拽移动 · F2 重命名 · F5 刷新"
-                           Foreground="{StaticResource Text.Tertiary}"
+                           Foreground="{DynamicResource Text.Tertiary}"
                            FontSize="10"
                            VerticalAlignment="Center" />
             </Grid>

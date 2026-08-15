@@ -20,7 +20,11 @@ public partial class PaneView : UserControl
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         Loaded += (_, _) => ApplyActiveVisual();
+        Unloaded += (_, _) => FolderSail.Helpers.ThemeManager.Changed -= OnThemeChanged;
+        FolderSail.Helpers.ThemeManager.Changed += OnThemeChanged;
     }
+
+    private void OnThemeChanged(object? sender, EventArgs e) => ApplyActiveVisual();
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {

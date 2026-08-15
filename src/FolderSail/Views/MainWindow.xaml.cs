@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using FolderSail.Helpers;
 using FolderSail.ViewModels;
 
 namespace FolderSail.Views;
@@ -17,12 +18,17 @@ public partial class MainWindow : Window
         SidebarColumn.Width = new GridLength(viewModel.SidebarWidth);
         Helpers.WindowBackdrop.TryEnable(this);
         Loaded += (_, _) => UpdateSearchPlaceholder();
+        Helpers.ThemeManager.Changed += OnThemeChanged;
         Closing += (_, _) =>
         {
+            Helpers.ThemeManager.Changed -= OnThemeChanged;
             viewModel.SidebarWidth = SidebarColumn.ActualWidth;
             viewModel.SaveOnExit();
         };
     }
+
+    private void OnThemeChanged(object? sender, EventArgs e) =>
+        UpdateSearchChrome(GlobalSearchBox.IsKeyboardFocused);
 
     private void OnCloseWindow(object sender, RoutedEventArgs e) => Close();
 
