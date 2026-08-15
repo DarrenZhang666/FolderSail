@@ -113,6 +113,97 @@
         <Setter Property="FontSize" Value="11" />
     </Style>
 
+    <Style x:Key="TrafficLightButton" TargetType="Button">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{StaticResource Traffic.Glyph}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Width="14" Height="14">
+                        <Ellipse x:Name="Dot" Fill="{TemplateBinding Background}" />
+                        <Grid x:Name="Glyph"
+                              Width="14"
+                              Height="14"
+                              IsHitTestVisible="False"
+                              Opacity="0">
+                            <Rectangle x:Name="MinBar"
+                                       Width="7"
+                                       Height="1.6"
+                                       RadiusX="0.8"
+                                       RadiusY="0.8"
+                                       Fill="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Visibility="Collapsed" />
+                            <Grid x:Name="MaxPlus"
+                                  Width="7"
+                                  Height="7"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Visibility="Collapsed">
+                                <Rectangle Width="7" Height="1.6" RadiusX="0.8" RadiusY="0.8"
+                                           Fill="{TemplateBinding Foreground}"
+                                           VerticalAlignment="Center" />
+                                <Rectangle Width="1.6" Height="7" RadiusX="0.8" RadiusY="0.8"
+                                           Fill="{TemplateBinding Foreground}"
+                                           HorizontalAlignment="Center" />
+                            </Grid>
+                            <Grid x:Name="CloseX"
+                                  Width="7"
+                                  Height="7"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Visibility="Collapsed">
+                                <Rectangle Width="8.4"
+                                           Height="1.5"
+                                           RadiusX="0.75"
+                                           RadiusY="0.75"
+                                           Fill="{TemplateBinding Foreground}"
+                                           RenderTransformOrigin="0.5,0.5">
+                                    <Rectangle.RenderTransform>
+                                        <RotateTransform Angle="45" />
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                                <Rectangle Width="8.4"
+                                           Height="1.5"
+                                           RadiusX="0.75"
+                                           RadiusY="0.75"
+                                           Fill="{TemplateBinding Foreground}"
+                                           RenderTransformOrigin="0.5,0.5">
+                                    <Rectangle.RenderTransform>
+                                        <RotateTransform Angle="-45" />
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Glyph" Property="Opacity" Value="1" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Glyph" Property="Opacity" Value="1" />
+                        </Trigger>
+                        <Trigger Property="Tag" Value="min">
+                            <Setter TargetName="MinBar" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="Tag" Value="max">
+                            <Setter TargetName="MaxPlus" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="Tag" Value="close">
+                            <Setter TargetName="CloseX" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="IconButtonDanger" TargetType="Button" BasedOn="{StaticResource IconButtonSmall}">
         <Setter Property="Template">
             <Setter.Value>

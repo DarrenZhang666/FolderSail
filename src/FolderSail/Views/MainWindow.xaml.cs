@@ -24,6 +24,16 @@ public partial class MainWindow : Window
         };
     }
 
+    private void OnCloseWindow(object sender, RoutedEventArgs e) => Close();
+
+    private void OnMinimizeWindow(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState.Minimized;
+
+    private void OnMaximizeWindow(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (DataContext is not MainViewModel vm || vm.ActivePane is not PaneViewModel pane)
