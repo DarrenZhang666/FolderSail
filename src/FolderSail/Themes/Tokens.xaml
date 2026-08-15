@@ -30,6 +30,8 @@
     <SolidColorBrush x:Key="Accent.Deep" Color="#0066D6" />
     <SolidColorBrush x:Key="Accent.Soft" Color="#1A007AFF" />
     <SolidColorBrush x:Key="Accent.Muted" Color="#66007AFF" />
+    <SolidColorBrush x:Key="Accent.FocusLine" Color="#A8CDE8" />
+    <SolidColorBrush x:Key="Accent.FocusHalo" Color="#D6E8F5" />
 
     <SolidColorBrush x:Key="Danger.Base" Color="#FF3B30" />
     <SolidColorBrush x:Key="Danger.Soft" Color="#22FF3B30" />

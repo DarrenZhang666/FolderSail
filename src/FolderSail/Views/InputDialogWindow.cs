@@ -11,12 +11,14 @@ public class InputDialogWindow : Window
     public InputDialogWindow(string title, string label, string defaultValue)
     {
         Title = title;
-        Width = 400;
+        Width = 420;
+        MinHeight = 160;
         SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
-        Background = TryBrush("Surface.Card", Brushes.White);
+        Topmost = true;
+        Background = Brushes.White;
 
         if (TryFindResource("Font.Ui") is FontFamily uiFont)
         {
@@ -117,6 +119,14 @@ public class InputDialogWindow : Window
 
         Loaded += (_, _) =>
         {
+            // Prefer an opaque card colour once Application resources are available.
+            Background = TryBrush("Surface.Card", Brushes.White);
+            if (Owner is null)
+            {
+                WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
+
+            Activate();
             _input.Focus();
             _input.SelectAll();
         };

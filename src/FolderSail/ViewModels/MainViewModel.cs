@@ -10,6 +10,7 @@ namespace FolderSail.ViewModels;
 public sealed class MainViewModel : ObservableObject, ITagLookup
 {
     private readonly IFileService _fileService;
+    private readonly IFileSearchService _searchService;
     private readonly IFavoriteStore _favoriteStore;
     private readonly ISettingsStore _settingsStore;
     private readonly FavoritesDocument _favoritesDocument;
@@ -18,6 +19,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     private int _activePaneIndex;
     private string _statusMessage = "就绪";
     private double _sidebarWidth = 228;
+    private string _searchText = string.Empty;
+    private int _searchEpoch;
 
     public const double SidebarMinWidth = 156;
     public const double SidebarMaxWidth = 520;
@@ -29,8 +32,18 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     }
 
     public MainViewModel(IFileService fileService, IFavoriteStore favoriteStore, ISettingsStore settingsStore)
+        : this(fileService, new SearchService(fileService), favoriteStore, settingsStore)
+    {
+    }
+
+    public MainViewModel(
+        IFileService fileService,
+        IFileSearchService searchService,
+        IFavoriteStore favoriteStore,
+        ISettingsStore settingsStore)
     {
         _fileService = fileService;
+        _searchService = searchService;
         _favoriteStore = favoriteStore;
         _settingsStore = settingsStore;
         _favoritesDocument = _favoriteStore.Load();
@@ -59,6 +72,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         OpenDriveCommand = new RelayCommand<DriveItemViewModel>(OpenDrive);
         OpenThisPcCommand = new RelayCommand(() => ActivePane?.Navigate("ThisPC"));
         OpenKnownFolderCommand = new RelayCommand<string>(OpenKnownFolder);
+        SearchCommand = new RelayCommand(SubmitSearch, () => HasSearchText);
+        ClearSearchCommand = new RelayCommand(ClearSearch, () => HasSearchText);
     }
 
     public ObservableCollection<PaneViewModel> Panes { get; } = [];
@@ -120,6 +135,23 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         set => SetProperty(ref _statusMessage, value);
     }
 
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (!SetProperty(ref _searchText, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(HasSearchText));
+            ScheduleLiveSearch();
+        }
+    }
+
+    public bool HasSearchText => !string.IsNullOrWhiteSpace(_searchText);
+
     public double SidebarWidth
     {
         get => _sidebarWidth;
@@ -141,6 +173,52 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public ICommand OpenDriveCommand { get; }
     public ICommand OpenThisPcCommand { get; }
     public ICommand OpenKnownFolderCommand { get; }
+    public ICommand SearchCommand { get; }
+    public ICommand ClearSearchCommand { get; }
+
+    public void SubmitSearch()
+    {
+        Interlocked.Increment(ref _searchEpoch);
+        var query = SearchText.Trim();
+        if (query.Length == 0 || ActivePane is null)
+        {
+            return;
+        }
+
+        ActivePane.Navigate(SearchPath.Create(query));
+    }
+
+    public void ClearSearch()
+    {
+        Interlocked.Increment(ref _searchEpoch);
+        SearchText = string.Empty;
+    }
+
+    private async void ScheduleLiveSearch()
+    {
+        var epoch = Interlocked.Increment(ref _searchEpoch);
+        var query = SearchText.Trim();
+        if (query.Length < 2)
+        {
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(380);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        if (epoch != _searchEpoch)
+        {
+            return;
+        }
+
+        SubmitSearch();
+    }
 
     private void SetLayout(LayoutMode mode) => LayoutMode = mode;
 
@@ -283,7 +361,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         }
 
         var path = ActivePane.CurrentPath;
-        if (path.Equals("ThisPC", StringComparison.OrdinalIgnoreCase) || ActivePane.IsTagView)
+        if (ActivePane.IsVirtualView)
         {
             StatusMessage = "当前位置无法添加标签";
             return;
@@ -384,7 +462,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
                 path = i == 0 ? defaultPath : "ThisPC";
             }
 
-            var pane = new PaneViewModel(i, _fileService, path, this);
+            var pane = new PaneViewModel(i, _fileService, path, this, _searchService);
             pane.StatusMessage += (_, message) => StatusMessage = message;
             _allPanes.Add(pane);
         }

@@ -192,6 +192,44 @@ public static class TagPath
     }
 }
 
+/// <summary>
+/// Virtual location that holds a filename search, similar to Everything.
+/// </summary>
+public static class SearchPath
+{
+    public const string Prefix = "search:";
+
+    public static string Create(string query) => Prefix + Uri.EscapeDataString(query.Trim());
+
+    public static bool TryParse(string? path, out string query)
+    {
+        query = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(path) ||
+            !path.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var encoded = path[Prefix.Length..];
+        if (string.IsNullOrWhiteSpace(encoded))
+        {
+            return false;
+        }
+
+        try
+        {
+            query = Uri.UnescapeDataString(encoded).Trim();
+        }
+        catch (UriFormatException)
+        {
+            query = encoded.Trim();
+        }
+
+        return query.Length > 0;
+    }
+}
+
 public sealed class FavoritesDocument
 {
     public List<FavoriteCategory> Categories { get; set; } = [];

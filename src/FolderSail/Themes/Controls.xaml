@@ -254,6 +254,28 @@
         </Setter>
     </Style>
 
+    <!-- ============ Global search (toolbar) ============ -->
+    <Style x:Key="SearchField" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.FontSmall}" />
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}" />
+        <Setter Property="CaretBrush" Value="{StaticResource Accent.Base}" />
+        <Setter Property="SelectionBrush" Value="{StaticResource Accent.Base}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <ScrollViewer x:Name="PART_ContentHost"
+                                  VerticalAlignment="Center"
+                                  Margin="0,1,0,0" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ============ File list rows ============ -->
     <Style x:Key="FileRow" TargetType="ListBoxItem">
         <Setter Property="Padding" Value="0" />

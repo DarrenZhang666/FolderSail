@@ -59,6 +59,11 @@ public sealed class PaneTabViewModel : ObservableObject
             return _tags?.GetTagName(tagId) ?? "标签";
         }
 
+        if (SearchPath.TryParse(path, out var query))
+        {
+            return query.Length > 12 ? "搜索" : $"搜索 {query}";
+        }
+
         var normalized = path.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
         var name = System.IO.Path.GetFileName(normalized);
         return string.IsNullOrWhiteSpace(name) ? path : name;

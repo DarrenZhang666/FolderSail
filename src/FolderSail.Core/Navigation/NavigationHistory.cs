@@ -73,6 +73,11 @@ public sealed class NavigationHistory
             return TagPath.Create(tagId);
         }
 
+        if (SearchPath.TryParse(path, out var query))
+        {
+            return SearchPath.Create(query);
+        }
+
         var full = Path.GetFullPath(path);
 
         // Keep the trailing separator on drive roots so "D:\" never collapses to the
