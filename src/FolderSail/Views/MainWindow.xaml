@@ -4,6 +4,7 @@
         xmlns:views="clr-namespace:FolderSail.Views"
         xmlns:models="clr-namespace:FolderSail.Core.Models;assembly=FolderSail.Core"
         xmlns:vm="clr-namespace:FolderSail.ViewModels"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="FolderSail"
         Width="1360"
         Height="860"
@@ -13,9 +14,18 @@
         FontFamily="{StaticResource Font.Ui}"
         FontSize="{StaticResource Size.FontBody}"
         Foreground="{StaticResource Text.Primary}"
+        WindowStyle="None"
+        ResizeMode="CanResize"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         PreviewKeyDown="OnWindowPreviewKeyDown">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="52"
+                            ResizeBorderThickness="6"
+                            GlassFrameThickness="0"
+                            CornerRadius="0"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -39,26 +49,7 @@
         <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="0"
                 Background="{StaticResource Surface.Sidebar}">
             <DockPanel>
-                <StackPanel DockPanel.Dock="Top"
-                            Orientation="Horizontal"
-                            Margin="16,14,12,10"
-                            VerticalAlignment="Center">
-                    <Border Width="22" Height="22"
-                            CornerRadius="6"
-                            Background="{StaticResource Text.Primary}"
-                            Opacity="0.82"
-                            Margin="0,0,8,0">
-                        <Canvas Width="22" Height="22">
-                            <Path Fill="White" Data="M 11.2 4.2 L 11.2 13 L 5.4 13 Z" />
-                            <Path Fill="White" Opacity="0.55" Data="M 12.2 7.2 L 16.4 13 L 12.2 13 Z" />
-                            <Path Fill="White" Data="M 4.6 14.6 L 17.4 14.6 L 15.6 17.2 L 6.4 17.2 Z" />
-                        </Canvas>
-                    </Border>
-                    <TextBlock Text="FolderSail"
-                               FontSize="13"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center" />
-                </StackPanel>
+                <StackPanel DockPanel.Dock="Top" Height="52" />
 
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               Padding="10,4,8,16"
@@ -265,19 +256,47 @@
             </DockPanel>
         </Border>
 
-        <!-- Content toolbar sits only over the file stage, like Finder. -->
+        <!-- Unified caption: layout + search sit in the same strip as the traffic lights. -->
         <Border Grid.Row="0" Grid.Column="1"
+                Height="52"
                 Background="{StaticResource Surface.Toolbar}"
                 BorderBrush="{StaticResource Line.Soft}"
                 BorderThickness="0,0,0,1"
-                Padding="10,8,12,8">
+                Padding="10,0,12,0">
             <DockPanel>
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            Height="36"
+                            VerticalAlignment="Center"
+                            Margin="12,0,4,0">
+                    <Button Style="{StaticResource TrafficLightButton}"
+                            Background="{StaticResource Traffic.Min}"
+                            Tag="min"
+                            ToolTip="最小化"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Click="OnMinimizeWindow" />
+                    <Button Style="{StaticResource TrafficLightButton}"
+                            Background="{StaticResource Traffic.Max}"
+                            Tag="max"
+                            ToolTip="最大化"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Click="OnMaximizeWindow" />
+                    <Button Style="{StaticResource TrafficLightButton}"
+                            Background="{StaticResource Traffic.Close}"
+                            Tag="close"
+                            Margin="0"
+                            ToolTip="关闭"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Click="OnCloseWindow" />
+                </StackPanel>
+
                 <Grid x:Name="GlobalSearchHost"
                       DockPanel.Dock="Right"
                       Width="260"
                       Height="36"
                       VerticalAlignment="Center"
-                      Margin="16,0,0,0">
+                      Margin="16,0,0,0"
+                      shell:WindowChrome.IsHitTestVisibleInChrome="True">
                     <!-- Outer soft ring -->
                     <Border x:Name="SearchFocusHalo"
                             CornerRadius="11"
@@ -338,15 +357,12 @@
                     </Border>
                 </Grid>
 
-                <TextBlock Text="分屏"
-                           DockPanel.Dock="Left"
-                           Style="{StaticResource SectionLabel}"
-                           VerticalAlignment="Center"
-                           Margin="2,0,10,0" />
                 <Border Background="{StaticResource Surface.Hover}"
                         CornerRadius="8"
                         Padding="3"
-                        HorizontalAlignment="Left">
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True">
                     <ItemsControl ItemsSource="{Binding LayoutPresets}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -359,6 +375,7 @@
                                              GroupName="Layout"
                                              IsChecked="{Binding IsSelected, Mode=OneWay}"
                                              ToolTip="{Binding Name}"
+                                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                                              Command="{Binding DataContext.SetLayoutCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                              CommandParameter="{Binding Mode}">
                                     <views:LayoutGlyph Mode="{Binding Mode}"
@@ -374,6 +391,7 @@
         <!-- Drag the seam to grow or shrink the navigation column. -->
         <GridSplitter Grid.Row="0" Grid.RowSpan="3" Grid.Column="0"
                       Style="{StaticResource SidebarSplitter}"
+                      shell:WindowChrome.IsHitTestVisibleInChrome="True"
                       DragCompleted="OnSidebarSplitterDragCompleted" />
 
         <!-- ================= Pane host ================= -->

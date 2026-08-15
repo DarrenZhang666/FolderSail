@@ -37,6 +37,14 @@
     <SolidColorBrush x:Key="Danger.Base" Color="#FF3B30" />
     <SolidColorBrush x:Key="Danger.Soft" Color="#22FF3B30" />
 
+    <SolidColorBrush x:Key="Traffic.Close" Color="#FF5F57" />
+    <SolidColorBrush x:Key="Traffic.ClosePressed" Color="#E0483E" />
+    <SolidColorBrush x:Key="Traffic.Min" Color="#FEBC2E" />
+    <SolidColorBrush x:Key="Traffic.MinPressed" Color="#E0A325" />
+    <SolidColorBrush x:Key="Traffic.Max" Color="#28C840" />
+    <SolidColorBrush x:Key="Traffic.MaxPressed" Color="#1AAB29" />
+    <SolidColorBrush x:Key="Traffic.Glyph" Color="#7A7A7A" />
+
     <SolidColorBrush x:Key="Accent.Wake" Color="#007AFF" />
     <SolidColorBrush x:Key="Accent.WakeFaded" Color="#00000000" />
 
