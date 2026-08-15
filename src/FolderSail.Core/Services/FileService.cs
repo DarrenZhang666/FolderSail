@@ -273,8 +273,36 @@ public sealed class FileService : IFileService
         }
     }
 
-    public bool PathExists(string path) =>
-        Directory.Exists(path) || File.Exists(path) || path.Equals("ThisPC", StringComparison.OrdinalIgnoreCase);
+    public bool PathExists(string path)
+    {
+        if (path.Equals("ThisPC", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        path = ExpandDriveRoot(path);
+        return Directory.Exists(path) || File.Exists(path);
+    }
+
+    /// <summary>
+    /// Win32 treats "D:" as "current directory on D:", not the drive root.
+    /// Always expand that form to "D:\" so clicking a disk never jumps into
+    /// whatever folder the process was launched from.
+    /// </summary>
+    public static string ExpandDriveRoot(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return path;
+        }
+
+        if (path.Length == 2 && char.IsAsciiLetter(path[0]) && path[1] == ':')
+        {
+            return path + "\\";
+        }
+
+        return path;
+    }
 
     private static IReadOnlyList<FileItem> ListDrives()
     {
@@ -283,7 +311,7 @@ public sealed class FileService : IFileService
             .Select(d => new FileItem
             {
                 Name = string.IsNullOrWhiteSpace(d.VolumeLabel) ? d.Name : $"{d.Name} ({d.VolumeLabel})",
-                FullPath = d.Name.TrimEnd('\\'),
+                FullPath = d.Name,
                 Kind = FileItemKind.Drive,
                 Size = d.TotalSize,
                 ModifiedUtc = DateTime.UtcNow,

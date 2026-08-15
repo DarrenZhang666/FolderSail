@@ -474,6 +474,8 @@ public sealed class PaneViewModel : ObservableObject
             return;
         }
 
+        path = FileService.ExpandDriveRoot(path);
+
         if (!_fileService.PathExists(path))
         {
             StatusMessage?.Invoke(this, $"路径不存在: {path}");

@@ -1,4 +1,5 @@
 using FolderSail.Core.Models;
+using FolderSail.Core.Services;
 
 namespace FolderSail.Core.Navigation;
 
@@ -78,7 +79,8 @@ public sealed class NavigationHistory
             return SearchPath.Create(query);
         }
 
-        var full = Path.GetFullPath(path);
+        var full = FileService.ExpandDriveRoot(path);
+        full = Path.GetFullPath(full);
 
         // Keep the trailing separator on drive roots so "D:\" never collapses to the
         // process-relative "D:" form.
