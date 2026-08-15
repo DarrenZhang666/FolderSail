@@ -14,13 +14,12 @@
             Background="{StaticResource Surface.Card}"
             BorderBrush="{StaticResource Line.Soft}"
             BorderThickness="1"
-            CornerRadius="{StaticResource Radius.Card}"
-            Margin="4"
+            CornerRadius="0"
+            Margin="0"
             SnapsToDevicePixels="True">
 
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="2" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -28,12 +27,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Border x:Name="WakeBar"
-                    Grid.Row="0"
-                    Background="Transparent"
-                    CornerRadius="9,9,0,0" />
-
-            <Grid Grid.Row="1" Margin="8,4,8,2">
+            <Grid Grid.Row="0" Margin="6,2,4,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -142,7 +136,7 @@
             </Grid>
 
             <!-- Navigation strip: breadcrumb by default, editable path on demand -->
-            <Grid Grid.Row="2" Margin="8,0,8,4">
+            <Grid Grid.Row="1" Margin="6,0,4,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -218,7 +212,7 @@
             </Grid>
 
             <!-- Column headers -->
-            <Border Grid.Row="3"
+            <Border Grid.Row="2"
                     Background="{StaticResource Surface.Subtle}"
                     BorderBrush="{StaticResource Line.Soft}"
                     BorderThickness="0,0,0,1"
@@ -239,13 +233,13 @@
             </Border>
 
             <!-- Rows -->
-            <ListBox Grid.Row="4"
+            <ListBox Grid.Row="3"
                      ItemsSource="{Binding Items}"
                      SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                      ItemContainerStyle="{StaticResource FileRow}"
                      Background="Transparent"
                      BorderThickness="0"
-                     Margin="6,2,4,2"
+                     Margin="2,0,0,0"
                      Padding="0"
                      FontFamily="{StaticResource Font.Ui}"
                      FontSize="{StaticResource Size.FontBody}"
@@ -317,12 +311,12 @@
             </ListBox>
 
             <!-- Footer: counts on the left, file actions on the right -->
-            <Border Grid.Row="5"
+            <Border Grid.Row="4"
                     Background="Transparent"
                     BorderBrush="{StaticResource Line.Soft}"
                     BorderThickness="0,1,0,0"
-                    CornerRadius="0,0,9,9"
-                    Padding="14,6">
+                    CornerRadius="0"
+                    Padding="10,4">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

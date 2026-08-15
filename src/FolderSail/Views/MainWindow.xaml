@@ -318,7 +318,7 @@
                 Background="{StaticResource Surface.Toolbar}"
                 BorderBrush="{StaticResource Line.Soft}"
                 BorderThickness="0,0,0,1"
-                Padding="12,8,14,8">
+                Padding="10,6,12,4">
             <DockPanel>
                 <TextBlock Text="分屏"
                            DockPanel.Dock="Left"
@@ -360,7 +360,7 @@
 
         <!-- ================= Pane host ================= -->
         <views:LayoutHost Grid.Row="1" Grid.Column="1"
-                          Margin="8,6,10,6"
+                          Margin="0"
                           ItemsSource="{Binding Panes}"
                           LayoutMode="{Binding LayoutMode}" />
 
@@ -369,7 +369,7 @@
                 Background="{StaticResource Surface.Toolbar}"
                 BorderBrush="{StaticResource Line.Soft}"
                 BorderThickness="0,1,0,0"
-                Padding="16,6">
+                Padding="16,4">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
