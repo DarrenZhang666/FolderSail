@@ -56,13 +56,10 @@ public sealed class SearchService : IFileSearchService
             var indexed = QueryWindowsSearch(tokens, MaxResults, token);
             if (indexed is not null)
             {
-                AddUnique(paths, seen, indexed);
-                if (paths.Count == 0)
-                {
-                    AddUnique(paths, seen, EnumerateByName(tokens, MaxResults, token));
-                }
+                AddUnique(paths, seen, indexed.Where(path => NameMatches(path, tokens)));
             }
-            else
+
+            if (paths.Count < MaxResults)
             {
                 AddUnique(paths, seen, EnumerateByName(tokens, MaxResults, token));
             }
@@ -175,7 +172,8 @@ public sealed class SearchService : IFileSearchService
 
     private static string BuildSql(string[] tokens, int limit)
     {
-        var clauses = tokens.Select(token => $"System.FileName LIKE '%{EscapeLike(token)}%'");
+        var clauses = tokens.Select(token =>
+            $"(System.FileName LIKE '%{EscapeLike(token)}%' OR System.ItemNameDisplay LIKE '%{EscapeLike(token)}%')");
         return $"SELECT TOP {limit} System.ItemPathDisplay FROM SYSTEMINDEX WHERE SCOPE='file:' AND {string.Join(" AND ", clauses)}";
     }
 
