@@ -67,56 +67,8 @@
                               Foreground="{StaticResource Text.Primary}">
                 <StackPanel>
 
-                    <!-- Jump targets -->
-                    <TextBlock Text="快速跳转" Style="{StaticResource SectionLabel}" Margin="6,0,0,6" />
-
-                    <Button Style="{StaticResource SidebarItemButton}"
-                            Command="{Binding OpenThisPcCommand}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE977;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
-                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
-                            <TextBlock Text="此电脑" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-
-                    <Button Style="{StaticResource SidebarItemButton}"
-                            Command="{Binding OpenKnownFolderCommand}" CommandParameter="Desktop">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
-                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
-                            <TextBlock Text="桌面" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-
-                    <Button Style="{StaticResource SidebarItemButton}"
-                            Command="{Binding OpenKnownFolderCommand}" CommandParameter="Documents">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE8A5;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
-                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
-                            <TextBlock Text="文档" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-
-                    <Button Style="{StaticResource SidebarItemButton}"
-                            Command="{Binding OpenKnownFolderCommand}" CommandParameter="Downloads">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE896;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
-                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
-                            <TextBlock Text="下载" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-
-                    <Button Style="{StaticResource SidebarItemButton}"
-                            Command="{Binding OpenKnownFolderCommand}" CommandParameter="Pictures">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xEB9F;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
-                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
-                            <TextBlock Text="图片" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-
                     <!-- Drives with capacity keel bars -->
-                    <TextBlock Text="磁盘" Style="{StaticResource SectionLabel}" Margin="6,18,0,6" />
+                    <TextBlock Text="磁盘" Style="{StaticResource SectionLabel}" Margin="6,4,0,6" />
 
                     <ItemsControl ItemsSource="{Binding Drives}">
                         <ItemsControl.ItemTemplate>
