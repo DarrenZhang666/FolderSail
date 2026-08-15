@@ -1,51 +1,66 @@
 # FolderSail
 
-Windows 轻量多窗格文件管理器：Finder 式彩色标签 + 多窗格浏览。
+Windows 上的轻量多窗格文件管理器。界面接近 Finder：彩色标签、多分屏、顶栏一体，适合日常整理文件。
+
+发给别人时只需一个 `FolderSail.exe`，**不用装 .NET，也不用装 Ollama**。
 
 ## 功能
 
-- 侧栏 **标签**：七色圆点列表（红/橙/黄/绿/蓝/紫/灰），点击查看该标签下的文件夹
-- 把文件夹拖到标签上即可打标；右键可重命名、改色、清空
-- 单窗口内 1 / 2 / 4 / 6 分屏布局切换，每窗格支持多标签页
-- 每窗格独立路径、前进/后退/上级、面包屑与地址栏
-- 复制、剪切、粘贴、删除（回收站）、新建文件夹
-- 文件右键使用系统资源管理器菜单（含「在新标签页中打开」）
-- 窗格间拖拽：默认复制，按住 Shift 移动
+- **多分屏**：1 / 2 / 4 / 6 等布局，每个窗格独立浏览、独立标签页
+- **彩色标签**：红/橙/黄/绿/蓝/紫/灰，拖文件夹到标签即可收藏；右键可改名、改色、清空
+- **磁盘侧栏**：C / D 等盘符与容量条，点击进入盘符**根目录**
+- **搜索**：文件名包含匹配（输入 `youyu` 会找出名字里带 youyu 的项）
+- **自然语言搜索**（规则解析，无模型）：例如  
+  `帮我搜索电脑中带有youyu字样的文件，是excel表格格式`  
+  `原理图字样的文件夹`  
+  会抽出关键字和类型（Excel / Word / PDF / 图片 / 文件夹等）再搜
+- 复制、剪切、粘贴、删除到回收站、新建文件夹、F2 重命名
+- 右键使用系统资源管理器菜单
+- 窗格间拖拽：默认复制，按住 Shift 为移动
 
-## 环境要求
+## 发给客户
+
+1. 先关掉正在运行的 FolderSail
+2. 打包（自包含单文件，约 70MB）：
+
+```powershell
+dotnet publish src\FolderSail\FolderSail.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o dist\win-x64
+```
+
+3. 把 `dist\win-x64\FolderSail.exe` 发出去即可
+
+客户电脑：Windows 10 / 11 **64 位**。第一次启动会稍慢（自解压），属正常现象。
+
+## 开发环境
 
 - Windows 10/11
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
-## 构建与运行
-
 ```powershell
-cd d:\Work\Project\C#\FolderSail
 dotnet restore
 dotnet build
 dotnet run --project src\FolderSail\FolderSail.csproj
 ```
 
-## 发布 EXE
-
-框架依赖（体积小，需本机安装 .NET 8 运行时）：
-
-```powershell
-dotnet publish src\FolderSail\FolderSail.csproj -c Release -o publish\framework-dependent
-```
-
-自包含（拷走即用）：
-
-```powershell
-dotnet publish src\FolderSail\FolderSail.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish\self-contained
-```
-
-输出：`publish\*\FolderSail.exe`
-
 ## 项目结构
 
 ```
 FolderSail.sln
-src/FolderSail.Core/   # 文件服务、收藏与设置持久化
-src/FolderSail/        # WPF UI (MVVM)
+src/FolderSail.Core/   文件服务、搜索、标签与设置
+src/FolderSail/        WPF 界面（MVVM）
 ```
+
+## 快捷键
+
+| 快捷键 | 作用 |
+|--------|------|
+| Ctrl+F / Ctrl+K | 聚焦顶栏搜索 |
+| Ctrl+T / Ctrl+W | 新建 / 关闭标签页 |
+| Ctrl+C / X / V | 复制 / 剪切 / 粘贴 |
+| Delete | 删除到回收站 |
+| F2 | 重命名 |
+| F5 | 刷新 |
+
+## 许可
+
+个人与分发请按仓库内许可约定使用。未单独声明时，默认仅供本项目作者及授权客户使用。
