@@ -31,99 +31,128 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <DockPanel Grid.Column="0" LastChildFill="True">
-                    <Button DockPanel.Dock="Right"
-                            Style="{StaticResource IconButtonSmall}"
+                <ScrollViewer Grid.Column="0"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled"
+                              Margin="0,0,4,0">
+                    <ItemsControl ItemsSource="{Binding Tabs}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="TabChrome"
+                                        Height="26"
+                                        MinWidth="78"
+                                        MaxWidth="168"
+                                        Margin="0,0,2,0"
+                                        Padding="8,0,2,0"
+                                        Background="Transparent"
+                                        CornerRadius="6"
+                                        Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        MouseDown="OnTabMouseDown">
+                                    <Border.ContextMenu>
+                                        <ContextMenu DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource Self}}">
+                                            <MenuItem Header="新建标签页"
+                                                      InputGestureText="Ctrl+T"
+                                                      Command="{Binding Tag.NewTabCommand}" />
+                                            <MenuItem Header="复制标签页"
+                                                      Command="{Binding Tag.DuplicateTabCommand}"
+                                                      CommandParameter="{Binding DataContext}" />
+                                            <Separator />
+                                            <MenuItem Header="关闭标签页"
+                                                      InputGestureText="Ctrl+W"
+                                                      Command="{Binding Tag.CloseTabCommand}"
+                                                      CommandParameter="{Binding DataContext}" />
+                                            <MenuItem Header="关闭其他标签页"
+                                                      Command="{Binding Tag.CloseOtherTabsCommand}"
+                                                      CommandParameter="{Binding DataContext}" />
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0"
+                                                   Text="&#xE8B7;"
+                                                   FontFamily="{StaticResource Font.Icon}"
+                                                   FontSize="11"
+                                                   Foreground="{StaticResource Text.Tertiary}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,6,0" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Title}"
+                                                   FontSize="13"
+                                                   FontWeight="Normal"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center"
+                                                   ToolTip="{Binding Path}" />
+                                        <Button Grid.Column="2"
+                                                Style="{StaticResource IconButtonSmall}"
+                                                Width="20"
+                                                Height="20"
+                                                Margin="4,0,0,0"
+                                                Content="&#xE711;"
+                                                ToolTip="关闭标签页"
+                                                Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}" />
+                                    </Grid>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                        <Setter TargetName="TabChrome" Property="Background" Value="{StaticResource Surface.Hover}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Quick jump: This PC / Desktop / Documents / Downloads / Pictures -->
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="2,0,6,0">
+                    <Button Style="{StaticResource IconButtonSmall}"
+                            Content="&#xE977;"
+                            ToolTip="此电脑"
+                            Command="{Binding GoToThisPcCommand}" />
+                    <Button Style="{StaticResource IconButtonSmall}"
+                            Content="&#xE7F4;"
+                            ToolTip="桌面"
+                            Command="{Binding OpenKnownFolderCommand}"
+                            CommandParameter="Desktop" />
+                    <Button Style="{StaticResource IconButtonSmall}"
+                            Content="&#xE8A5;"
+                            ToolTip="文档"
+                            Command="{Binding OpenKnownFolderCommand}"
+                            CommandParameter="Documents" />
+                    <Button Style="{StaticResource IconButtonSmall}"
+                            Content="&#xE896;"
+                            ToolTip="下载"
+                            Command="{Binding OpenKnownFolderCommand}"
+                            CommandParameter="Downloads" />
+                    <Button Style="{StaticResource IconButtonSmall}"
+                            Content="&#xEB9F;"
+                            ToolTip="图片"
+                            Command="{Binding OpenKnownFolderCommand}"
+                            CommandParameter="Pictures" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE710;"
-                            Margin="3,0,2,0"
                             ToolTip="新建标签页 (Ctrl+T)"
                             Command="{Binding NewTabCommand}" />
-
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                  VerticalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding Tabs}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border x:Name="TabChrome"
-                                            Height="26"
-                                            MinWidth="78"
-                                            MaxWidth="168"
-                                            Margin="0,0,2,0"
-                                            Padding="8,0,2,0"
-                                            Background="Transparent"
-                                            CornerRadius="6"
-                                            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            MouseDown="OnTabMouseDown">
-                                        <Border.ContextMenu>
-                                            <ContextMenu DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource Self}}">
-                                                <MenuItem Header="新建标签页"
-                                                          InputGestureText="Ctrl+T"
-                                                          Command="{Binding Tag.NewTabCommand}" />
-                                                <MenuItem Header="复制标签页"
-                                                          Command="{Binding Tag.DuplicateTabCommand}"
-                                                          CommandParameter="{Binding DataContext}" />
-                                                <Separator />
-                                                <MenuItem Header="关闭标签页"
-                                                          InputGestureText="Ctrl+W"
-                                                          Command="{Binding Tag.CloseTabCommand}"
-                                                          CommandParameter="{Binding DataContext}" />
-                                                <MenuItem Header="关闭其他标签页"
-                                                          Command="{Binding Tag.CloseOtherTabsCommand}"
-                                                          CommandParameter="{Binding DataContext}" />
-                                            </ContextMenu>
-                                        </Border.ContextMenu>
-
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBlock Grid.Column="0"
-                                                       Text="&#xE8B7;"
-                                                       FontFamily="{StaticResource Font.Icon}"
-                                                       FontSize="11"
-                                                       Foreground="{StaticResource Text.Tertiary}"
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,6,0" />
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding Title}"
-                                                       FontSize="13"
-                                                       FontWeight="Normal"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       VerticalAlignment="Center"
-                                                       ToolTip="{Binding Path}" />
-                                            <Button Grid.Column="2"
-                                                    Style="{StaticResource IconButtonSmall}"
-                                                    Width="20"
-                                                    Height="20"
-                                                    Margin="4,0,0,0"
-                                                    Content="&#xE711;"
-                                                    ToolTip="关闭标签页"
-                                                    Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}" />
-                                        </Grid>
-                                    </Border>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                            <Setter TargetName="TabChrome" Property="Background" Value="{StaticResource Surface.Hover}" />
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </DockPanel>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE72C;"
                             ToolTip="刷新 (F5)"

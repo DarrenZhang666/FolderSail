@@ -61,6 +61,7 @@ public sealed class PaneViewModel : ObservableObject
         DuplicateTabCommand = new RelayCommand<PaneTabViewModel>(DuplicateTab);
         CloseOtherTabsCommand = new RelayCommand<PaneTabViewModel>(CloseOtherTabs);
         OpenSelectedInNewTabCommand = new RelayCommand(OpenSelectedInNewTab, CanOpenSelectedInNewTab);
+        OpenKnownFolderCommand = new RelayCommand<string>(OpenKnownFolder);
 
         var initialTab = new PaneTabViewModel(initialPath, _tags);
         Tabs.Add(initialTab);
@@ -228,6 +229,7 @@ public sealed class PaneViewModel : ObservableObject
     public ICommand DuplicateTabCommand { get; }
     public ICommand CloseOtherTabsCommand { get; }
     public ICommand OpenSelectedInNewTabCommand { get; }
+    public ICommand OpenKnownFolderCommand { get; }
 
     public event EventHandler? ActiveChanged;
     public event EventHandler<string>? StatusMessage;
@@ -503,6 +505,39 @@ public sealed class PaneViewModel : ObservableObject
     }
 
     private void GoToThisPc() => Navigate("ThisPC");
+
+    private void OpenKnownFolder(string? folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            return;
+        }
+
+        if (folder.Equals("ThisPC", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigate("ThisPC");
+            return;
+        }
+
+        var path = folder switch
+        {
+            "Desktop" => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            "Documents" => Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Downloads" => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
+            "Pictures" => Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+            "Music" => Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+            "Videos" => Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+            _ => folder
+        };
+
+        if (!Directory.Exists(path))
+        {
+            StatusMessage?.Invoke(this, $"路径不存在: {path}");
+            return;
+        }
+
+        Navigate(path);
+    }
 
     private void GoToAddress()
     {
