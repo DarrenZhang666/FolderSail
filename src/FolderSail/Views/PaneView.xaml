@@ -262,8 +262,8 @@
             </Border>
 
             <!-- Rows -->
-            <ListBox Grid.Row="3"
-                     ItemsSource="{Binding Items}"
+            <Grid Grid.Row="3">
+            <ListBox ItemsSource="{Binding Items}"
                      SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                      ItemContainerStyle="{StaticResource FileRow}"
                      Background="Transparent"
@@ -338,6 +338,22 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
+
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding IsSearching, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="&#xE721;"
+                           FontFamily="{StaticResource Font.Icon}"
+                           FontSize="18"
+                           Foreground="{StaticResource Text.Tertiary}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8" />
+                <TextBlock Text="正在搜索…"
+                           Foreground="{StaticResource Text.Secondary}"
+                           FontSize="13"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+            </Grid>
 
             <!-- Footer: counts on the left, file actions on the right -->
             <Border Grid.Row="4"

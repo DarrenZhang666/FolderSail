@@ -22,6 +22,7 @@ public sealed class PaneViewModel : ObservableObject
     private bool _isAddressEditing;
     private FileItemViewModel? _selectedItem;
     private PaneTabViewModel? _activeTab;
+    private bool _isSearching;
 
     public PaneViewModel(
         int index,
@@ -170,10 +171,29 @@ public sealed class PaneViewModel : ObservableObject
     private string SearchQuery =>
         SearchPath.TryParse(CurrentPath, out var query) ? query : string.Empty;
 
+    public bool IsSearching
+    {
+        get => _isSearching;
+        private set
+        {
+            if (SetProperty(ref _isSearching, value))
+            {
+                OnPropertyChanged(nameof(ItemSummary));
+            }
+        }
+    }
+
     public string ItemSummary
     {
         get
         {
+            if (IsSearching)
+            {
+                return SearchQuery.Length == 0
+                    ? "正在搜索…"
+                    : $"正在搜索「{SearchQuery}」…";
+            }
+
             var folders = Items.Count(i => i.Kind != FileItemKind.File);
             var files = Items.Count - folders;
             return $"{folders} 个文件夹 · {files} 个文件";
@@ -271,10 +291,12 @@ public sealed class PaneViewModel : ObservableObject
     {
         if (_search is null)
         {
+            IsSearching = false;
             StatusMessage?.Invoke(this, "搜索服务不可用");
             return;
         }
 
+        IsSearching = true;
         StatusMessage?.Invoke(this, $"正在搜索「{query}」…");
         var cts = new CancellationTokenSource();
         _searchCts = cts;
@@ -306,12 +328,14 @@ public sealed class PaneViewModel : ObservableObject
     {
         if (token.IsCancellationRequested)
         {
+            IsSearching = false;
             return;
         }
 
         if (!SearchPath.TryParse(CurrentPath, out var current) ||
             !string.Equals(current, query, StringComparison.Ordinal))
         {
+            IsSearching = false;
             return;
         }
 
@@ -319,6 +343,7 @@ public sealed class PaneViewModel : ObservableObject
 
         if (task.IsFaulted)
         {
+            IsSearching = false;
             var message = task.Exception?.InnerException?.Message ?? "搜索失败";
             StatusMessage?.Invoke(this, message);
             OnPropertyChanged(nameof(ItemSummary));
@@ -327,6 +352,7 @@ public sealed class PaneViewModel : ObservableObject
 
         if (task.IsCanceled || task.Result is null)
         {
+            IsSearching = false;
             OnPropertyChanged(nameof(ItemSummary));
             return;
         }
@@ -336,6 +362,7 @@ public sealed class PaneViewModel : ObservableObject
             Items.Add(new FileItemViewModel(item));
         }
 
+        IsSearching = false;
         OnPropertyChanged(nameof(ItemSummary));
         StatusMessage?.Invoke(
             this,
@@ -360,6 +387,7 @@ public sealed class PaneViewModel : ObservableObject
 
         _searchCts.Dispose();
         _searchCts = null;
+        IsSearching = false;
     }
 
     private void RebuildBreadcrumbs()
