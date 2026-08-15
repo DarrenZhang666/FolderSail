@@ -6,6 +6,7 @@
         xmlns:vm="clr-namespace:FolderSail.ViewModels"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="FolderSail"
+        Icon="pack://application:,,,/Assets/app.ico"
         Width="1360"
         Height="860"
         MinWidth="980"
