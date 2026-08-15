@@ -318,8 +318,74 @@
                 Background="{StaticResource Surface.Toolbar}"
                 BorderBrush="{StaticResource Line.Soft}"
                 BorderThickness="0,0,0,1"
-                Padding="10,6,12,4">
+                Padding="10,8,12,8">
             <DockPanel>
+                <Grid x:Name="GlobalSearchHost"
+                      DockPanel.Dock="Right"
+                      Width="260"
+                      Height="36"
+                      VerticalAlignment="Center"
+                      Margin="16,0,0,0">
+                    <!-- Outer soft ring -->
+                    <Border x:Name="SearchFocusHalo"
+                            CornerRadius="11"
+                            BorderThickness="2"
+                            BorderBrush="Transparent"
+                            Background="Transparent"
+                            IsHitTestVisible="False"
+                            SnapsToDevicePixels="True" />
+                    <Border x:Name="SearchChrome"
+                            Height="28"
+                            CornerRadius="8"
+                            VerticalAlignment="Center"
+                            Margin="4"
+                            Background="{StaticResource Surface.Subtle}"
+                            BorderBrush="{StaticResource Line.Soft}"
+                            BorderThickness="1"
+                            SnapsToDevicePixels="True"
+                            MouseLeftButtonDown="OnSearchChromeMouseDown">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="&#xE721;"
+                                       FontFamily="{StaticResource Font.Icon}"
+                                       FontSize="12"
+                                       Foreground="{StaticResource Text.Tertiary}"
+                                       VerticalAlignment="Center"
+                                       Margin="8,0,6,0" />
+                            <TextBlock x:Name="SearchPlaceholder"
+                                       Grid.Column="1"
+                                       Text="搜索此电脑"
+                                       IsHitTestVisible="False"
+                                       Foreground="{StaticResource Text.Tertiary}"
+                                       FontSize="{StaticResource Size.FontSmall}"
+                                       VerticalAlignment="Center" />
+                            <TextBox x:Name="GlobalSearchBox"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SearchField}"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="按文件名搜索此电脑（Enter 立即搜索，Ctrl+F 聚焦）"
+                                     GotKeyboardFocus="OnSearchFocusChanged"
+                                     LostKeyboardFocus="OnSearchFocusChanged"
+                                     TextChanged="OnSearchTextChanged"
+                                     PreviewKeyDown="OnSearchPreviewKeyDown" />
+                            <Button Grid.Column="2"
+                                    Width="22"
+                                    Height="22"
+                                    Margin="0,0,3,0"
+                                    Style="{StaticResource IconButtonSmall}"
+                                    Content="&#xE711;"
+                                    ToolTip="清除搜索"
+                                    Command="{Binding ClearSearchCommand}"
+                                    Visibility="{Binding HasSearchText, Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
+                    </Border>
+                </Grid>
+
                 <TextBlock Text="分屏"
                            DockPanel.Dock="Left"
                            Style="{StaticResource SectionLabel}"
@@ -389,7 +455,7 @@
                 </StackPanel>
 
                 <TextBlock Grid.Column="1"
-                           Text="拖拽复制 · Shift 拖拽移动 · F2 重命名 · F5 刷新"
+                           Text="Ctrl+F 搜索 · 拖拽复制 · Shift 拖拽移动 · F2 重命名 · F5 刷新"
                            Foreground="{StaticResource Text.Tertiary}"
                            FontSize="10"
                            VerticalAlignment="Center" />

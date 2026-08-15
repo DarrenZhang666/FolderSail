@@ -11,7 +11,9 @@ public sealed class PaneViewModel : ObservableObject
 {
     private readonly IFileService _fileService;
     private readonly ITagLookup? _tags;
+    private readonly IFileSearchService? _search;
     private readonly List<string> _clipboardPaths = [];
+    private CancellationTokenSource? _searchCts;
     private bool _clipboardIsCut;
     private bool _switchingTab;
     private string _currentPath = string.Empty;
@@ -21,11 +23,17 @@ public sealed class PaneViewModel : ObservableObject
     private FileItemViewModel? _selectedItem;
     private PaneTabViewModel? _activeTab;
 
-    public PaneViewModel(int index, IFileService fileService, string initialPath, ITagLookup? tags = null)
+    public PaneViewModel(
+        int index,
+        IFileService fileService,
+        string initialPath,
+        ITagLookup? tags = null,
+        IFileSearchService? search = null)
     {
         Index = index;
         _fileService = fileService;
         _tags = tags;
+        _search = search;
 
         GoBackCommand = new RelayCommand(GoBack, () => ActiveTab?.History.CanGoBack == true);
         GoForwardCommand = new RelayCommand(GoForward, () => ActiveTab?.History.CanGoForward == true);
@@ -83,6 +91,7 @@ public sealed class PaneViewModel : ObservableObject
             OnPropertyChanged(nameof(CanGoForward));
             OnPropertyChanged(nameof(DisplayTitle));
             OnPropertyChanged(nameof(IsTagView));
+            OnPropertyChanged(nameof(IsSearchView));
         }
     }
 
@@ -138,6 +147,11 @@ public sealed class PaneViewModel : ObservableObject
                 return TagName;
             }
 
+            if (IsSearchView)
+            {
+                return SearchQuery.Length > 16 ? "搜索" : $"搜索 {SearchQuery}";
+            }
+
             var name = Path.GetFileName(CurrentPath.TrimEnd('\\'));
             return string.IsNullOrWhiteSpace(name) ? CurrentPath : name;
         }
@@ -145,8 +159,15 @@ public sealed class PaneViewModel : ObservableObject
 
     public bool IsTagView => TagPath.TryParse(CurrentPath, out _);
 
+    public bool IsSearchView => SearchPath.TryParse(CurrentPath, out _);
+
+    public bool IsVirtualView => IsThisPc || IsTagView || IsSearchView;
+
     private string TagName =>
         TagPath.TryParse(CurrentPath, out var tagId) ? _tags?.GetTagName(tagId) ?? "标签" : string.Empty;
+
+    private string SearchQuery =>
+        SearchPath.TryParse(CurrentPath, out var query) ? query : string.Empty;
 
     public string ItemSummary
     {
@@ -215,7 +236,16 @@ public sealed class PaneViewModel : ObservableObject
 
     public void RefreshItems()
     {
+        CancelSearch();
         Items.Clear();
+
+        if (SearchPath.TryParse(CurrentPath, out var query))
+        {
+            BeginSearch(query);
+            OnPropertyChanged(nameof(ItemSummary));
+            return;
+        }
+
         try
         {
             var items = TagPath.TryParse(CurrentPath, out var tagId)
@@ -235,6 +265,101 @@ public sealed class PaneViewModel : ObservableObject
         OnPropertyChanged(nameof(ItemSummary));
     }
 
+    private void BeginSearch(string query)
+    {
+        if (_search is null)
+        {
+            StatusMessage?.Invoke(this, "搜索服务不可用");
+            return;
+        }
+
+        StatusMessage?.Invoke(this, $"正在搜索「{query}」…");
+        var cts = new CancellationTokenSource();
+        _searchCts = cts;
+        var token = cts.Token;
+        var search = _search;
+
+        _ = Task.Run(() => search.SearchByName(query, token), token)
+            .ContinueWith(task =>
+            {
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                if (dispatcher is null)
+                {
+                    return;
+                }
+
+                dispatcher.Invoke(() => ApplySearchResults(query, token, task));
+            }, TaskScheduler.Default);
+    }
+
+    private void ApplySearchResults(
+        string query,
+        CancellationToken token,
+        Task<IReadOnlyList<FileItem>> task)
+    {
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!SearchPath.TryParse(CurrentPath, out var current) ||
+            !string.Equals(current, query, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        Items.Clear();
+
+        if (task.IsFaulted)
+        {
+            var message = task.Exception?.InnerException?.Message ?? "搜索失败";
+            StatusMessage?.Invoke(this, message);
+            OnPropertyChanged(nameof(ItemSummary));
+            return;
+        }
+
+        if (task.IsCanceled || task.Result is null)
+        {
+            OnPropertyChanged(nameof(ItemSummary));
+            return;
+        }
+
+        foreach (var item in task.Result)
+        {
+            Items.Add(new FileItemViewModel(item));
+        }
+
+        OnPropertyChanged(nameof(ItemSummary));
+        StatusMessage?.Invoke(
+            this,
+            task.Result.Count == 0 ? $"未找到「{query}」" : $"找到 {task.Result.Count} 项");
+    }
+
+    private void CancelSearch()
+    {
+        if (_searchCts is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _searchCts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Already torn down.
+        }
+
+        _searchCts.Dispose();
+        _searchCts = null;
+    }
+
     private void RebuildBreadcrumbs()
     {
         Breadcrumbs.Clear();
@@ -249,6 +374,13 @@ public sealed class PaneViewModel : ObservableObject
         {
             Breadcrumbs.Add(new BreadcrumbViewModel("标签", "ThisPC", isLast: false, path => Navigate(path)));
             Breadcrumbs.Add(new BreadcrumbViewModel(TagName, CurrentPath, isLast: true, path => Navigate(path)));
+            return;
+        }
+
+        if (IsSearchView)
+        {
+            Breadcrumbs.Add(new BreadcrumbViewModel("此电脑", "ThisPC", isLast: false, path => Navigate(path)));
+            Breadcrumbs.Add(new BreadcrumbViewModel($"搜索 {SearchQuery}", CurrentPath, isLast: true, path => Navigate(path)));
             return;
         }
 
@@ -292,6 +424,19 @@ public sealed class PaneViewModel : ObservableObject
             if (addToHistory && ActiveTab != null)
             {
                 ActiveTab.History.Navigate(path);
+            }
+
+            OnPropertyChanged(nameof(CanGoBack));
+            OnPropertyChanged(nameof(CanGoForward));
+            return;
+        }
+
+        if (SearchPath.TryParse(path, out var query))
+        {
+            CurrentPath = SearchPath.Create(query);
+            if (addToHistory && ActiveTab != null)
+            {
+                ActiveTab.History.Navigate(CurrentPath);
             }
 
             OnPropertyChanged(nameof(CanGoBack));
@@ -347,7 +492,7 @@ public sealed class PaneViewModel : ObservableObject
             return;
         }
 
-        if (IsTagView)
+        if (IsTagView || IsSearchView)
         {
             Navigate("ThisPC");
             return;
@@ -367,7 +512,7 @@ public sealed class PaneViewModel : ObservableObject
 
     private void OpenInExplorer()
     {
-        if (IsThisPc || IsTagView)
+        if (IsVirtualView)
         {
             return;
         }
@@ -612,7 +757,7 @@ public sealed class PaneViewModel : ObservableObject
     /// back to the default folder.
     /// </summary>
     private string ResolveWritableDirectory() =>
-        CurrentPath.Equals("ThisPC", StringComparison.OrdinalIgnoreCase) || IsTagView
+        IsVirtualView
             ? _fileService.GetDefaultPath()
             : CurrentPath;
 

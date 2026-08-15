@@ -16,6 +16,7 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         SidebarColumn.Width = new GridLength(viewModel.SidebarWidth);
         Helpers.WindowBackdrop.TryEnable(this);
+        Loaded += (_, _) => UpdateSearchPlaceholder();
         Closing += (_, _) =>
         {
             viewModel.SidebarWidth = SidebarColumn.ActualWidth;
@@ -32,6 +33,18 @@ public partial class MainWindow : Window
 
         if (Keyboard.Modifiers == ModifierKeys.Control)
         {
+            if (e.Key is Key.F or Key.K)
+            {
+                FocusGlobalSearch();
+                e.Handled = true;
+                return;
+            }
+
+            if (Keyboard.FocusedElement is TextBox)
+            {
+                return;
+            }
+
             switch (e.Key)
             {
                 case Key.C:
@@ -63,6 +76,11 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (Keyboard.FocusedElement is TextBox)
+        {
+            return;
+        }
+
         switch (e.Key)
         {
             case Key.Delete:
@@ -88,6 +106,72 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
         }
+    }
+
+    private void OnSearchPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        if (e.Key == Key.Enter)
+        {
+            viewModel.SubmitSearch();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            viewModel.ClearSearch();
+            e.Handled = true;
+        }
+    }
+
+    private void FocusGlobalSearch()
+    {
+        GlobalSearchBox.Focus();
+        GlobalSearchBox.SelectAll();
+        UpdateSearchChrome(focused: true);
+    }
+
+    private void OnSearchChromeMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        FocusGlobalSearch();
+        e.Handled = true;
+    }
+
+    private void OnSearchFocusChanged(object sender, KeyboardFocusChangedEventArgs e) =>
+        UpdateSearchChrome(GlobalSearchBox.IsKeyboardFocused);
+
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e) =>
+        UpdateSearchPlaceholder();
+
+    private void UpdateSearchChrome(bool focused)
+    {
+        if (focused)
+        {
+            SearchFocusHalo.BorderBrush = (Brush)FindResource("Accent.FocusHalo");
+            SearchChrome.BorderBrush = (Brush)FindResource("Accent.FocusLine");
+            SearchChrome.Background = (Brush)FindResource("Surface.Card");
+            SearchChrome.BorderThickness = new Thickness(1);
+            SearchFocusHalo.BorderThickness = new Thickness(2);
+        }
+        else
+        {
+            SearchFocusHalo.BorderBrush = Brushes.Transparent;
+            SearchChrome.BorderBrush = (Brush)FindResource("Line.Soft");
+            SearchChrome.Background = (Brush)FindResource("Surface.Subtle");
+            SearchChrome.BorderThickness = new Thickness(1);
+        }
+
+        UpdateSearchPlaceholder();
+    }
+
+    private void UpdateSearchPlaceholder()
+    {
+        var showPlaceholder = !GlobalSearchBox.IsKeyboardFocused &&
+                              string.IsNullOrEmpty(GlobalSearchBox.Text);
+        SearchPlaceholder.Visibility = showPlaceholder ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnSidebarSplitterDragCompleted(object sender, DragCompletedEventArgs e)
