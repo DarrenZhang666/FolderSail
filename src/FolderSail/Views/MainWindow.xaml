@@ -9,11 +9,12 @@
         Height="860"
         MinWidth="980"
         MinHeight="620"
-        Background="{StaticResource Surface.Canvas}"
+        Background="{StaticResource Surface.Window}"
         FontFamily="{StaticResource Font.Ui}"
         FontSize="{StaticResource Size.FontBody}"
         Foreground="{StaticResource Text.Primary}"
         UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
         PreviewKeyDown="OnWindowPreviewKeyDown">
 
     <Grid>
@@ -30,94 +31,40 @@
             <ColumnDefinition Width="*" MinWidth="420" />
         </Grid.ColumnDefinitions>
 
-        <!-- ================= Top bar ================= -->
-        <Border Grid.Row="0" Grid.ColumnSpan="2"
-                Background="{StaticResource Surface.Card}"
-                BorderBrush="{StaticResource Line.Base}"
-                BorderThickness="0,0,0,1"
-                Padding="16,10">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+        <!-- Opaque stage behind the file panes so Mica never leaks as black gaps. -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="1"
+                Background="{StaticResource Surface.Canvas}" />
 
-                <!-- Wordmark: the sail is drawn as geometry so the brand mark never
-                     depends on a system icon font being present. -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Width="26" Height="26"
-                            CornerRadius="8"
-                            Background="{StaticResource Accent.Wake}"
-                            Margin="0,0,10,0">
-                        <Canvas Width="26" Height="26">
-                            <Path Fill="White" Data="M 13.4 5 L 13.4 15.2 L 6.6 15.2 Z" />
-                            <Path Fill="White" Opacity="0.65" Data="M 14.6 8.6 L 19.4 15.2 L 14.6 15.2 Z" />
-                            <Path Fill="White" Data="M 5.4 17.2 L 20.6 17.2 L 18.4 20.4 L 7.6 20.4 Z" />
+        <!-- ================= Sidebar: full height, frosted like Finder ================= -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="0"
+                Background="{StaticResource Surface.Sidebar}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top"
+                            Orientation="Horizontal"
+                            Margin="16,14,12,10"
+                            VerticalAlignment="Center">
+                    <Border Width="22" Height="22"
+                            CornerRadius="6"
+                            Background="{StaticResource Text.Primary}"
+                            Opacity="0.82"
+                            Margin="0,0,8,0">
+                        <Canvas Width="22" Height="22">
+                            <Path Fill="White" Data="M 11.2 4.2 L 11.2 13 L 5.4 13 Z" />
+                            <Path Fill="White" Opacity="0.55" Data="M 12.2 7.2 L 16.4 13 L 12.2 13 Z" />
+                            <Path Fill="White" Data="M 4.6 14.6 L 17.4 14.6 L 15.6 17.2 L 6.4 17.2 Z" />
                         </Canvas>
                     </Border>
                     <TextBlock Text="FolderSail"
-                               FontSize="15"
+                               FontSize="13"
                                FontWeight="SemiBold"
                                VerticalAlignment="Center" />
-                    <Border Background="{StaticResource Accent.Soft}"
-                            CornerRadius="{StaticResource Radius.Pill}"
-                            Padding="7,2"
-                            Margin="10,0,0,0"
-                            VerticalAlignment="Center">
-                        <TextBlock Text="多窗格"
-                                   FontSize="10"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource Accent.Deep}" />
-                    </Border>
                 </StackPanel>
 
-                <!-- Q-Dir inspired global layout palette. The icons describe geometry
-                     directly, while FolderSail keeps its own light visual language. -->
-                <Border Grid.Column="2"
-                        Background="{StaticResource Surface.Canvas}"
-                        BorderBrush="{StaticResource Line.Soft}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource Radius.Control}"
-                        Padding="3">
-                    <DockPanel>
-                        <TextBlock Text="分屏"
-                                   DockPanel.Dock="Left"
-                                   Style="{StaticResource SectionLabel}"
-                                   Margin="6,0,8,0" />
-                        <ItemsControl ItemsSource="{Binding LayoutPresets}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <RadioButton Style="{StaticResource LayoutSegment}"
-                                                 GroupName="Layout"
-                                                 IsChecked="{Binding IsSelected, Mode=OneWay}"
-                                                 ToolTip="{Binding Name}"
-                                                 Command="{Binding DataContext.SetLayoutCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                 CommandParameter="{Binding Mode}">
-                                        <views:LayoutGlyph Mode="{Binding Mode}"
-                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
-                                    </RadioButton>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </DockPanel>
-                </Border>
-            </Grid>
-        </Border>
-
-        <!-- ================= Sidebar ================= -->
-        <Border Grid.Row="1" Grid.Column="0"
-                Background="{StaticResource Surface.Sidebar}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                          Padding="10,12,6,12"
-                          FontFamily="{StaticResource Font.Ui}"
-                          FontSize="{StaticResource Size.FontBody}"
-                          Foreground="{StaticResource Text.Primary}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="10,4,8,16"
+                              FontFamily="{StaticResource Font.Ui}"
+                              FontSize="{StaticResource Size.FontBody}"
+                              Foreground="{StaticResource Text.Primary}">
                 <StackPanel>
 
                     <!-- Jump targets -->
@@ -126,8 +73,8 @@
                     <Button Style="{StaticResource SidebarItemButton}"
                             Command="{Binding OpenThisPcCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE977;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
-                                       Foreground="{StaticResource Accent.Base}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xE977;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
+                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
                             <TextBlock Text="此电脑" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
@@ -135,8 +82,8 @@
                     <Button Style="{StaticResource SidebarItemButton}"
                             Command="{Binding OpenKnownFolderCommand}" CommandParameter="Desktop">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
-                                       Foreground="{StaticResource Text.Tertiary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
+                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
                             <TextBlock Text="桌面" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
@@ -144,8 +91,8 @@
                     <Button Style="{StaticResource SidebarItemButton}"
                             Command="{Binding OpenKnownFolderCommand}" CommandParameter="Documents">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE8A5;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
-                                       Foreground="{StaticResource Text.Tertiary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xE8A5;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
+                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
                             <TextBlock Text="文档" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
@@ -153,8 +100,8 @@
                     <Button Style="{StaticResource SidebarItemButton}"
                             Command="{Binding OpenKnownFolderCommand}" CommandParameter="Downloads">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE896;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
-                                       Foreground="{StaticResource Text.Tertiary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xE896;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
+                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
                             <TextBlock Text="下载" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
@@ -162,8 +109,8 @@
                     <Button Style="{StaticResource SidebarItemButton}"
                             Command="{Binding OpenKnownFolderCommand}" CommandParameter="Pictures">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xEB9F;" FontFamily="{StaticResource Font.Icon}" FontSize="12"
-                                       Foreground="{StaticResource Text.Tertiary}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xEB9F;" FontFamily="{StaticResource Font.Icon}" FontSize="13"
+                                       Foreground="{StaticResource Text.Secondary}" Margin="0,0,9,0" VerticalAlignment="Center" />
                             <TextBlock Text="图片" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
@@ -192,12 +139,11 @@
                                         </StackPanel>
 
                                         <!-- Usage bar -->
-                                        <Grid x:Name="Track" Height="3" Margin="21,5,4,1">
-                                            <Border Background="{StaticResource Line.Base}" CornerRadius="2" />
-                                            <Border HorizontalAlignment="Left" CornerRadius="2">
-                                                <Border.Background>
-                                                    <SolidColorBrush Color="#35B0C4" />
-                                                </Border.Background>
+                                        <Grid x:Name="Track" Height="4" Margin="22,6,6,2">
+                                            <Border Background="{StaticResource Line.Soft}" CornerRadius="2" />
+                                            <Border HorizontalAlignment="Left"
+                                                    CornerRadius="2"
+                                                    Background="{StaticResource Text.Tertiary}">
                                                 <Border.Width>
                                                     <MultiBinding Converter="{StaticResource RatioToWidth}">
                                                         <Binding Path="UsedRatio" />
@@ -208,7 +154,7 @@
                                         </Grid>
 
                                         <TextBlock Text="{Binding CapacityText}"
-                                                   Foreground="{StaticResource Text.Tertiary}"
+                                                   Foreground="{StaticResource Text.Secondary}"
                                                    FontSize="10"
                                                    Margin="21,0,0,0" />
                                     </StackPanel>
@@ -246,13 +192,13 @@
                                                     <MenuItem Header="清空此标签" Command="{Binding ClearCommand}" />
                                                     <Separator />
                                                     <MenuItem Header="更改颜色">
-                                                        <MenuItem Header="红色" Command="{Binding SetColorCommand}" CommandParameter="#FF5F57" />
-                                                        <MenuItem Header="橙色" Command="{Binding SetColorCommand}" CommandParameter="#FF9F0A" />
-                                                        <MenuItem Header="黄色" Command="{Binding SetColorCommand}" CommandParameter="#FFD60A" />
-                                                        <MenuItem Header="绿色" Command="{Binding SetColorCommand}" CommandParameter="#32D74B" />
-                                                        <MenuItem Header="蓝色" Command="{Binding SetColorCommand}" CommandParameter="#0A84FF" />
-                                                        <MenuItem Header="紫色" Command="{Binding SetColorCommand}" CommandParameter="#BF5AF2" />
-                                                        <MenuItem Header="灰色" Command="{Binding SetColorCommand}" CommandParameter="#98989D" />
+                                                        <MenuItem Header="红色" Command="{Binding SetColorCommand}" CommandParameter="#D46A66" />
+                                                        <MenuItem Header="橙色" Command="{Binding SetColorCommand}" CommandParameter="#D4925A" />
+                                                        <MenuItem Header="黄色" Command="{Binding SetColorCommand}" CommandParameter="#C9A94A" />
+                                                        <MenuItem Header="绿色" Command="{Binding SetColorCommand}" CommandParameter="#5FA87A" />
+                                                        <MenuItem Header="蓝色" Command="{Binding SetColorCommand}" CommandParameter="#6A96C8" />
+                                                        <MenuItem Header="紫色" Command="{Binding SetColorCommand}" CommandParameter="#9A7FB0" />
+                                                        <MenuItem Header="灰色" Command="{Binding SetColorCommand}" CommandParameter="#8E8E93" />
                                                     </MenuItem>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
@@ -264,11 +210,13 @@
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
 
-                                                <Ellipse Grid.Column="0"
-                                                         Width="10" Height="10"
-                                                         Margin="0,0,9,0"
-                                                         Fill="{Binding Color}"
-                                                         VerticalAlignment="Center" />
+                                                <Grid Grid.Column="0"
+                                                      Width="12" Height="12"
+                                                      Margin="1,0,9,0"
+                                                      VerticalAlignment="Center">
+                                                    <Ellipse Fill="{Binding Color}" />
+                                                    <Ellipse Stroke="#66FFFFFF" StrokeThickness="1" />
+                                                </Grid>
                                                 <TextBlock Grid.Column="1"
                                                            Text="{Binding Name}"
                                                            VerticalAlignment="Center"
@@ -284,9 +232,9 @@
                                         </Button>
 
                                         <!-- The right-hand disclosure button only expands the saved addresses. -->
-                                        <Button Width="24"
-                                                Height="24"
-                                                Margin="0,0,3,0"
+                                        <Button Width="18"
+                                                Height="18"
+                                                Margin="0,0,4,0"
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 Style="{StaticResource IconButtonSmall}"
@@ -362,23 +310,64 @@
                     </ItemsControl>
                 </StackPanel>
             </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- Content toolbar sits only over the file stage, like Finder. -->
+        <Border Grid.Row="0" Grid.Column="1"
+                Background="{StaticResource Surface.Toolbar}"
+                BorderBrush="{StaticResource Line.Soft}"
+                BorderThickness="0,0,0,1"
+                Padding="12,8,14,8">
+            <DockPanel>
+                <TextBlock Text="分屏"
+                           DockPanel.Dock="Left"
+                           Style="{StaticResource SectionLabel}"
+                           VerticalAlignment="Center"
+                           Margin="2,0,10,0" />
+                <Border Background="{StaticResource Surface.Hover}"
+                        CornerRadius="8"
+                        Padding="3"
+                        HorizontalAlignment="Left">
+                    <ItemsControl ItemsSource="{Binding LayoutPresets}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <RadioButton Style="{StaticResource LayoutSegment}"
+                                             GroupName="Layout"
+                                             IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                             ToolTip="{Binding Name}"
+                                             Command="{Binding DataContext.SetLayoutCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                             CommandParameter="{Binding Mode}">
+                                    <views:LayoutGlyph Mode="{Binding Mode}"
+                                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                                </RadioButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+            </DockPanel>
         </Border>
 
         <!-- Drag the seam to grow or shrink the navigation column. -->
-        <GridSplitter Grid.Row="1" Grid.Column="0"
+        <GridSplitter Grid.Row="0" Grid.RowSpan="3" Grid.Column="0"
                       Style="{StaticResource SidebarSplitter}"
                       DragCompleted="OnSidebarSplitterDragCompleted" />
 
         <!-- ================= Pane host ================= -->
         <views:LayoutHost Grid.Row="1" Grid.Column="1"
-                          Margin="5"
+                          Margin="8,6,10,6"
                           ItemsSource="{Binding Panes}"
                           LayoutMode="{Binding LayoutMode}" />
 
         <!-- ================= Status bar ================= -->
-        <Border Grid.Row="2" Grid.ColumnSpan="2"
-                Background="{StaticResource Surface.Card}"
-                BorderBrush="{StaticResource Line.Base}"
+        <Border Grid.Row="2" Grid.Column="1"
+                Background="{StaticResource Surface.Toolbar}"
+                BorderBrush="{StaticResource Line.Soft}"
                 BorderThickness="0,1,0,0"
                 Padding="16,6">
             <Grid>

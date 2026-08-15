@@ -60,9 +60,9 @@ public partial class PaneView : UserControl
     {
         var isActive = _pane?.IsActive == true;
 
-        WakeBar.Background = (Brush)FindResource(isActive ? "Accent.Wake" : "Accent.WakeFaded");
-        Card.BorderBrush = (Brush)FindResource(isActive ? "Accent.Muted" : "Line.Base");
-        Card.Effect = isActive ? (Effect)FindResource("Shadow.Card") : null;
+        WakeBar.Background = Brushes.Transparent;
+        Card.BorderBrush = (Brush)FindResource(isActive ? "Line.Base" : "Line.Soft");
+        Card.Effect = isActive ? (Effect)FindResource("Shadow.Soft") : null;
     }
 
     private void OnPaneMouseDown(object sender, MouseButtonEventArgs e)

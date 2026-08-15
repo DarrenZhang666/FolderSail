@@ -15,6 +15,7 @@ public partial class MainWindow : Window
         var viewModel = new MainViewModel();
         DataContext = viewModel;
         SidebarColumn.Width = new GridLength(viewModel.SidebarWidth);
+        Helpers.WindowBackdrop.TryEnable(this);
         Closing += (_, _) =>
         {
             viewModel.SidebarWidth = SidebarColumn.ActualWidth;
