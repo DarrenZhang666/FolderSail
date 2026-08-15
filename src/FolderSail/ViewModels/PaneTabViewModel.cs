@@ -1,0 +1,66 @@
+using FolderSail.Core.Models;
+using FolderSail.Core.Navigation;
+using FolderSail.Mvvm;
+
+namespace FolderSail.ViewModels;
+
+public sealed class PaneTabViewModel : ObservableObject
+{
+    private readonly ITagLookup? _tags;
+    private string _path;
+    private string _title;
+    private bool _isActive;
+
+    public PaneTabViewModel(string path, ITagLookup? tags = null)
+    {
+        _tags = tags;
+        _path = path;
+        _title = GetTitle(path);
+        History.Reset(path);
+    }
+
+    public Guid Id { get; } = Guid.NewGuid();
+
+    public NavigationHistory History { get; } = new();
+
+    public string Path
+    {
+        get => _path;
+        set
+        {
+            if (SetProperty(ref _path, value))
+            {
+                Title = GetTitle(value);
+            }
+        }
+    }
+
+    public string Title
+    {
+        get => _title;
+        private set => SetProperty(ref _title, value);
+    }
+
+    public bool IsActive
+    {
+        get => _isActive;
+        set => SetProperty(ref _isActive, value);
+    }
+
+    private string GetTitle(string path)
+    {
+        if (path.Equals(NavigationHistory.ThisPcToken, StringComparison.OrdinalIgnoreCase))
+        {
+            return "此电脑";
+        }
+
+        if (TagPath.TryParse(path, out var tagId))
+        {
+            return _tags?.GetTagName(tagId) ?? "标签";
+        }
+
+        var normalized = path.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+        var name = System.IO.Path.GetFileName(normalized);
+        return string.IsNullOrWhiteSpace(name) ? path : name;
+    }
+}
