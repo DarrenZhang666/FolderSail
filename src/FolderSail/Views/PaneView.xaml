@@ -13,7 +13,7 @@
     <Border x:Name="Card"
             Background="{StaticResource Surface.Card}"
             BorderBrush="{StaticResource Line.Soft}"
-            BorderThickness="1"
+            BorderThickness="2"
             CornerRadius="0"
             Margin="0"
             SnapsToDevicePixels="True">

@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 
 namespace FolderSail.Views;
 
@@ -59,7 +60,8 @@ public partial class PaneView : UserControl
     {
         var isActive = _pane?.IsActive == true;
 
-        Card.BorderBrush = (Brush)FindResource(isActive ? "Line.Base" : "Line.Soft");
+        Card.BorderBrush = (Brush)FindResource(isActive ? "Line.Focus" : "Line.Soft");
+        Card.Effect = isActive ? (Effect)FindResource("Shadow.PaneActive") : null;
     }
 
     private void OnPaneMouseDown(object sender, MouseButtonEventArgs e)
