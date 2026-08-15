@@ -2,63 +2,62 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime">
 
-    <!-- Surfaces: layered whites keep the shell airy without going flat. -->
-    <SolidColorBrush x:Key="Surface.Canvas" Color="#F4F6F8" />
+    <!--
+      Colours taken from Finder in light mode:
+      frosted sidebar #F6F6F6, white file stage, #007AFF selection with white type.
+    -->
+    <SolidColorBrush x:Key="Surface.Window" Color="#FAFAFA" />
+    <SolidColorBrush x:Key="Surface.Canvas" Color="#FAFAFA" />
     <SolidColorBrush x:Key="Surface.Card" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="Surface.Sidebar" Color="#FBFCFD" />
-    <SolidColorBrush x:Key="Surface.Subtle" Color="#F7F9FA" />
-    <SolidColorBrush x:Key="Surface.Hover" Color="#EEF6F8" />
-    <SolidColorBrush x:Key="Surface.Selected" Color="#DFF1F6" />
+    <SolidColorBrush x:Key="Surface.Toolbar" Color="#FAFAFA" />
+    <SolidColorBrush x:Key="Surface.Sidebar" Color="#FBFBFB" />
+    <SolidColorBrush x:Key="Surface.Subtle" Color="#F7F7F7" />
+    <SolidColorBrush x:Key="Surface.Hover" Color="#0F000000" />
+    <SolidColorBrush x:Key="Surface.Selected" Color="#007AFF" />
+    <SolidColorBrush x:Key="Surface.SidebarHover" Color="#0F000000" />
+    <SolidColorBrush x:Key="Surface.SidebarSelected" Color="#EFEFEF" />
 
-    <!-- Lines -->
-    <SolidColorBrush x:Key="Line.Soft" Color="#EDF0F2" />
-    <SolidColorBrush x:Key="Line.Base" Color="#E1E6EA" />
-    <SolidColorBrush x:Key="Line.Strong" Color="#CFD6DC" />
+    <SolidColorBrush x:Key="Line.Soft" Color="#E8E8E8" />
+    <SolidColorBrush x:Key="Line.Base" Color="#DEDEDE" />
+    <SolidColorBrush x:Key="Line.Strong" Color="#D0D0D0" />
 
-    <!-- Text -->
-    <SolidColorBrush x:Key="Text.Primary" Color="#1C2530" />
-    <SolidColorBrush x:Key="Text.Secondary" Color="#5B6875" />
-    <SolidColorBrush x:Key="Text.Tertiary" Color="#8B97A3" />
+    <SolidColorBrush x:Key="Text.Primary" Color="#1D1D1F" />
+    <SolidColorBrush x:Key="Text.Secondary" Color="#6E6E73" />
+    <SolidColorBrush x:Key="Text.Tertiary" Color="#8E8E93" />
     <SolidColorBrush x:Key="Text.OnAccent" Color="#FFFFFF" />
 
-    <!-- Accent: FolderSail sails on teal, deliberately away from stock Windows blue. -->
-    <SolidColorBrush x:Key="Accent.Base" Color="#0E8AA8" />
-    <SolidColorBrush x:Key="Accent.Deep" Color="#0A6C85" />
-    <SolidColorBrush x:Key="Accent.Soft" Color="#D6EEF4" />
-    <SolidColorBrush x:Key="Accent.Muted" Color="#8FCEDC" />
+    <SolidColorBrush x:Key="Accent.Base" Color="#007AFF" />
+    <SolidColorBrush x:Key="Accent.Deep" Color="#0066D6" />
+    <SolidColorBrush x:Key="Accent.Soft" Color="#1A007AFF" />
+    <SolidColorBrush x:Key="Accent.Muted" Color="#66007AFF" />
 
-    <SolidColorBrush x:Key="Danger.Base" Color="#C2410C" />
-    <SolidColorBrush x:Key="Danger.Soft" Color="#FDEDE6" />
+    <SolidColorBrush x:Key="Danger.Base" Color="#FF3B30" />
+    <SolidColorBrush x:Key="Danger.Soft" Color="#22FF3B30" />
 
-    <!-- The wake gradient marks the active pane: a sail trail rather than a hard outline. -->
-    <LinearGradientBrush x:Key="Accent.Wake" StartPoint="0,0" EndPoint="1,0">
-        <GradientStop Color="#0E8AA8" Offset="0" />
-        <GradientStop Color="#35B0C4" Offset="0.55" />
-        <GradientStop Color="#7FD3D8" Offset="1" />
-    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Accent.Wake" Color="#007AFF" />
+    <SolidColorBrush x:Key="Accent.WakeFaded" Color="#00000000" />
 
-    <LinearGradientBrush x:Key="Accent.WakeFaded" StartPoint="0,0" EndPoint="1,0">
-        <GradientStop Color="#E4EAEE" Offset="0" />
-        <GradientStop Color="#EDF1F3" Offset="1" />
-    </LinearGradientBrush>
-
-    <!-- Metrics -->
     <CornerRadius x:Key="Radius.Card">10</CornerRadius>
     <CornerRadius x:Key="Radius.Control">6</CornerRadius>
     <CornerRadius x:Key="Radius.Pill">999</CornerRadius>
 
-    <sys:Double x:Key="Size.Row">26</sys:Double>
-    <sys:Double x:Key="Size.FontBody">12</sys:Double>
+    <sys:Double x:Key="Size.Row">28</sys:Double>
+    <sys:Double x:Key="Size.FontBody">13</sys:Double>
     <sys:Double x:Key="Size.FontSmall">11</sys:Double>
 
-    <FontFamily x:Key="Font.Ui">Microsoft YaHei UI, Segoe UI, sans-serif</FontFamily>
+    <FontFamily x:Key="Font.Ui">Segoe UI Variable Display, Segoe UI, Microsoft YaHei UI, sans-serif</FontFamily>
     <FontFamily x:Key="Font.Icon">Segoe MDL2 Assets</FontFamily>
 
     <DropShadowEffect x:Key="Shadow.Card"
-                      BlurRadius="14"
+                      BlurRadius="16"
                       ShadowDepth="1"
                       Direction="270"
-                      Color="#22384A"
-                      Opacity="0.10" />
+                      Color="#000000"
+                      Opacity="0.06" />
 
+    <DropShadowEffect x:Key="Shadow.Soft"
+                      BlurRadius="8"
+                      ShadowDepth="0"
+                      Color="#000000"
+                      Opacity="0.04" />
 </ResourceDictionary>

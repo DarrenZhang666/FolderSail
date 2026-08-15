@@ -68,19 +68,25 @@ public sealed class FavoriteStore : IFavoriteStore
         var expected = palette.Select(tag => tag.Name).ToHashSet(StringComparer.Ordinal);
         var legacy = document.Categories.Where(category => !expected.Contains(category.Name)).ToList();
 
-        if (legacy.Count == 0 && document.Categories.Count == palette.Length)
-        {
-            return false;
-        }
-
         var tags = palette
             .Select(tag => document.Categories.FirstOrDefault(category => category.Name == tag.Name)
                            ?? new FavoriteCategory { Name = tag.Name, Items = [] })
             .ToList();
 
+        var changed = legacy.Count > 0 || document.Categories.Count != palette.Length;
+
         for (var i = 0; i < tags.Count; i++)
         {
-            tags[i].Color = palette[i].Color;
+            if (TagPalette.IsRetired(tags[i].Color))
+            {
+                tags[i].Color = palette[i].Color;
+                changed = true;
+            }
+        }
+
+        if (!changed)
+        {
+            return false;
         }
 
         // Park orphaned folders on the blue tag so nothing silently disappears.

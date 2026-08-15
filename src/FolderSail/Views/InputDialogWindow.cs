@@ -86,13 +86,22 @@ public class InputDialogWindow : Window
             Content = "确定",
             Width = 86,
             Height = 30,
-            IsDefault = true,
-            Foreground = Brushes.White,
-            Background = TryBrush("Accent.Base", Brushes.SteelBlue),
-            BorderThickness = new Thickness(0),
-            Cursor = System.Windows.Input.Cursors.Hand,
-            FontSize = 12
+            IsDefault = true
         };
+        if (TryFindResource("PrimaryButton") is Style primary)
+        {
+            ok.Style = primary;
+            ok.Width = 86;
+            ok.Height = 30;
+        }
+        else
+        {
+            ok.Foreground = Brushes.White;
+            ok.Background = TryBrush("Accent.Base", Brushes.SteelBlue);
+            ok.BorderThickness = new Thickness(0);
+            ok.Cursor = System.Windows.Input.Cursors.Hand;
+            ok.FontSize = 12;
+        }
         ok.Click += (_, _) =>
         {
             InputText = _input.Text;

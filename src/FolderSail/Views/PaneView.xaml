@@ -12,15 +12,15 @@
 
     <Border x:Name="Card"
             Background="{StaticResource Surface.Card}"
-            BorderBrush="{StaticResource Line.Base}"
+            BorderBrush="{StaticResource Line.Soft}"
             BorderThickness="1"
             CornerRadius="{StaticResource Radius.Card}"
-            Margin="5"
+            Margin="4"
             SnapsToDevicePixels="True">
 
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="3" />
+                <RowDefinition Height="2" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -28,14 +28,12 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Wake bar: the active pane leaves a teal trail across its top edge. -->
             <Border x:Name="WakeBar"
                     Grid.Row="0"
-                    Background="{StaticResource Accent.WakeFaded}"
+                    Background="Transparent"
                     CornerRadius="9,9,0,0" />
 
-            <!-- Tab strip: each split pane owns its own independent tab collection. -->
-            <Grid Grid.Row="1" Margin="8,6,8,5">
+            <Grid Grid.Row="1" Margin="8,4,8,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -60,15 +58,13 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border x:Name="TabChrome"
-                                            Height="28"
-                                            MinWidth="82"
-                                            MaxWidth="170"
-                                            Margin="0,0,3,0"
-                                            Padding="8,0,3,0"
-                                            Background="{StaticResource Surface.Subtle}"
-                                            BorderBrush="{StaticResource Line.Soft}"
-                                            BorderThickness="1"
-                                            CornerRadius="6,6,3,3"
+                                            Height="26"
+                                            MinWidth="78"
+                                            MaxWidth="168"
+                                            Margin="0,0,2,0"
+                                            Padding="8,0,2,0"
+                                            Background="Transparent"
+                                            CornerRadius="6"
                                             Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             MouseDown="OnTabMouseDown">
                                         <Border.ContextMenu>
@@ -106,8 +102,8 @@
                                                        Margin="0,0,6,0" />
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding Title}"
-                                                       FontSize="11"
-                                                       FontWeight="SemiBold"
+                                                       FontSize="13"
+                                                       FontWeight="Normal"
                                                        TextTrimming="CharacterEllipsis"
                                                        VerticalAlignment="Center"
                                                        ToolTip="{Binding Path}" />
@@ -124,8 +120,7 @@
                                     </Border>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                            <Setter TargetName="TabChrome" Property="Background" Value="{StaticResource Surface.Card}" />
-                                            <Setter TargetName="TabChrome" Property="BorderBrush" Value="{StaticResource Accent.Muted}" />
+                                            <Setter TargetName="TabChrome" Property="Background" Value="{StaticResource Surface.Hover}" />
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
@@ -147,7 +142,7 @@
             </Grid>
 
             <!-- Navigation strip: breadcrumb by default, editable path on demand -->
-            <Grid Grid.Row="2" Margin="8,0,8,6">
+            <Grid Grid.Row="2" Margin="8,0,8,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -174,9 +169,9 @@
                         Background="{StaticResource Surface.Subtle}"
                         BorderBrush="{StaticResource Line.Soft}"
                         BorderThickness="1"
-                        CornerRadius="{StaticResource Radius.Control}"
+                        CornerRadius="8"
                         Padding="2,0"
-                        MinHeight="26"
+                        MinHeight="28"
                         Visibility="{Binding IsAddressEditing, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
                     <ScrollViewer HorizontalScrollBarVisibility="Hidden"
                                   VerticalScrollBarVisibility="Disabled">
@@ -224,10 +219,11 @@
 
             <!-- Column headers -->
             <Border Grid.Row="3"
+                    Background="{StaticResource Surface.Subtle}"
                     BorderBrush="{StaticResource Line.Soft}"
                     BorderThickness="0,0,0,1"
-                    Padding="14,0,14,5"
-                    Margin="8,0,8,0">
+                    Padding="16,6,16,6"
+                    Margin="0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -249,7 +245,7 @@
                      ItemContainerStyle="{StaticResource FileRow}"
                      Background="Transparent"
                      BorderThickness="0"
-                     Margin="8,2,4,2"
+                     Margin="6,2,4,2"
                      Padding="0"
                      FontFamily="{StaticResource Font.Ui}"
                      FontSize="{StaticResource Size.FontBody}"
@@ -260,7 +256,7 @@
                      MouseDoubleClick="OnItemDoubleClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid Height="26"
+                        <Grid Height="28"
                               PreviewMouseMove="OnRowMouseMove"
                               PreviewMouseRightButtonDown="OnRowRightClick">
                             <Grid.ColumnDefinitions>
@@ -276,12 +272,14 @@
                                        Height="16"
                                        Margin="0,0,8,0"
                                        VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Name}"
+                                <TextBlock x:Name="NameText"
+                                           Text="{Binding Name}"
                                            VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis" />
                             </StackPanel>
 
-                            <TextBlock Grid.Column="1"
+                            <TextBlock x:Name="SizeText"
+                                       Grid.Column="1"
                                        Text="{Binding Size, Converter={StaticResource FileSize}}"
                                        Foreground="{StaticResource Text.Secondary}"
                                        FontSize="{StaticResource Size.FontSmall}"
@@ -289,38 +287,42 @@
                                        VerticalAlignment="Center"
                                        Margin="0,0,10,0" />
 
-                            <!-- Age pill: recency is colour-coded so stale folders recede. -->
-                            <Border Grid.Column="2"
-                                    Background="{Binding ModifiedUtc, Converter={StaticResource RelativeTimeBrush}}"
-                                    CornerRadius="{StaticResource Radius.Pill}"
-                                    Padding="6,1"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
-                                <TextBlock Text="{Binding ModifiedUtc, Converter={StaticResource RelativeTime}}"
-                                           Foreground="{Binding ModifiedUtc, Converter={StaticResource RelativeTimeBrush}, ConverterParameter=Foreground}"
-                                           FontSize="10"
-                                           FontWeight="SemiBold" />
-                            </Border>
+                            <TextBlock x:Name="TimeText"
+                                       Grid.Column="2"
+                                       Text="{Binding ModifiedUtc, Converter={StaticResource RelativeTime}}"
+                                       Foreground="{StaticResource Text.Secondary}"
+                                       FontSize="11"
+                                       TextAlignment="Center"
+                                       VerticalAlignment="Center" />
 
-                            <TextBlock Grid.Column="3"
+                            <TextBlock x:Name="KindText"
+                                       Grid.Column="3"
                                        Text="{Binding Kind, Converter={StaticResource ItemKindLabel}}"
-                                       Foreground="{StaticResource Text.Tertiary}"
+                                       Foreground="{StaticResource Text.Secondary}"
                                        FontSize="10"
                                        TextAlignment="Right"
                                        VerticalAlignment="Center"
                                        Margin="0,0,4,0" />
                         </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                <Setter TargetName="NameText" Property="Foreground" Value="{StaticResource Text.OnAccent}" />
+                                <Setter TargetName="SizeText" Property="Foreground" Value="{StaticResource Text.OnAccent}" />
+                                <Setter TargetName="TimeText" Property="Foreground" Value="{StaticResource Text.OnAccent}" />
+                                <Setter TargetName="KindText" Property="Foreground" Value="{StaticResource Text.OnAccent}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
 
             <!-- Footer: counts on the left, file actions on the right -->
             <Border Grid.Row="5"
-                    Background="{StaticResource Surface.Subtle}"
+                    Background="Transparent"
                     BorderBrush="{StaticResource Line.Soft}"
                     BorderThickness="0,1,0,0"
                     CornerRadius="0,0,9,9"
-                    Padding="12,5">
+                    Padding="14,6">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

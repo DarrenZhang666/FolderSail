@@ -48,7 +48,7 @@ public sealed class LayoutGlyph : Control
         var rowEdges = BuildEdges(definition.RowWeights, totalRows, usableHeight, inset);
 
         var stroke = Foreground;
-        var fill = new SolidColorBrush(Color.FromArgb(26, 14, 138, 168));
+        var fill = new SolidColorBrush(Color.FromArgb(40, 0, 122, 255));
         fill.Freeze();
         var pen = new Pen(stroke, 1);
         pen.Freeze();

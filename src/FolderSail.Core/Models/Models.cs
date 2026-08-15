@@ -124,14 +124,42 @@ public static class TagPalette
 {
     public static readonly (string Name, string Color)[] Defaults =
     [
-        ("红色", "#FF5F57"),
-        ("橙色", "#FF9F0A"),
-        ("黄色", "#FFD60A"),
-        ("绿色", "#32D74B"),
-        ("蓝色", "#0A84FF"),
-        ("紫色", "#BF5AF2"),
-        ("灰色", "#98989D")
+        ("红色", "#D46A66"),
+        ("橙色", "#D4925A"),
+        ("黄色", "#C9A94A"),
+        ("绿色", "#5FA87A"),
+        ("蓝色", "#6A96C8"),
+        ("紫色", "#9A7FB0"),
+        ("灰色", "#8E8E93")
     ];
+
+    /// <summary>
+    /// Older, more saturated swatches. Documents still using these get
+    /// moved onto the muted sidebar palette without touching custom colours.
+    /// </summary>
+    public static bool IsRetired(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return true;
+        }
+
+        return color.Equals("#FF5F57", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#FF9F0A", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#FFD60A", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#32D74B", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#0A84FF", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#BF5AF2", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#98989D", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#3B82F6", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#EF4444", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#10B981", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#F59E0B", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#8B5CF6", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#EC4899", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#06B6D4", StringComparison.OrdinalIgnoreCase)
+            || color.Equals("#64748B", StringComparison.OrdinalIgnoreCase);
+    }
 }
 
 /// <summary>

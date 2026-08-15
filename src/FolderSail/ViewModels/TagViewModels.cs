@@ -64,7 +64,7 @@ public sealed class TagViewModel : ObservableObject
         Model = category;
         _changed = changed;
         _name = category.Name;
-        _color = string.IsNullOrWhiteSpace(category.Color) ? "#0A84FF" : category.Color;
+        _color = string.IsNullOrWhiteSpace(category.Color) ? "#6A96C8" : category.Color;
         category.Color = _color;
 
         SetColorCommand = new RelayCommand<string>(SetColor);
