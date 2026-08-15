@@ -49,7 +49,29 @@
         <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="0"
                 Background="{StaticResource Surface.Sidebar}">
             <DockPanel>
-                <StackPanel DockPanel.Dock="Top" Height="52" />
+                <StackPanel DockPanel.Dock="Top"
+                            Orientation="Horizontal"
+                            Height="52"
+                            Margin="16,0,12,0"
+                            VerticalAlignment="Center">
+                    <Border Width="22"
+                            Height="22"
+                            CornerRadius="6"
+                            Background="{StaticResource Text.Primary}"
+                            Opacity="0.82"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center">
+                        <Canvas Width="22" Height="22">
+                            <Path Fill="White" Data="M 11.2 4.2 L 11.2 13 L 5.4 13 Z" />
+                            <Path Fill="White" Opacity="0.55" Data="M 12.2 7.2 L 16.4 13 L 12.2 13 Z" />
+                            <Path Fill="White" Data="M 4.6 14.6 L 17.4 14.6 L 15.6 17.2 L 6.4 17.2 Z" />
+                        </Canvas>
+                    </Border>
+                    <TextBlock Text="FolderSail"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                </StackPanel>
 
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               Padding="10,4,8,16"
