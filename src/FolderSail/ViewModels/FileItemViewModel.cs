@@ -1,15 +1,19 @@
 using FolderSail.Mvvm;
 using FolderSail.Core.Models;
 using FolderSail.Helpers;
+using System.Windows.Media;
 
 namespace FolderSail.ViewModels;
 
 public sealed class FileItemViewModel : ObservableObject
 {
+    private ImageSource? _icon;
+    private bool _isRenaming;
+    private string _renameText = string.Empty;
+
     public FileItemViewModel(FileItem item)
     {
         Item = item;
-        Icon = ShellIconHelper.GetIcon(item.FullPath, item.Kind != FileItemKind.File);
     }
 
     public FileItem Item { get; }
@@ -19,10 +23,22 @@ public sealed class FileItemViewModel : ObservableObject
     public long Size => Item.Size;
     public DateTime ModifiedUtc => Item.ModifiedUtc;
     public string Extension => Item.Extension;
-    public System.Windows.Media.ImageSource? Icon { get; }
 
-    private bool _isRenaming;
-    private string _renameText = string.Empty;
+    public ImageSource? Icon
+    {
+        get => _icon;
+        private set => SetProperty(ref _icon, value);
+    }
+
+    public void EnsureIcon()
+    {
+        if (_icon != null)
+        {
+            return;
+        }
+
+        Icon = ShellIconHelper.GetCachedIcon(FullPath, Kind != FileItemKind.File);
+    }
 
     public bool IsRenaming
     {

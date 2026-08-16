@@ -51,52 +51,53 @@ public sealed class FileService : IFileService
 
         var items = new List<FileItem>();
 
-        foreach (var dir in Directory.EnumerateDirectories(path))
+        try
         {
-            try
+            foreach (var dir in Directory.EnumerateDirectories(path))
             {
-                var info = new DirectoryInfo(dir);
-                items.Add(new FileItem
+                try
                 {
-                    Name = info.Name,
-                    FullPath = info.FullName,
-                    Kind = FileItemKind.Directory,
-                    Size = 0,
-                    ModifiedUtc = info.LastWriteTimeUtc,
-                    Extension = string.Empty
-                });
+                    var info = new DirectoryInfo(dir);
+                    items.Add(new FileItem
+                    {
+                        Name = info.Name,
+                        FullPath = info.FullName,
+                        Kind = FileItemKind.Directory,
+                        Size = 0,
+                        ModifiedUtc = info.LastWriteTimeUtc,
+                        Extension = string.Empty
+                    });
+                }
+                catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+                {
+                }
             }
-            catch (UnauthorizedAccessException)
+
+            foreach (var file in Directory.EnumerateFiles(path))
             {
-                // Skip inaccessible directories.
+                try
+                {
+                    var info = new FileInfo(file);
+                    items.Add(new FileItem
+                    {
+                        Name = info.Name,
+                        FullPath = info.FullName,
+                        Kind = FileItemKind.File,
+                        Size = info.Length,
+                        ModifiedUtc = info.LastWriteTimeUtc,
+                        Extension = info.Extension
+                    });
+                }
+                catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+                {
+                }
             }
         }
-
-        foreach (var file in Directory.EnumerateFiles(path))
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
         {
-            try
-            {
-                var info = new FileInfo(file);
-                items.Add(new FileItem
-                {
-                    Name = info.Name,
-                    FullPath = info.FullName,
-                    Kind = FileItemKind.File,
-                    Size = info.Length,
-                    ModifiedUtc = info.LastWriteTimeUtc,
-                    Extension = info.Extension
-                });
-            }
-            catch (UnauthorizedAccessException)
-            {
-                // Skip inaccessible files.
-            }
         }
 
-        return items
-            .OrderByDescending(i => i.Kind != FileItemKind.File)
-            .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        return items;
     }
 
     public IReadOnlyList<FileItem> ListPaths(IEnumerable<string> paths)

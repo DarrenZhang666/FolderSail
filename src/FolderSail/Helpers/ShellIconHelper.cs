@@ -36,18 +36,29 @@ public static class ShellIconHelper
     private const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;
     private const uint FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
 
-    public static ImageSource? GetIcon(string path, bool isDirectory)
+    public static ImageSource? GetIcon(string path, bool isDirectory) =>
+        GetCachedIcon(path, isDirectory);
+
+    public static ImageSource? GetCachedIcon(string path, bool isDirectory)
+    {
+        var key = isDirectory
+            ? ":dir:"
+            : string.IsNullOrWhiteSpace(Path.GetExtension(path))
+                ? ":file:"
+                : Path.GetExtension(path).ToLowerInvariant();
+
+        return Cache.GetOrAdd(key, _ => LoadIcon(path, isDirectory));
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, ImageSource?> Cache = new();
+
+    private static ImageSource? LoadIcon(string path, bool isDirectory)
     {
         var shfi = new SHFILEINFO();
-        var flags = SHGFI_ICON | SHGFI_SMALLICON;
-
-        if (!File.Exists(path) && !Directory.Exists(path))
-        {
-            flags |= SHGFI_USEFILEATTRIBUTES;
-        }
-
+        var flags = SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES;
         var attrs = isDirectory ? FILE_ATTRIBUTE_DIRECTORY : 0u;
-        var result = SHGetFileInfo(path, attrs, ref shfi, (uint)Marshal.SizeOf<SHFILEINFO>(), flags);
+        var probe = isDirectory ? "folder" : "file" + Path.GetExtension(path);
+        var result = SHGetFileInfo(probe, attrs, ref shfi, (uint)Marshal.SizeOf<SHFILEINFO>(), flags);
 
         if (result == IntPtr.Zero || shfi.hIcon == IntPtr.Zero)
         {
@@ -56,10 +67,12 @@ public static class ShellIconHelper
 
         try
         {
-            return Imaging.CreateBitmapSourceFromHIcon(
+            var source = Imaging.CreateBitmapSourceFromHIcon(
                 shfi.hIcon,
                 Int32Rect.Empty,
                 BitmapSizeOptions.FromEmptyOptions());
+            source.Freeze();
+            return source;
         }
         finally
         {

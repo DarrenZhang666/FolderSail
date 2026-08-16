@@ -5,3 +5,5 @@ publish/
 *.user
 *.suo
 .idea/
+dist/
+

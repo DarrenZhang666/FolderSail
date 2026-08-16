@@ -23,6 +23,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     private int _searchEpoch;
     private bool _isDarkTheme;
     private bool _expandTagChildrenOnStartup;
+    private readonly List<int> _paneSortColumns;
+    private readonly List<bool> _paneSortDescending;
 
     public const double SidebarMinWidth = 156;
     public const double SidebarMaxWidth = 520;
@@ -67,6 +69,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         _sidebarWidth = ClampSidebarWidth(settings.SidebarWidth);
         _isDarkTheme = settings.IsDarkTheme;
         _expandTagChildrenOnStartup = settings.ExpandTagChildrenOnStartup;
+        _paneSortColumns = settings.PaneSortColumns;
+        _paneSortDescending = settings.PaneSortDescending;
         ApplyTagChildExpansion(_expandTagChildrenOnStartup);
         ApplyLayout(settings.ActivePaneIndex, settings.PanePaths);
         UpdateLayoutPresetSelection();
@@ -513,6 +517,14 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
 
             var pane = new PaneViewModel(i, _fileService, path, this, _searchService);
             pane.StatusMessage += (_, message) => StatusMessage = message;
+            pane.ViewStateChanged += (_, _) => SaveSettings();
+            if (i < _paneSortColumns.Count)
+            {
+                var column = (FileSortColumn)Math.Clamp(_paneSortColumns[i], 0, 3);
+                var descending = i < _paneSortDescending.Count && _paneSortDescending[i];
+                pane.ApplySort(column, descending);
+            }
+
             _allPanes.Add(pane);
         }
 
@@ -548,7 +560,9 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
             PanePaths = _allPanes.Select(p => p.GetExportPath()).ToList(),
             SidebarWidth = SidebarWidth,
             IsDarkTheme = IsDarkTheme,
-            ExpandTagChildrenOnStartup = ExpandTagChildrenOnStartup
+            ExpandTagChildrenOnStartup = ExpandTagChildrenOnStartup,
+            PaneSortColumns = _allPanes.Select(p => (int)p.SortColumn).ToList(),
+            PaneSortDescending = _allPanes.Select(p => p.SortDescending).ToList()
         });
     }
 

@@ -10,6 +10,8 @@ public sealed class PaneTabViewModel : ObservableObject
     private string _path;
     private string _title;
     private bool _isActive;
+    private FileSortColumn _sortColumn = FileSortColumn.Name;
+    private bool _sortDescending;
 
     public PaneTabViewModel(string path, ITagLookup? tags = null)
     {
@@ -45,6 +47,18 @@ public sealed class PaneTabViewModel : ObservableObject
     {
         get => _isActive;
         set => SetProperty(ref _isActive, value);
+    }
+
+    public FileSortColumn SortColumn
+    {
+        get => _sortColumn;
+        set => SetProperty(ref _sortColumn, value);
+    }
+
+    public bool SortDescending
+    {
+        get => _sortDescending;
+        set => SetProperty(ref _sortDescending, value);
     }
 
     private string GetTitle(string path)

@@ -72,6 +72,14 @@ public static class LayoutModeExtensions
         new(rows, columns, placements);
 }
 
+public enum FileSortColumn
+{
+    Name = 0,
+    Size = 1,
+    Modified = 2,
+    Kind = 3
+}
+
 public enum FileItemKind
 {
     File,
@@ -243,6 +251,8 @@ public sealed class AppSettings
     public double SidebarWidth { get; set; } = 228;
     public bool IsDarkTheme { get; set; }
     public bool ExpandTagChildrenOnStartup { get; set; }
+    public List<int> PaneSortColumns { get; set; } = [];
+    public List<bool> PaneSortDescending { get; set; } = [];
 }
 
 public sealed class FileTransferProgress

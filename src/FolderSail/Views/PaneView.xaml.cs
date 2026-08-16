@@ -54,6 +54,7 @@ public partial class PaneView : UserControl
         }
 
         ApplyActiveVisual();
+        UpdateFilterPlaceholder();
     }
 
     private void OnPanePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -62,6 +63,10 @@ public partial class PaneView : UserControl
         {
             case nameof(PaneViewModel.IsActive):
                 ApplyActiveVisual();
+                break;
+            case nameof(PaneViewModel.HasFilter):
+            case nameof(PaneViewModel.FilterText):
+                UpdateFilterPlaceholder();
                 break;
             case nameof(PaneViewModel.IsAddressEditing) when _pane?.IsAddressEditing == true:
                 Dispatcher.BeginInvoke(() =>
@@ -127,6 +132,22 @@ public partial class PaneView : UserControl
         {
             _pane.ActivateTabCommand.Execute(tab);
         }
+    }
+
+    private void OnBreadcrumbMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_pane == null || e.ChangedButton != MouseButton.Left)
+        {
+            return;
+        }
+
+        _pane.BeginEditAddressCommand.Execute(null);
+        e.Handled = true;
+    }
+
+    private void OnAddressLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        _pane?.CancelEditAddressCommand.Execute(null);
     }
 
     private void OnAddressKeyDown(object sender, KeyEventArgs e)
@@ -232,11 +253,64 @@ public partial class PaneView : UserControl
         _pane.SetSelectedItems(FilesList.SelectedItems.OfType<FileItemViewModel>());
     }
 
+    private void OnFilterChromeMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        FilterBox.Focus();
+        UpdateFilterPlaceholder();
+    }
+
+    private void OnFilterFocusChanged(object sender, KeyboardFocusChangedEventArgs e) =>
+        UpdateFilterPlaceholder();
+
+    private void UpdateFilterPlaceholder()
+    {
+        var show = !FilterBox.IsKeyboardFocusWithin && string.IsNullOrWhiteSpace(_pane?.FilterText);
+        FilterPlaceholder.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnFilterKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || _pane == null)
+        {
+            return;
+        }
+
+        _pane.FilterText = string.Empty;
+        FilesList.Focus();
+        e.Handled = true;
+    }
+
+    private void OnFilesTextInput(object sender, TextCompositionEventArgs e)
+    {
+        if (_pane == null || _pane.IsInlineRenaming || string.IsNullOrEmpty(e.Text) || char.IsControl(e.Text[0]))
+        {
+            return;
+        }
+
+        _pane.FilterText += e.Text;
+        e.Handled = true;
+    }
+
+    private void OnItemIconLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: FileItemViewModel item })
+        {
+            item.EnsureIcon();
+        }
+    }
+
     private void OnFilesPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
         {
             FilesList.SelectAll();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Escape && _pane?.HasFilter == true)
+        {
+            _pane.FilterText = string.Empty;
             e.Handled = true;
         }
     }

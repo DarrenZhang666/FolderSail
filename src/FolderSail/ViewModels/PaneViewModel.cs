@@ -24,6 +24,10 @@ public sealed class PaneViewModel : ObservableObject
     private FileItemViewModel? _selectedItem;
     private PaneTabViewModel? _activeTab;
     private bool _isSearching;
+    private string _filterText = string.Empty;
+    private int _filterEpoch;
+    private int _previewEpoch;
+    private FilePreview _preview = new();
 
     public PaneViewModel(
         int index,
@@ -64,6 +68,8 @@ public sealed class PaneViewModel : ObservableObject
         CloseOtherTabsCommand = new RelayCommand<PaneTabViewModel>(CloseOtherTabs);
         OpenSelectedInNewTabCommand = new RelayCommand(OpenSelectedInNewTab, CanOpenSelectedInNewTab);
         OpenKnownFolderCommand = new RelayCommand<string>(OpenKnownFolder);
+        SortByCommand = new RelayCommand<FileSortColumn>(SortBy);
+        ClearFilterCommand = new RelayCommand(() => FilterText = string.Empty);
 
         var initialTab = new PaneTabViewModel(initialPath, _tags);
         Tabs.Add(initialTab);
@@ -132,7 +138,12 @@ public sealed class PaneViewModel : ObservableObject
             CurrentPath = value.Path;
             _switchingTab = false;
             IsAddressEditing = false;
+            FilterText = string.Empty;
             SelectedItem = null;
+            OnPropertyChanged(nameof(SortColumn));
+            OnPropertyChanged(nameof(SortDescending));
+            NotifySortHeaders();
+            RebuildVisible();
         }
     }
 
@@ -197,6 +208,11 @@ public sealed class PaneViewModel : ObservableObject
 
             var folders = Items.Count(i => i.Kind != FileItemKind.File);
             var files = Items.Count - folders;
+            if (HasFilter)
+            {
+                return $"显示 {VisibleItems.Count} / {Items.Count} 项";
+            }
+
             return $"{folders} 个文件夹 · {files} 个文件";
         }
     }
@@ -220,12 +236,83 @@ public sealed class PaneViewModel : ObservableObject
     public FileItemViewModel? SelectedItem
     {
         get => _selectedItem;
-        set => SetProperty(ref _selectedItem, value);
+        set
+        {
+            if (SetProperty(ref _selectedItem, value))
+            {
+                SchedulePreview();
+            }
+        }
     }
 
     public List<FileItemViewModel> SelectedItems { get; } = [];
 
     public ObservableCollection<FileItemViewModel> Items { get; } = [];
+
+    public ObservableCollection<FileItemViewModel> VisibleItems { get; } = [];
+
+    public string FilterText
+    {
+        get => _filterText;
+        set
+        {
+            if (!SetProperty(ref _filterText, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(HasFilter));
+            var epoch = Interlocked.Increment(ref _filterEpoch);
+            _ = Task.Delay(80).ContinueWith(_ =>
+            {
+                if (epoch != _filterEpoch)
+                {
+                    return;
+                }
+
+                var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                dispatcher?.Invoke(() =>
+                {
+                    if (epoch == _filterEpoch)
+                    {
+                        RebuildVisible();
+                    }
+                });
+            });
+        }
+    }
+
+    public bool HasFilter => !string.IsNullOrWhiteSpace(_filterText);
+
+    public FileSortColumn SortColumn => ActiveTab?.SortColumn ?? FileSortColumn.Name;
+
+    public bool SortDescending => ActiveTab?.SortDescending ?? false;
+
+    public string NameSortGlyph => SortGlyph(FileSortColumn.Name);
+    public string SizeSortGlyph => SortGlyph(FileSortColumn.Size);
+    public string ModifiedSortGlyph => SortGlyph(FileSortColumn.Modified);
+    public string KindSortGlyph => SortGlyph(FileSortColumn.Kind);
+
+    public FilePreview Preview
+    {
+        get => _preview;
+        private set
+        {
+            _preview = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasImagePreview));
+            OnPropertyChanged(nameof(HasTextPreview));
+            OnPropertyChanged(nameof(HasGenericPreview));
+            OnPropertyChanged(nameof(IsPreviewEmpty));
+        }
+    }
+
+    public bool HasImagePreview => Preview.Kind == PreviewKind.Image;
+    public bool HasTextPreview => Preview.Kind == PreviewKind.Text;
+    public bool IsPreviewEmpty => Preview.Kind == PreviewKind.Empty;
+    public bool HasGenericPreview => Preview.Kind is PreviewKind.Generic or PreviewKind.Folder;
+
+    public event EventHandler? ViewStateChanged;
 
     public bool CanGoBack => ActiveTab?.History.CanGoBack == true;
     public bool CanGoForward => ActiveTab?.History.CanGoForward == true;
@@ -253,6 +340,8 @@ public sealed class PaneViewModel : ObservableObject
     public ICommand CloseOtherTabsCommand { get; }
     public ICommand OpenSelectedInNewTabCommand { get; }
     public ICommand OpenKnownFolderCommand { get; }
+    public ICommand SortByCommand { get; }
+    public ICommand ClearFilterCommand { get; }
 
     public event EventHandler? ActiveChanged;
     public event EventHandler<string>? StatusMessage;
@@ -315,6 +404,8 @@ public sealed class PaneViewModel : ObservableObject
         CancelInlineRename();
         CancelSearch();
         Items.Clear();
+        VisibleItems.Clear();
+        Preview = new FilePreview { Hint = "选择一项以预览" };
 
         if (SearchPath.TryParse(CurrentPath, out var query))
         {
@@ -339,6 +430,8 @@ public sealed class PaneViewModel : ObservableObject
             StatusMessage?.Invoke(this, ex.Message);
         }
 
+        RebuildVisible();
+        SchedulePreview();
         OnPropertyChanged(nameof(ItemSummary));
     }
 
@@ -401,6 +494,7 @@ public sealed class PaneViewModel : ObservableObject
             IsSearching = false;
             var message = task.Exception?.InnerException?.Message ?? "搜索失败";
             StatusMessage?.Invoke(this, message);
+            RebuildVisible();
             OnPropertyChanged(nameof(ItemSummary));
             return;
         }
@@ -418,10 +512,164 @@ public sealed class PaneViewModel : ObservableObject
         }
 
         IsSearching = false;
+        RebuildVisible();
         OnPropertyChanged(nameof(ItemSummary));
         StatusMessage?.Invoke(
             this,
             task.Result.Count == 0 ? $"未找到「{query}」" : $"找到 {task.Result.Count} 项");
+    }
+
+    public void ApplySort(FileSortColumn column, bool descending)
+    {
+        if (ActiveTab == null)
+        {
+            return;
+        }
+
+        ActiveTab.SortColumn = column;
+        ActiveTab.SortDescending = descending;
+        OnPropertyChanged(nameof(SortColumn));
+        OnPropertyChanged(nameof(SortDescending));
+        NotifySortHeaders();
+        RebuildVisible();
+    }
+
+    private void SortBy(FileSortColumn column)
+    {
+        if (ActiveTab == null)
+        {
+            return;
+        }
+
+        if (ActiveTab.SortColumn == column)
+        {
+            ActiveTab.SortDescending = !ActiveTab.SortDescending;
+        }
+        else
+        {
+            ActiveTab.SortColumn = column;
+            ActiveTab.SortDescending = column is FileSortColumn.Size or FileSortColumn.Modified;
+        }
+
+        OnPropertyChanged(nameof(SortColumn));
+        OnPropertyChanged(nameof(SortDescending));
+        NotifySortHeaders();
+        RebuildVisible();
+        ViewStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void NotifySortHeaders()
+    {
+        OnPropertyChanged(nameof(NameSortGlyph));
+        OnPropertyChanged(nameof(SizeSortGlyph));
+        OnPropertyChanged(nameof(ModifiedSortGlyph));
+        OnPropertyChanged(nameof(KindSortGlyph));
+    }
+
+    private string SortGlyph(FileSortColumn column)
+    {
+        if (SortColumn != column)
+        {
+            return string.Empty;
+        }
+
+        return SortDescending ? "\uE70D" : "\uE70E";
+    }
+
+    private void RebuildVisible()
+    {
+        var selected = SelectedItem;
+        var filter = _filterText.Trim();
+        IEnumerable<FileItemViewModel> query = Items;
+        if (filter.Length > 0)
+        {
+            query = query.Where(item =>
+                item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var sorted = SortItems(query);
+        VisibleItems.Clear();
+        foreach (var item in sorted)
+        {
+            VisibleItems.Add(item);
+        }
+
+        if (selected != null && VisibleItems.Contains(selected))
+        {
+            SelectedItem = selected;
+        }
+        else if (VisibleItems.Count > 0 && selected != null)
+        {
+            SelectedItem = null;
+        }
+
+        OnPropertyChanged(nameof(ItemSummary));
+    }
+
+    private IEnumerable<FileItemViewModel> SortItems(IEnumerable<FileItemViewModel> source)
+    {
+        var foldersFirst = source.OrderByDescending(item => item.Kind != FileItemKind.File);
+        var descending = SortDescending;
+        return SortColumn switch
+        {
+            FileSortColumn.Size => descending
+                ? foldersFirst.ThenByDescending(item => item.Size)
+                : foldersFirst.ThenBy(item => item.Size),
+            FileSortColumn.Modified => descending
+                ? foldersFirst.ThenByDescending(item => item.ModifiedUtc)
+                : foldersFirst.ThenBy(item => item.ModifiedUtc),
+            FileSortColumn.Kind => descending
+                ? foldersFirst.ThenByDescending(item => item.Kind)
+                : foldersFirst.ThenBy(item => item.Kind),
+            _ => descending
+                ? foldersFirst.ThenByDescending(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                : foldersFirst.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+        };
+    }
+
+    private void SchedulePreview()
+    {
+        var item = SelectedItem?.Item;
+        var epoch = Interlocked.Increment(ref _previewEpoch);
+        if (item == null)
+        {
+            Preview = new FilePreview { Hint = "选择一项以预览" };
+            return;
+        }
+
+        Preview = new FilePreview
+        {
+            Kind = PreviewKind.Generic,
+            Title = item.Name,
+            Hint = "正在加载预览…"
+        };
+
+        _ = Task.Run(() => PreviewService.Load(item), CancellationToken.None)
+            .ContinueWith(task =>
+            {
+                if (epoch != _previewEpoch)
+                {
+                    return;
+                }
+
+                var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                dispatcher?.Invoke(() =>
+                {
+                    if (epoch != _previewEpoch)
+                    {
+                        return;
+                    }
+
+                    Preview = task.Status == TaskStatus.RanToCompletion
+                        ? task.Result
+                        : new FilePreview
+                        {
+                            Kind = PreviewKind.Generic,
+                            Title = item.Name,
+                            Hint = "无法预览"
+                        };
+                });
+            }, TaskScheduler.Default);
     }
 
     private void CancelSearch()
@@ -677,7 +925,11 @@ public sealed class PaneViewModel : ObservableObject
             return;
         }
 
-        var duplicate = new PaneTabViewModel(tab.Path, _tags);
+        var duplicate = new PaneTabViewModel(tab.Path, _tags)
+        {
+            SortColumn = tab.SortColumn,
+            SortDescending = tab.SortDescending
+        };
         var insertAt = Tabs.IndexOf(tab) + 1;
         Tabs.Insert(insertAt, duplicate);
         ActiveTab = duplicate;
