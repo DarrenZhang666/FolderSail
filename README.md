@@ -1,36 +1,44 @@
-<img width="1355" height="858" alt="image" src="https://github.com/user-attachments/assets/e9b74122-0c73-4aa5-aad1-8dbd468a1f9f" /># FolderSail
+<p align="left">
+  <a href="README.md"><img src="https://img.shields.io/badge/English-1D1D1F?style=for-the-badge" alt="English" /></a>
+  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/中文-E8E8E8?style=for-the-badge&labelColor=E8E8E8&color=6E6E73" alt="中文" /></a>
+</p>
 
-Windows 上的轻量多窗格文件管理器。界面接近 Finder：彩色标签、多分屏、顶栏一体，适合日常整理文件。
+<img width="1355" height="858" alt="FolderSail" src="https://github.com/user-attachments/assets/e9b74122-0c73-4aa5-aad1-8dbd468a1f9f" />
 
-发给别人时只需一个 `FolderSail.exe`，**不用装 .NET，也不用装 Ollama**。
+# FolderSail
 
-## 功能
+A lightweight multi-pane file manager for Windows. The UI is close to Finder: color tags, split views, and a unified top bar for everyday file work.
 
-- **多分屏**：1 / 2 / 4 / 6 等布局，每个窗格独立浏览、独立标签页
-- **彩色标签**：红/橙/黄/绿/蓝/紫/灰，拖文件夹到标签即可收藏；右键可改名、改色、清空
-- **磁盘侧栏**：C / D 等盘符与容量条，点击进入盘符**根目录**
-- **搜索**：文件名包含匹配（输入 `youyu` 会找出名字里带 youyu 的项）
-- **自然语言搜索**（规则解析，无模型）：例如  
-  `帮我搜索电脑中带有youyu字样的文件，是excel表格格式`  
-  `原理图字样的文件夹`  
-  会抽出关键字和类型（Excel / Word / PDF / 图片 / 文件夹等）再搜
-- 复制、剪切、粘贴、删除到回收站、新建文件夹、F2 重命名
-- 右键使用系统资源管理器菜单
-- 窗格间拖拽：默认复制，按住 Shift 为移动
-## 发给客户
+When you send it to someone else, they only need `FolderSail.exe`. **No .NET install, and no Ollama.**
 
-1. 先关掉正在运行的 FolderSail
-2. 打包（自包含单文件，约 70MB）：
+## Features
+
+- **Split views**: 1 / 2 / 4 / 6 pane layouts; each pane browses independently with its own tabs
+- **Color tags**: red / orange / yellow / green / blue / purple / gray. Drop folders onto a tag to save them; right-click to rename, recolor, or clear
+- **Disks sidebar**: drives such as C / D with capacity bars; click to open the drive **root**
+- **Search**: substring match on file names (typing `youyu` finds items whose names contain youyu)
+- **Natural-language search** (rule-based, no model), for example:  
+  `help me find files named youyu that are Excel spreadsheets`  
+  `folders with 原理图 in the name`  
+  Keywords and types (Excel / Word / PDF / images / folders, etc.) are extracted, then searched
+- Copy, cut, paste, delete to Recycle Bin, new folder, F2 rename
+- Right-click uses the system Explorer context menu
+- Drag between panes: copy by default, hold Shift to move
+
+## Shipping to customers
+
+1. Quit FolderSail if it is running
+2. Publish a self-contained single file (about 70MB):
 
 ```powershell
 dotnet publish src\FolderSail\FolderSail.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o dist\win-x64
 ```
 
-3. 把 `dist\win-x64\FolderSail.exe` 发出去即可
+3. Send `dist\win-x64\FolderSail.exe`
 
-客户电脑：Windows 10 / 11 **64 位**。第一次启动会稍慢（自解压），属正常现象。
+Customer PCs: **64-bit** Windows 10 / 11. The first launch can be slower (self-extract), which is expected.
 
-## 开发环境
+## Development
 
 - Windows 10/11
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
@@ -41,25 +49,25 @@ dotnet build
 dotnet run --project src\FolderSail\FolderSail.csproj
 ```
 
-## 项目结构
+## Layout
 
 ```
 FolderSail.sln
-src/FolderSail.Core/   文件服务、搜索、标签与设置
-src/FolderSail/        WPF 界面（MVVM）
+src/FolderSail.Core/   file services, search, tags, and settings
+src/FolderSail/        WPF UI (MVVM)
 ```
 
-## 快捷键
+## Shortcuts
 
-| 快捷键 | 作用 |
-|--------|------|
-| Ctrl+F / Ctrl+K | 聚焦顶栏搜索 |
-| Ctrl+T / Ctrl+W | 新建 / 关闭标签页 |
-| Ctrl+C / X / V | 复制 / 剪切 / 粘贴 |
-| Delete | 删除到回收站 |
-| F2 | 重命名 |
-| F5 | 刷新 |
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+F / Ctrl+K | Focus the top search box |
+| Ctrl+T / Ctrl+W | New / close tab |
+| Ctrl+C / X / V | Copy / cut / paste |
+| Delete | Delete to Recycle Bin |
+| F2 | Rename |
+| F5 | Refresh |
 
-## 许可
+## License
 
-个人与分发请按仓库内许可约定使用。未单独声明时，默认仅供本项目作者及授权客户使用。
+Use and redistribution follow the license in this repository. If none is stated separately, it is for the project author and authorized customers only.
