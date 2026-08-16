@@ -64,16 +64,31 @@ public partial class MainWindow : Window
             switch (e.Key)
             {
                 case Key.C:
-                    pane.CopySelectedCommand.Execute(null);
+                    if (pane.CopySelectedCommand.CanExecute(null))
+                    {
+                        pane.CopySelectedCommand.Execute(null);
+                    }
+
                     e.Handled = true;
                     break;
                 case Key.X:
-                    pane.CutSelectedCommand.Execute(null);
+                    if (pane.CutSelectedCommand.CanExecute(null))
+                    {
+                        pane.CutSelectedCommand.Execute(null);
+                    }
+
                     e.Handled = true;
                     break;
                 case Key.V:
-                    pane.PasteCommand.Execute(null);
+                    if (pane.PasteCommand.CanExecute(null))
+                    {
+                        pane.PasteCommand.Execute(null);
+                    }
+
                     e.Handled = true;
+                    break;
+                case Key.A:
+                    // Select-all is handled by the active file list.
                     break;
                 case Key.T:
                     pane.NewTabCommand.Execute(null);

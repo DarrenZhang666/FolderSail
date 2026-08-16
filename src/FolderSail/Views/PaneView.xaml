@@ -263,9 +263,12 @@
 
             <!-- Rows -->
             <Grid Grid.Row="3">
-            <ListBox ItemsSource="{Binding Items}"
+            <ListBox x:Name="FilesList"
+                     ItemsSource="{Binding Items}"
                      SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                     SelectionMode="Extended"
                      ItemContainerStyle="{StaticResource FileRow}"
+                     FocusVisualStyle="{x:Null}"
                      Background="Transparent"
                      BorderThickness="0"
                      Margin="2,0,0,0"
@@ -276,6 +279,8 @@
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      VirtualizingPanel.IsVirtualizing="True"
                      VirtualizingPanel.VirtualizationMode="Recycling"
+                     SelectionChanged="OnFilesSelectionChanged"
+                     PreviewKeyDown="OnFilesPreviewKeyDown"
                      MouseDoubleClick="OnItemDoubleClick"
                      PreviewMouseRightButtonUp="OnFilesRightClick">
                 <ListBox.ItemTemplate>

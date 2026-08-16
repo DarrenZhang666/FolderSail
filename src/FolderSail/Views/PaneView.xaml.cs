@@ -192,8 +192,32 @@ public partial class PaneView : UserControl
         }
 
         _dragOrigin = default;
-        var data = new DataObject(DataFormats.FileDrop, new[] { item.FullPath });
+        if (_pane == null)
+        {
+            return;
+        }
+
+        var data = new DataObject(DataFormats.FileDrop, _pane.GetSelectedPathsForDrag(item.FullPath).ToArray());
         DragDrop.DoDragDrop(this, data, DragDropEffects.Copy | DragDropEffects.Move);
+    }
+
+    private void OnFilesSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_pane == null)
+        {
+            return;
+        }
+
+        _pane.SetSelectedItems(FilesList.SelectedItems.OfType<FileItemViewModel>());
+    }
+
+    private void OnFilesPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            FilesList.SelectAll();
+            e.Handled = true;
+        }
     }
 
     private void OnFilesRightClick(object sender, MouseButtonEventArgs e)

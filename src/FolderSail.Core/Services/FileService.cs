@@ -178,33 +178,62 @@ public sealed class FileService : IFileService
             throw new DirectoryNotFoundException($"目标目录不存在: {destinationDirectory}");
         }
 
-        var fileName = Path.GetFileName(sourcePath);
-        var destinationPath = Path.Combine(destinationDirectory, fileName);
+        sourcePath = Path.GetFullPath(sourcePath);
+        destinationDirectory = Path.GetFullPath(destinationDirectory);
 
-        if (Directory.Exists(sourcePath))
-        {
-            CopyDirectory(sourcePath, destinationPath, move);
-            return;
-        }
-
-        if (!File.Exists(sourcePath))
+        var isDirectory = Directory.Exists(sourcePath);
+        if (!isDirectory && !File.Exists(sourcePath))
         {
             throw new FileNotFoundException("源文件不存在", sourcePath);
         }
 
+        var fileName = Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new InvalidOperationException("无法复制该路径");
+        }
+
+        var intended = Path.Combine(destinationDirectory, fileName);
+
         if (move)
         {
-            if (File.Exists(destinationPath))
+            if (PathsEqual(sourcePath, intended))
             {
-                File.Delete(destinationPath);
+                return;
             }
 
-            File.Move(sourcePath, destinationPath);
+            if (isDirectory && IsUnder(intended, sourcePath))
+            {
+                throw new InvalidOperationException("无法将文件夹移动到其自身中");
+            }
+
+            var destinationPath = Exists(intended)
+                ? UniqueDestination(destinationDirectory, fileName, isDirectory)
+                : intended;
+
+            if (isDirectory)
+            {
+                Directory.Move(sourcePath, destinationPath);
+            }
+            else
+            {
+                File.Move(sourcePath, destinationPath);
+            }
+
+            return;
         }
-        else
+
+        var copyDest = PathsEqual(sourcePath, intended) || Exists(intended)
+            ? UniqueDestination(destinationDirectory, fileName, isDirectory)
+            : intended;
+
+        if (isDirectory)
         {
-            File.Copy(sourcePath, destinationPath, overwrite: true);
+            CopyDirectory(sourcePath, copyDest);
+            return;
         }
+
+        File.Copy(sourcePath, copyDest, overwrite: false);
     }
 
     public void DeleteToRecycleBin(IEnumerable<string> paths)
@@ -320,24 +349,82 @@ public sealed class FileService : IFileService
             .ToList();
     }
 
-    private static void CopyDirectory(string sourceDir, string destDir, bool move)
+    /// <summary>
+    /// Snapshot children before creating dest so pasting a folder into itself
+    /// cannot recurse forever (Explorer-style).
+    /// </summary>
+    private static void CopyDirectory(string sourceDir, string destDir)
     {
+        sourceDir = Path.GetFullPath(sourceDir);
+        destDir = Path.GetFullPath(destDir);
+
+        if (PathsEqual(sourceDir, destDir))
+        {
+            throw new IOException("无法将文件夹复制到其自身");
+        }
+
+        var files = Directory.GetFiles(sourceDir);
+        var dirs = Directory.GetDirectories(sourceDir)
+            .Where(dir => !PathsEqual(dir, destDir) && !IsUnder(dir, destDir))
+            .ToArray();
+
         Directory.CreateDirectory(destDir);
 
-        foreach (var file in Directory.GetFiles(sourceDir))
+        foreach (var file in files)
         {
             var destFile = Path.Combine(destDir, Path.GetFileName(file));
-            File.Copy(file, destFile, overwrite: true);
+            if (PathsEqual(file, destFile))
+            {
+                continue;
+            }
+
+            File.Copy(file, destFile, overwrite: false);
         }
 
-        foreach (var subDir in Directory.GetDirectories(sourceDir))
+        foreach (var subDir in dirs)
         {
-            CopyDirectory(subDir, Path.Combine(destDir, Path.GetFileName(subDir)), move: false);
+            CopyDirectory(subDir, Path.Combine(destDir, Path.GetFileName(subDir)));
+        }
+    }
+
+    private static string UniqueDestination(string directory, string originalName, bool isFolder)
+    {
+        string baseName;
+        string extension;
+        if (isFolder)
+        {
+            baseName = originalName;
+            extension = string.Empty;
+        }
+        else
+        {
+            baseName = Path.GetFileNameWithoutExtension(originalName);
+            extension = Path.GetExtension(originalName);
         }
 
-        if (move)
+        var candidate = $"{baseName} - 副本{extension}";
+        var n = 2;
+        while (Exists(Path.Combine(directory, candidate)))
         {
-            Directory.Delete(sourceDir, recursive: true);
+            candidate = $"{baseName} - 副本 ({n++}){extension}";
         }
+
+        return Path.Combine(directory, candidate);
+    }
+
+    private static bool Exists(string path) => File.Exists(path) || Directory.Exists(path);
+
+    private static bool PathsEqual(string left, string right)
+    {
+        var a = Path.GetFullPath(left).TrimEnd('\\', '/');
+        var b = Path.GetFullPath(right).TrimEnd('\\', '/');
+        return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsUnder(string path, string parent)
+    {
+        var prefix = Path.GetFullPath(parent).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+        var full = Path.GetFullPath(path).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+        return full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     }
 }

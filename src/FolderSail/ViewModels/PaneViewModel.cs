@@ -1,6 +1,7 @@
 using FolderSail.Core.Models;
 using FolderSail.Core.Navigation;
 using FolderSail.Core.Services;
+using FolderSail.Helpers;
 using FolderSail.Mvvm;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -12,10 +13,9 @@ public sealed class PaneViewModel : ObservableObject
     private readonly IFileService _fileService;
     private readonly ITagLookup? _tags;
     private readonly IFileSearchService? _search;
-    private readonly List<string> _clipboardPaths = [];
     private CancellationTokenSource? _searchCts;
-    private bool _clipboardIsCut;
     private bool _switchingTab;
+    private bool _isPasting;
     private string _currentPath = string.Empty;
     private string _addressText = string.Empty;
     private bool _isActive;
@@ -42,10 +42,10 @@ public sealed class PaneViewModel : ObservableObject
         GoToThisPcCommand = new RelayCommand(GoToThisPc);
         GoToAddressCommand = new RelayCommand(GoToAddress);
         OpenSelectedCommand = new RelayCommand(OpenSelected, () => SelectedItem != null);
-        CopySelectedCommand = new RelayCommand(CopySelected, () => SelectedItem != null);
-        CutSelectedCommand = new RelayCommand(CutSelected, () => SelectedItem != null);
-        PasteCommand = new RelayCommand(Paste);
-        DeleteSelectedCommand = new RelayCommand(DeleteSelected, () => SelectedItem != null);
+        CopySelectedCommand = new RelayCommand(CopySelected, HasSelection);
+        CutSelectedCommand = new RelayCommand(CutSelected, HasSelection);
+        PasteCommand = new RelayCommand(Paste, () => !_isPasting && FileClipboard.HasFiles());
+        DeleteSelectedCommand = new RelayCommand(DeleteSelected, HasSelection);
         RenameSelectedCommand = new RelayCommand(RenameSelected);
         NewFolderCommand = new RelayCommand(NewFolder);
         RefreshCommand = new RelayCommand(RefreshItems);
@@ -221,6 +221,8 @@ public sealed class PaneViewModel : ObservableObject
         get => _selectedItem;
         set => SetProperty(ref _selectedItem, value);
     }
+
+    public List<FileItemViewModel> SelectedItems { get; } = [];
 
     public ObservableCollection<FileItemViewModel> Items { get; } = [];
 
@@ -694,52 +696,91 @@ public sealed class PaneViewModel : ObservableObject
         ActiveTab = tab;
     }
 
+    public IReadOnlyList<string> GetSelectedPathsForDrag(string fallback)
+    {
+        var paths = GetSelectedPaths();
+        if (paths.Count > 0 && paths.Exists(path => path.Equals(fallback, StringComparison.OrdinalIgnoreCase)))
+        {
+            return paths;
+        }
+
+        return [fallback];
+    }
+
+    public void SetSelectedItems(IEnumerable<FileItemViewModel> items)
+    {
+        SelectedItems.Clear();
+        SelectedItems.AddRange(items);
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private bool HasSelection() => SelectedItems.Count > 0 || SelectedItem != null;
+
+    private List<string> GetSelectedPaths()
+    {
+        if (SelectedItems.Count > 0)
+        {
+            return SelectedItems.Select(item => item.FullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        return SelectedItem == null ? [] : [SelectedItem.FullPath];
+    }
+
     private void CopySelected()
     {
-        if (SelectedItem == null)
+        var paths = GetSelectedPaths();
+        if (paths.Count == 0)
         {
             return;
         }
 
-        _clipboardPaths.Clear();
-        _clipboardPaths.Add(SelectedItem.FullPath);
-        _clipboardIsCut = false;
-        StatusMessage?.Invoke(this, "已复制到剪贴板");
+        FileClipboard.SetFiles(paths, cut: false);
+        StatusMessage?.Invoke(this, paths.Count == 1 ? "已复制到剪贴板" : $"已复制 {paths.Count} 项");
     }
 
     private void CutSelected()
     {
-        if (SelectedItem == null)
+        var paths = GetSelectedPaths();
+        if (paths.Count == 0)
         {
             return;
         }
 
-        _clipboardPaths.Clear();
-        _clipboardPaths.Add(SelectedItem.FullPath);
-        _clipboardIsCut = true;
-        StatusMessage?.Invoke(this, "已剪切到剪贴板");
+        FileClipboard.SetFiles(paths, cut: true);
+        StatusMessage?.Invoke(this, paths.Count == 1 ? "已剪切到剪贴板" : $"已剪切 {paths.Count} 项");
     }
 
-    private void Paste()
+    private async void Paste()
     {
-        if (_clipboardPaths.Count == 0)
+        if (_isPasting)
+        {
+            return;
+        }
+
+        var (paths, cut) = FileClipboard.GetFiles();
+        if (paths.Count == 0)
         {
             return;
         }
 
         var targetDir = ResolveWritableDirectory();
+        _isPasting = true;
+        CommandManager.InvalidateRequerySuggested();
+        StatusMessage?.Invoke(this, "正在粘贴…");
 
         try
         {
-            foreach (var source in _clipboardPaths)
+            await Task.Run(() =>
             {
-                _fileService.Copy(source, targetDir, _clipboardIsCut);
-            }
+                foreach (var source in paths)
+                {
+                    _fileService.Copy(source, targetDir, cut);
+                }
+            }).ConfigureAwait(true);
 
-            if (_clipboardIsCut)
+            if (cut)
             {
-                _clipboardPaths.Clear();
-                _clipboardIsCut = false;
+                FileClipboard.ClearCutMark();
             }
 
             RefreshItems();
@@ -749,18 +790,24 @@ public sealed class PaneViewModel : ObservableObject
         {
             StatusMessage?.Invoke(this, ex.Message);
         }
+        finally
+        {
+            _isPasting = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
     }
 
     private void DeleteSelected()
     {
-        if (SelectedItem == null)
+        var paths = GetSelectedPaths();
+        if (paths.Count == 0)
         {
             return;
         }
 
         try
         {
-            _fileService.DeleteToRecycleBin([SelectedItem.FullPath]);
+            _fileService.DeleteToRecycleBin(paths);
             RefreshItems();
             StatusMessage?.Invoke(this, "已移到回收站");
         }
@@ -826,16 +873,20 @@ public sealed class PaneViewModel : ObservableObject
             ? _fileService.GetDefaultPath()
             : CurrentPath;
 
-    public void HandleDrop(string[] paths, bool move)
+    public async void HandleDrop(string[] paths, bool move)
     {
         var targetDir = ResolveWritableDirectory();
+        StatusMessage?.Invoke(this, move ? "正在移动…" : "正在复制…");
 
         try
         {
-            foreach (var source in paths)
+            await Task.Run(() =>
             {
-                _fileService.Copy(source, targetDir, move);
-            }
+                foreach (var source in paths)
+                {
+                    _fileService.Copy(source, targetDir, move);
+                }
+            }).ConfigureAwait(true);
 
             RefreshItems();
             StatusMessage?.Invoke(this, move ? "移动完成" : "复制完成");
