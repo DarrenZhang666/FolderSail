@@ -14,6 +14,7 @@
     <SolidColorBrush x:Key="Surface.Subtle" Color="#F7F7F7" />
     <SolidColorBrush x:Key="Surface.Hover" Color="#0F000000" />
     <SolidColorBrush x:Key="Surface.Selected" Color="#007AFF" />
+    <SolidColorBrush x:Key="Surface.RowSelected" Color="#E7F0FA" />
     <SolidColorBrush x:Key="Surface.SidebarHover" Color="#0F000000" />
     <SolidColorBrush x:Key="Surface.SidebarSelected" Color="#EFEFEF" />
     <SolidColorBrush x:Key="Surface.Brand" Color="#1D1D1F" />

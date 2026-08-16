@@ -294,17 +294,32 @@
                                 <ColumnDefinition Width="46" />
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Grid Grid.Column="0" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
                                 <Image Source="{Binding Icon}"
                                        Width="16"
                                        Height="16"
                                        Margin="0,0,8,0"
                                        VerticalAlignment="Center" />
                                 <TextBlock x:Name="NameText"
+                                           Grid.Column="1"
                                            Text="{Binding Name}"
                                            VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
+                                           TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+                                <TextBox x:Name="RenameBox"
+                                         Grid.Column="1"
+                                         Style="{StaticResource InlineRenameBox}"
+                                         Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}"
+                                         Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVisibility}}"
+                                         IsVisibleChanged="OnRenameBoxIsVisibleChanged"
+                                         LostFocus="OnRenameBoxLostFocus"
+                                         PreviewKeyDown="OnRenameBoxPreviewKeyDown"
+                                         PreviewMouseMove="OnRenameBoxMouseMove" />
+                            </Grid>
 
                             <TextBlock x:Name="SizeText"
                                        Grid.Column="1"
@@ -332,14 +347,6 @@
                                        VerticalAlignment="Center"
                                        Margin="0,0,4,0" />
                         </Grid>
-                        <DataTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
-                                <Setter TargetName="SizeText" Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
-                                <Setter TargetName="TimeText" Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
-                                <Setter TargetName="KindText" Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
-                            </DataTrigger>
-                        </DataTemplate.Triggers>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

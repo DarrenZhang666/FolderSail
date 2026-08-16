@@ -49,7 +49,8 @@ public static class ShellContextMenu
         string path,
         IReadOnlyList<OwnCommand> ownCommands,
         bool showExtendedVerbs,
-        bool folderBackground = false)
+        bool folderBackground = false,
+        Action? onRename = null)
     {
         LastError = null;
 
@@ -184,7 +185,14 @@ public static class ShellContextMenu
                 return false;
             }
 
-            Invoke(contextMenu, new WindowInteropHelper(owner).EnsureHandle(), command - FirstShellCommand, cursor);
+            var offset = command - FirstShellCommand;
+            if (onRename != null && IsRenameCommand(contextMenu, menu, command, offset))
+            {
+                onRename();
+                return true;
+            }
+
+            Invoke(contextMenu, new WindowInteropHelper(owner).EnsureHandle(), offset, cursor);
             return true;
         }
         catch (Exception exception)
@@ -309,6 +317,73 @@ public static class ShellContextMenu
 
             Marshal.Release(unknown);
         }
+    }
+
+    private const uint GcsVerbA = 0x00000000;
+    private const uint GcsVerbW = 0x00000004;
+    private const uint MfByCommand = 0x00000000;
+
+    private static bool IsRenameCommand(IContextMenu contextMenu, IntPtr menu, uint commandId, uint offset)
+    {
+        var verb = GetCommandVerb(contextMenu, offset);
+        if (!string.IsNullOrWhiteSpace(verb))
+        {
+            var normalized = verb.Trim().ToLowerInvariant();
+            if (normalized is "rename" or "windows.rename")
+            {
+                return true;
+            }
+        }
+
+        var caption = GetMenuCaption(menu, commandId);
+        if (string.IsNullOrWhiteSpace(caption))
+        {
+            return false;
+        }
+
+        var text = caption.Replace("&", string.Empty).Trim();
+        return text.Contains("重命名", StringComparison.Ordinal) ||
+               text.Equals("Rename", StringComparison.OrdinalIgnoreCase) ||
+               text.StartsWith("Rename ", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? GetCommandVerb(IContextMenu contextMenu, uint offset)
+    {
+        var buffer = Marshal.AllocHGlobal(512);
+        try
+        {
+            var hr = contextMenu.GetCommandString((UIntPtr)offset, GcsVerbW, IntPtr.Zero, buffer, 256);
+            if (hr >= 0)
+            {
+                var verb = Marshal.PtrToStringUni(buffer);
+                if (!string.IsNullOrWhiteSpace(verb))
+                {
+                    return verb;
+                }
+            }
+
+            hr = contextMenu.GetCommandString((UIntPtr)offset, GcsVerbA, IntPtr.Zero, buffer, 256);
+            if (hr >= 0)
+            {
+                return Marshal.PtrToStringAnsi(buffer);
+            }
+        }
+        catch (Exception)
+        {
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+
+        return null;
+    }
+
+    private static string? GetMenuCaption(IntPtr menu, uint commandId)
+    {
+        var text = new System.Text.StringBuilder(256);
+        var length = GetMenuString(menu, commandId, text, text.Capacity, MfByCommand);
+        return length > 0 ? text.ToString() : null;
     }
 
     private static void Invoke(
@@ -578,6 +653,14 @@ public static class ShellContextMenu
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetMenuString(
+        IntPtr menu,
+        uint item,
+        System.Text.StringBuilder text,
+        int maxCount,
+        uint flags);
 
     [DllImport("ole32.dll")]
     private static extern void CoTaskMemFree(IntPtr memory);

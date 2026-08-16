@@ -20,4 +20,33 @@ public sealed class FileItemViewModel : ObservableObject
     public DateTime ModifiedUtc => Item.ModifiedUtc;
     public string Extension => Item.Extension;
     public System.Windows.Media.ImageSource? Icon { get; }
+
+    private bool _isRenaming;
+    private string _renameText = string.Empty;
+
+    public bool IsRenaming
+    {
+        get => _isRenaming;
+        set => SetProperty(ref _isRenaming, value);
+    }
+
+    public string RenameText
+    {
+        get => _renameText;
+        set => SetProperty(ref _renameText, value);
+    }
+
+    public int RenameSelectLength
+    {
+        get
+        {
+            if (Kind != FileItemKind.File)
+            {
+                return RenameText.Length;
+            }
+
+            var lastDot = RenameText.LastIndexOf('.');
+            return lastDot <= 0 ? RenameText.Length : lastDot;
+        }
+    }
 }

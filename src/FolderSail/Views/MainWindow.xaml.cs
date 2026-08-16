@@ -40,6 +40,40 @@ public partial class MainWindow : Window
             ? WindowState.Normal
             : WindowState.Maximized;
 
+    private void OnWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        if (e.OriginalSource is DependencyObject origin && IsInsideRenameBox(origin))
+        {
+            return;
+        }
+
+        foreach (var pane in vm.Panes)
+        {
+            if (pane.IsInlineRenaming)
+            {
+                pane.CommitInlineRename();
+            }
+        }
+    }
+
+    private static bool IsInsideRenameBox(DependencyObject origin)
+    {
+        for (var current = origin; current != null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is TextBox { Name: "RenameBox" })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (DataContext is not MainViewModel vm || vm.ActivePane is not PaneViewModel pane)
@@ -119,19 +153,9 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
             case Key.F2 when pane.SelectedItem != null:
-            {
-                var dialog = new InputDialogWindow("重命名", "新名称:", pane.SelectedItem.Name)
-                {
-                    Owner = this
-                };
-                if (dialog.ShowDialog() == true)
-                {
-                    pane.RenameSelectedCommand.Execute(dialog.InputText);
-                }
-
+                pane.BeginInlineRename();
                 e.Handled = true;
                 break;
-            }
             case Key.F5:
                 pane.RefreshItems();
                 e.Handled = true;

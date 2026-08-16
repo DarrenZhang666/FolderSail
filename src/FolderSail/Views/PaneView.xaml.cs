@@ -16,12 +16,22 @@ public partial class PaneView : UserControl
     private PaneViewModel? _pane;
     private Point _dragOrigin;
 
+    private bool _ignoreRenameLostFocus;
+
     public PaneView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         Loaded += (_, _) => ApplyActiveVisual();
-        Unloaded += (_, _) => FolderSail.Helpers.ThemeManager.Changed -= OnThemeChanged;
+        Unloaded += (_, _) =>
+        {
+            FolderSail.Helpers.ThemeManager.Changed -= OnThemeChanged;
+            if (_pane != null)
+            {
+                _pane.PropertyChanged -= OnPanePropertyChanged;
+                _pane.InlineRenameStarted -= OnInlineRenameStarted;
+            }
+        };
         FolderSail.Helpers.ThemeManager.Changed += OnThemeChanged;
     }
 
@@ -32,6 +42,7 @@ public partial class PaneView : UserControl
         if (_pane != null)
         {
             _pane.PropertyChanged -= OnPanePropertyChanged;
+            _pane.InlineRenameStarted -= OnInlineRenameStarted;
         }
 
         _pane = e.NewValue as PaneViewModel;
@@ -39,6 +50,7 @@ public partial class PaneView : UserControl
         if (_pane != null)
         {
             _pane.PropertyChanged += OnPanePropertyChanged;
+            _pane.InlineRenameStarted += OnInlineRenameStarted;
         }
 
         ApplyActiveVisual();
@@ -82,8 +94,16 @@ public partial class PaneView : UserControl
         }
     }
 
+    private void OnInlineRenameStarted(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(FocusRenameBox, DispatcherPriority.Input);
+
     private void OnItemDoubleClick(object sender, MouseButtonEventArgs e)
     {
+        if (_pane?.IsInlineRenaming == true)
+        {
+            return;
+        }
+
         _pane?.OpenSelectedCommand.Execute(null);
     }
 
@@ -170,7 +190,8 @@ public partial class PaneView : UserControl
     private void OnRowMouseMove(object sender, MouseEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed ||
-            sender is not FrameworkElement { DataContext: FileItemViewModel item })
+            sender is not FrameworkElement { DataContext: FileItemViewModel item } ||
+            item.IsRenaming)
         {
             _dragOrigin = default;
             return;
@@ -271,14 +292,103 @@ public partial class PaneView : UserControl
         // event (especially on a chrome-less window) makes it close immediately.
         owner.Dispatcher.BeginInvoke(() =>
         {
-            var shown = ShellContextMenu.Show(owner, targetPath, ownCommands, extended, folderBackground);
+            var shown = ShellContextMenu.Show(
+                owner,
+                targetPath,
+                ownCommands,
+                extended,
+                folderBackground,
+                onRename: () => pane.BeginInlineRename());
             if (!shown)
             {
                 pane.ReportStatus($"系统右键菜单失败：{ShellContextMenu.LastError ?? "未知错误"}");
             }
 
-            pane.RefreshItems();
+            if (!pane.IsInlineRenaming)
+            {
+                pane.RefreshItems();
+            }
         }, DispatcherPriority.ApplicationIdle);
+    }
+
+    private void OnRenameBoxIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true)
+        {
+            Dispatcher.BeginInvoke(FocusRenameBox, DispatcherPriority.Input);
+        }
+    }
+
+    private void OnRenameBoxLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (_ignoreRenameLostFocus)
+        {
+            _ignoreRenameLostFocus = false;
+            return;
+        }
+
+        _pane?.CommitInlineRename();
+    }
+
+    private void OnRenameBoxPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (_pane == null)
+        {
+            return;
+        }
+
+        if (e.Key == Key.Enter)
+        {
+            _ignoreRenameLostFocus = true;
+            _pane.CommitInlineRename();
+            FilesList.Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            _ignoreRenameLostFocus = true;
+            _pane.CancelInlineRename();
+            FilesList.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void OnRenameBoxMouseMove(object sender, MouseEventArgs e) => e.Handled = true;
+
+    private void FocusRenameBox()
+    {
+        var box = FindRenameBox(FilesList);
+        if (box == null)
+        {
+            return;
+        }
+
+        box.Focus();
+        var length = box.DataContext is FileItemViewModel item ? item.RenameSelectLength : box.Text.Length;
+        length = Math.Clamp(length, 0, box.Text.Length);
+        box.Select(0, length);
+        box.BringIntoView();
+    }
+
+    private static TextBox? FindRenameBox(DependencyObject root)
+    {
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is TextBox { Name: "RenameBox", Visibility: Visibility.Visible } box)
+            {
+                return box;
+            }
+
+            var nested = FindRenameBox(child);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
     }
 
     private static FileItemViewModel? FindFileItem(DependencyObject? origin)

@@ -255,11 +255,63 @@ public sealed class PaneViewModel : ObservableObject
 
     public event EventHandler? ActiveChanged;
     public event EventHandler<string>? StatusMessage;
+    public event EventHandler? InlineRenameStarted;
+
+    public bool IsInlineRenaming => Items.Any(item => item.IsRenaming);
 
     public void ReportStatus(string message) => StatusMessage?.Invoke(this, message);
 
+    public void BeginInlineRename()
+    {
+        var item = SelectedItem;
+        if (item == null || item.Kind == FileItemKind.Drive)
+        {
+            return;
+        }
+
+        foreach (var row in Items)
+        {
+            row.IsRenaming = false;
+        }
+
+        item.RenameText = item.Name;
+        item.IsRenaming = true;
+        InlineRenameStarted?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void CommitInlineRename()
+    {
+        var item = Items.FirstOrDefault(row => row.IsRenaming);
+        if (item == null)
+        {
+            return;
+        }
+
+        var newName = item.RenameText.Trim();
+        item.IsRenaming = false;
+
+        if (string.IsNullOrWhiteSpace(newName) ||
+            newName.Equals(item.Name, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        SelectedItem = item;
+        RenameSelected(newName);
+    }
+
+    public void CancelInlineRename()
+    {
+        foreach (var row in Items.Where(item => item.IsRenaming))
+        {
+            row.RenameText = row.Name;
+            row.IsRenaming = false;
+        }
+    }
+
     public void RefreshItems()
     {
+        CancelInlineRename();
         CancelSearch();
         Items.Clear();
 

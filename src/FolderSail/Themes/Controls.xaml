@@ -421,14 +421,27 @@
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Hover}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.Selected}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
-                            <Setter TargetName="Chrome" Property="TextElement.Foreground" Value="{DynamicResource Text.OnAccent}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.RowSelected}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <Style x:Key="InlineRenameBox" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+        <Setter Property="FontSize" Value="{StaticResource Size.FontBody}" />
+        <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Text.Primary}" />
+        <Setter Property="Background" Value="{DynamicResource Surface.Card}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Line.Focus}" />
+        <Setter Property="Padding" Value="3,1" />
+        <Setter Property="MinHeight" Value="22" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
     </Style>
 
     <!-- ============ Sidebar entries ============ -->
