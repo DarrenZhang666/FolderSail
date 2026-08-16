@@ -291,11 +291,17 @@ public partial class PaneView : UserControl
         e.Handled = true;
     }
 
-    private void OnItemIconLoaded(object sender, RoutedEventArgs e)
+    private void OnItemIconLoaded(object sender, RoutedEventArgs e) =>
+        RequestRowIcon(sender);
+
+    private void OnItemIconContextChanged(object sender, DependencyPropertyChangedEventArgs e) =>
+        RequestRowIcon(sender);
+
+    private void RequestRowIcon(object sender)
     {
         if (sender is FrameworkElement { DataContext: FileItemViewModel item })
         {
-            item.EnsureIcon();
+            item.EnsureIcon(_pane?.IconLoadToken ?? CancellationToken.None);
         }
     }
 

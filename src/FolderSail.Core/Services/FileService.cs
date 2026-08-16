@@ -50,50 +50,38 @@ public sealed class FileService : IFileService
         }
 
         var items = new List<FileItem>();
+        var options = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            RecurseSubdirectories = false,
+            ReturnSpecialDirectories = false
+        };
 
         try
         {
-            foreach (var dir in Directory.EnumerateDirectories(path))
+            foreach (var info in new DirectoryInfo(path).EnumerateFileSystemInfos("*", options))
             {
                 try
                 {
-                    var info = new DirectoryInfo(dir);
+                    var isDirectory = (info.Attributes & FileAttributes.Directory) != 0;
                     items.Add(new FileItem
                     {
                         Name = info.Name,
                         FullPath = info.FullName,
-                        Kind = FileItemKind.Directory,
-                        Size = 0,
+                        Kind = isDirectory ? FileItemKind.Directory : FileItemKind.File,
+                        Size = isDirectory ? 0 : info is FileInfo file ? file.Length : 0,
                         ModifiedUtc = info.LastWriteTimeUtc,
-                        Extension = string.Empty
+                        Extension = isDirectory ? string.Empty : info.Extension
                     });
                 }
-                catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
-                {
-                }
-            }
-
-            foreach (var file in Directory.EnumerateFiles(path))
-            {
-                try
-                {
-                    var info = new FileInfo(file);
-                    items.Add(new FileItem
-                    {
-                        Name = info.Name,
-                        FullPath = info.FullName,
-                        Kind = FileItemKind.File,
-                        Size = info.Length,
-                        ModifiedUtc = info.LastWriteTimeUtc,
-                        Extension = info.Extension
-                    });
-                }
-                catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+                catch (Exception ex) when (
+                    ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
                 {
                 }
             }
         }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+        catch (Exception ex) when (
+            ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
         {
         }
 
@@ -135,9 +123,9 @@ public sealed class FileService : IFileService
                     });
                 }
             }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+            catch (Exception ex) when (
+                ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
             {
-                // A tagged folder may have been removed or become unreachable.
             }
         }
 

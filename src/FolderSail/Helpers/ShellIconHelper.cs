@@ -1,8 +1,10 @@
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace FolderSail.Helpers;
 
@@ -35,28 +37,105 @@ public static class ShellIconHelper
     private const uint SHGFI_SMALLICON = 0x000000001;
     private const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;
     private const uint FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
+    private const uint FILE_ATTRIBUTE_NORMAL = 0x00000080;
+
+    private static readonly ConcurrentDictionary<string, ImageSource?> Cache = new();
+    private static readonly SemaphoreSlim Gate = new(2, 2);
 
     public static ImageSource? GetIcon(string path, bool isDirectory) =>
         GetCachedIcon(path, isDirectory);
 
     public static ImageSource? GetCachedIcon(string path, bool isDirectory)
     {
-        var key = isDirectory
-            ? ":dir:"
-            : string.IsNullOrWhiteSpace(Path.GetExtension(path))
-                ? ":file:"
-                : Path.GetExtension(path).ToLowerInvariant();
-
-        return Cache.GetOrAdd(key, _ => LoadIcon(path, isDirectory));
+        var key = CacheKey(path, isDirectory);
+        return Cache.TryGetValue(key, out var icon) ? icon : null;
     }
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, ImageSource?> Cache = new();
+    public static void RequestIcon(
+        string path,
+        bool isDirectory,
+        CancellationToken cancellationToken,
+        Action<ImageSource?> callback)
+    {
+        var key = CacheKey(path, isDirectory);
+        if (Cache.TryGetValue(key, out var cached))
+        {
+            callback(cached);
+            return;
+        }
+
+        _ = Task.Run(() => LoadAndCallback(key, path, isDirectory, cancellationToken, callback), cancellationToken);
+    }
+
+    private static async Task LoadAndCallback(
+        string key,
+        string path,
+        bool isDirectory,
+        CancellationToken cancellationToken,
+        Action<ImageSource?> callback)
+    {
+        try
+        {
+            await Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        ImageSource? icon = null;
+        try
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            icon = Cache.GetOrAdd(key, _ => LoadIcon(path, isDirectory));
+        }
+        finally
+        {
+            Gate.Release();
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null)
+        {
+            return;
+        }
+
+        _ = dispatcher.BeginInvoke(() =>
+        {
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                callback(icon);
+            }
+        }, DispatcherPriority.Background);
+    }
+
+    private static string CacheKey(string path, bool isDirectory)
+    {
+        if (isDirectory)
+        {
+            return ":dir:";
+        }
+
+        var extension = Path.GetExtension(path);
+        return string.IsNullOrWhiteSpace(extension)
+            ? ":file:"
+            : extension.ToLowerInvariant();
+    }
 
     private static ImageSource? LoadIcon(string path, bool isDirectory)
     {
         var shfi = new SHFILEINFO();
         var flags = SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES;
-        var attrs = isDirectory ? FILE_ATTRIBUTE_DIRECTORY : 0u;
+        var attrs = isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL;
         var probe = isDirectory ? "folder" : "file" + Path.GetExtension(path);
         var result = SHGetFileInfo(probe, attrs, ref shfi, (uint)Marshal.SizeOf<SHFILEINFO>(), flags);
 
@@ -73,6 +152,10 @@ public static class ShellIconHelper
                 BitmapSizeOptions.FromEmptyOptions());
             source.Freeze();
             return source;
+        }
+        catch
+        {
+            return null;
         }
         finally
         {

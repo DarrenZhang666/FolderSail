@@ -28,6 +28,8 @@ public sealed class PaneViewModel : ObservableObject
     private int _filterEpoch;
     private int _previewEpoch;
     private FilePreview _preview = new();
+    private CancellationTokenSource? _listCts;
+    private CancellationTokenSource _iconCts = new();
 
     public PaneViewModel(
         int index,
@@ -247,9 +249,11 @@ public sealed class PaneViewModel : ObservableObject
 
     public List<FileItemViewModel> SelectedItems { get; } = [];
 
-    public ObservableCollection<FileItemViewModel> Items { get; } = [];
+    public List<FileItemViewModel> Items { get; private set; } = [];
 
-    public ObservableCollection<FileItemViewModel> VisibleItems { get; } = [];
+    public ObservableCollection<FileItemViewModel> VisibleItems { get; private set; } = [];
+
+    public CancellationToken IconLoadToken => _iconCts.Token;
 
     public string FilterText
     {
@@ -403,8 +407,10 @@ public sealed class PaneViewModel : ObservableObject
     {
         CancelInlineRename();
         CancelSearch();
-        Items.Clear();
-        VisibleItems.Clear();
+        CancelListing();
+        ResetIconLoads();
+        Items = [];
+        ReplaceVisible([]);
         Preview = new FilePreview { Hint = "选择一项以预览" };
 
         if (SearchPath.TryParse(CurrentPath, out var query))
@@ -414,22 +420,57 @@ public sealed class PaneViewModel : ObservableObject
             return;
         }
 
-        try
-        {
-            var items = TagPath.TryParse(CurrentPath, out var tagId)
-                ? _fileService.ListPaths(_tags?.GetTaggedPaths(tagId) ?? [])
-                : _fileService.ListDirectory(CurrentPath);
+        var path = CurrentPath;
+        var listCts = new CancellationTokenSource();
+        _listCts = listCts;
+        var token = listCts.Token;
+        var fileService = _fileService;
+        var isTag = TagPath.TryParse(path, out var tagId);
+        var tagged = isTag ? _tags?.GetTaggedPaths(tagId) ?? [] : [];
 
-            foreach (var item in items)
+        _ = Task.Run(() =>
             {
-                Items.Add(new FileItemViewModel(item));
-            }
-        }
-        catch (Exception ex)
+                if (token.IsCancellationRequested)
+                {
+                    return (IReadOnlyList<FileItem>)[];
+                }
+
+                return isTag
+                    ? fileService.ListPaths(tagged)
+                    : fileService.ListDirectory(path);
+            }, token)
+            .ContinueWith(task =>
+            {
+                var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                dispatcher?.Invoke(() => ApplyDirectoryListing(path, token, task));
+            }, TaskScheduler.Default);
+    }
+
+    private void ApplyDirectoryListing(
+        string path,
+        CancellationToken token,
+        Task<IReadOnlyList<FileItem>> task)
+    {
+        if (token.IsCancellationRequested || !string.Equals(CurrentPath, path, StringComparison.OrdinalIgnoreCase))
         {
-            StatusMessage?.Invoke(this, ex.Message);
+            return;
         }
 
+        if (task.IsFaulted)
+        {
+            StatusMessage?.Invoke(this, task.Exception?.InnerException?.Message ?? "无法读取目录");
+            Items = [];
+            ReplaceVisible([]);
+            OnPropertyChanged(nameof(ItemSummary));
+            return;
+        }
+
+        if (task.IsCanceled || task.Result is null)
+        {
+            return;
+        }
+
+        Items = task.Result.Select(item => new FileItemViewModel(item)).ToList();
         RebuildVisible();
         SchedulePreview();
         OnPropertyChanged(nameof(ItemSummary));
@@ -487,7 +528,7 @@ public sealed class PaneViewModel : ObservableObject
             return;
         }
 
-        Items.Clear();
+        Items = [];
 
         if (task.IsFaulted)
         {
@@ -506,10 +547,7 @@ public sealed class PaneViewModel : ObservableObject
             return;
         }
 
-        foreach (var item in task.Result)
-        {
-            Items.Add(new FileItemViewModel(item));
-        }
+        Items = task.Result.Select(item => new FileItemViewModel(item)).ToList();
 
         IsSearching = false;
         RebuildVisible();
@@ -587,12 +625,8 @@ public sealed class PaneViewModel : ObservableObject
                 item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
         }
 
-        var sorted = SortItems(query);
-        VisibleItems.Clear();
-        foreach (var item in sorted)
-        {
-            VisibleItems.Add(item);
-        }
+        var sorted = SortItems(query).ToList();
+        ReplaceVisible(sorted);
 
         if (selected != null && VisibleItems.Contains(selected))
         {
@@ -604,6 +638,12 @@ public sealed class PaneViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(ItemSummary));
+    }
+
+    private void ReplaceVisible(IReadOnlyList<FileItemViewModel> items)
+    {
+        VisibleItems = new ObservableCollection<FileItemViewModel>(items);
+        OnPropertyChanged(nameof(VisibleItems));
     }
 
     private IEnumerable<FileItemViewModel> SortItems(IEnumerable<FileItemViewModel> source)
@@ -670,6 +710,39 @@ public sealed class PaneViewModel : ObservableObject
                         };
                 });
             }, TaskScheduler.Default);
+    }
+
+    private void CancelListing()
+    {
+        if (_listCts is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _listCts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        _listCts.Dispose();
+        _listCts = null;
+    }
+
+    private void ResetIconLoads()
+    {
+        try
+        {
+            _iconCts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        _iconCts.Dispose();
+        _iconCts = new CancellationTokenSource();
     }
 
     private void CancelSearch()

@@ -8,6 +8,7 @@ namespace FolderSail.ViewModels;
 public sealed class FileItemViewModel : ObservableObject
 {
     private ImageSource? _icon;
+    private bool _iconRequested;
     private bool _isRenaming;
     private string _renameText = string.Empty;
 
@@ -30,14 +31,37 @@ public sealed class FileItemViewModel : ObservableObject
         private set => SetProperty(ref _icon, value);
     }
 
-    public void EnsureIcon()
+    public void EnsureIcon(CancellationToken cancellationToken = default)
     {
         if (_icon != null)
         {
             return;
         }
 
-        Icon = ShellIconHelper.GetCachedIcon(FullPath, Kind != FileItemKind.File);
+        var cached = ShellIconHelper.GetCachedIcon(FullPath, Kind != FileItemKind.File);
+        if (cached != null)
+        {
+            Icon = cached;
+            return;
+        }
+
+        if (_iconRequested)
+        {
+            return;
+        }
+
+        _iconRequested = true;
+        ShellIconHelper.RequestIcon(FullPath, Kind != FileItemKind.File, cancellationToken, icon =>
+        {
+            if (icon != null)
+            {
+                Icon = icon;
+            }
+            else
+            {
+                _iconRequested = false;
+            }
+        });
     }
 
     public bool IsRenaming

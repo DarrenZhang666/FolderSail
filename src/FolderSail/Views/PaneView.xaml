@@ -373,6 +373,9 @@
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      VirtualizingPanel.IsVirtualizing="True"
                      VirtualizingPanel.VirtualizationMode="Recycling"
+                     VirtualizingPanel.CacheLength="1"
+                     VirtualizingPanel.CacheLengthUnit="Page"
+                     ScrollViewer.CanContentScroll="True"
                      SelectionChanged="OnFilesSelectionChanged"
                      PreviewKeyDown="OnFilesPreviewKeyDown"
                      MouseDoubleClick="OnItemDoubleClick"
@@ -398,7 +401,8 @@
                                        Height="16"
                                        Margin="0,0,8,0"
                                        VerticalAlignment="Center"
-                                       Loaded="OnItemIconLoaded" />
+                                       Loaded="OnItemIconLoaded"
+                                       DataContextChanged="OnItemIconContextChanged" />
                                 <TextBlock x:Name="NameText"
                                            Grid.Column="1"
                                            Text="{Binding Name}"
