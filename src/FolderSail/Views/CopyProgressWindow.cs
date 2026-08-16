@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using FolderSail.Core.Models;
 using FolderSail.Core.Services;
+using FolderSail.Helpers;
 
 namespace FolderSail.Views;
 
@@ -27,7 +28,7 @@ public sealed class CopyProgressWindow : Window
 
     public CopyProgressWindow(bool move, int itemCount, string destination)
     {
-        Title = move ? "移动项目" : "复制项目";
+        Title = move ? Loc.Get("Loc.MoveTitle") : Loc.Get("Loc.CopyTitle");
         Width = 440;
         MinHeight = 220;
         SizeToContent = SizeToContent.Height;
@@ -40,10 +41,10 @@ public sealed class CopyProgressWindow : Window
         FontSize = 13;
         Foreground = TryBrush("Text.Primary", Brushes.Black);
 
-        var noun = itemCount == 1 ? "1 个项目" : $"{itemCount} 个项目";
+        var noun = itemCount == 1 ? Loc.Get("Loc.OneItem") : Loc.Format("Loc.ManyItems", itemCount);
         _titleText = new TextBlock
         {
-            Text = move ? $"正在移动 {noun}" : $"正在复制 {noun}",
+            Text = Loc.Format(move ? "Loc.MovingItems" : "Loc.CopyingItems", noun),
             FontSize = 20,
             FontWeight = FontWeights.SemiBold,
             Margin = new Thickness(0, 0, 0, 6)
@@ -51,7 +52,7 @@ public sealed class CopyProgressWindow : Window
 
         _destText = new TextBlock
         {
-            Text = $"到 {destination}",
+            Text = Loc.Format("Loc.ToPath", destination),
             Foreground = TryBrush("Text.Secondary", Brushes.Gray),
             TextTrimming = TextTrimming.CharacterEllipsis,
             Margin = new Thickness(0, 0, 0, 16)
@@ -70,18 +71,18 @@ public sealed class CopyProgressWindow : Window
 
         _percentText = new TextBlock
         {
-            Text = "0% 完成",
+            Text = Loc.Format("Loc.PercentDone", 0),
             Margin = new Thickness(0, 8, 0, 18),
             Foreground = TryBrush("Text.Secondary", Brushes.Gray)
         };
 
-        _nameText = Field("名称", "正在准备…");
-        _timeText = Field("剩余时间", "正在计算…");
-        _remainText = Field("剩余项目", "正在计算…");
+        _nameText = Field(Loc.Get("Loc.Name"), Loc.Get("Loc.Preparing"));
+        _timeText = Field(Loc.Get("Loc.RemainingTime"), Loc.Get("Loc.Calculating"));
+        _remainText = Field(Loc.Get("Loc.RemainingItems"), Loc.Get("Loc.Calculating"));
 
         _cancel = new Button
         {
-            Content = "取消",
+            Content = Loc.Get("Loc.Cancel"),
             Width = 88,
             Height = 32,
             HorizontalAlignment = HorizontalAlignment.Right,
@@ -99,7 +100,7 @@ public sealed class CopyProgressWindow : Window
         {
             _cts.Cancel();
             _cancel.IsEnabled = false;
-            _cancel.Content = "正在取消…";
+            _cancel.Content = Loc.Get("Loc.Cancelling");
         };
 
         var root = new StackPanel { Margin = new Thickness(22, 18, 22, 18) };
@@ -107,9 +108,9 @@ public sealed class CopyProgressWindow : Window
         root.Children.Add(_destText);
         root.Children.Add(_bar);
         root.Children.Add(_percentText);
-        root.Children.Add(LabelAbove("名称", _nameText));
-        root.Children.Add(LabelAbove("剩余时间", _timeText));
-        root.Children.Add(LabelAbove("剩余项目", _remainText));
+        root.Children.Add(LabelAbove(Loc.Get("Loc.Name"), _nameText));
+        root.Children.Add(LabelAbove(Loc.Get("Loc.RemainingTime"), _timeText));
+        root.Children.Add(LabelAbove(Loc.Get("Loc.RemainingItems"), _remainText));
         root.Children.Add(_cancel);
         Content = root;
 
@@ -130,7 +131,7 @@ public sealed class CopyProgressWindow : Window
             ? 0
             : Math.Clamp(progress.BytesCopied / (double)progress.TotalBytes, 0, 1);
         _bar.Value = ratio * 100;
-        _percentText.Text = $"{ratio * 100:0}% 完成";
+        _percentText.Text = Loc.Format("Loc.PercentDone", $"{ratio * 100:0}");
         if (!string.IsNullOrWhiteSpace(progress.CurrentName))
         {
             _nameText.Text = progress.CurrentName;
@@ -148,7 +149,7 @@ public sealed class CopyProgressWindow : Window
         var remainingBytes = Math.Max(0, progress.TotalBytes - progress.BytesCopied);
         _timeText.Text = FormatRemainingWithSpeed(remainingBytes);
         var leftFiles = Math.Max(0, progress.TotalFiles - progress.FilesCopied);
-        _remainText.Text = $"{leftFiles} 个项目 ({FormatSize(remainingBytes)})";
+        _remainText.Text = Loc.Format("Loc.RemainingItemsFmt", leftFiles, FormatSize(remainingBytes));
     }
 
     private double _lastSampleSeconds;
@@ -176,7 +177,7 @@ public sealed class CopyProgressWindow : Window
                 dialog.Token).ConfigureAwait(true);
 
             dialog._bar.Value = 100;
-            dialog._percentText.Text = "100% 完成";
+            dialog._percentText.Text = Loc.Format("Loc.PercentDone", 100);
             await Task.Delay(180).ConfigureAwait(true);
             dialog.Close();
         }
@@ -218,31 +219,31 @@ public sealed class CopyProgressWindow : Window
     {
         if (remainingBytes <= 0)
         {
-            return "即将完成";
+            return Loc.Get("Loc.AlmostDone");
         }
 
         if (_bytesPerSecond < 1024)
         {
-            return "正在计算…";
+            return Loc.Get("Loc.Calculating");
         }
 
         var seconds = remainingBytes / _bytesPerSecond;
         if (seconds < 5)
         {
-            return "不到 5 秒";
+            return Loc.Get("Loc.Under5s");
         }
 
         if (seconds < 60)
         {
-            return $"约 {seconds:0} 秒";
+            return Loc.Format("Loc.AboutSeconds", $"{seconds:0}");
         }
 
         if (seconds < 3600)
         {
-            return $"约 {seconds / 60:0} 分钟";
+            return Loc.Format("Loc.AboutMinutes", $"{seconds / 60:0}");
         }
 
-        return $"约 {seconds / 3600:0.0} 小时";
+        return Loc.Format("Loc.AboutHours", $"{seconds / 3600:0.0}");
     }
 
     private static string FormatSize(long bytes)

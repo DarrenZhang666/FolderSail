@@ -1,5 +1,6 @@
 using FolderSail.Core.Models;
 using FolderSail.Core.Navigation;
+using FolderSail.Helpers;
 using FolderSail.Mvvm;
 
 namespace FolderSail.ViewModels;
@@ -68,21 +69,23 @@ public sealed class PaneTabViewModel : ObservableObject
         set => SetProperty(ref _foldersFirst, value);
     }
 
+    public void RefreshTitle() => Title = GetTitle(Path);
+
     private string GetTitle(string path)
     {
         if (path.Equals(NavigationHistory.ThisPcToken, StringComparison.OrdinalIgnoreCase))
         {
-            return "此电脑";
+            return Loc.Get("Loc.ThisPc");
         }
 
         if (TagPath.TryParse(path, out var tagId))
         {
-            return _tags?.GetTagName(tagId) ?? "标签";
+            return _tags?.GetTagName(tagId) ?? Loc.Get("Loc.Tag");
         }
 
         if (SearchPath.TryParse(path, out var query))
         {
-            return query.Length > 12 ? "搜索" : $"搜索 {query}";
+            return query.Length > 12 ? Loc.Get("Loc.Search") : Loc.Format("Loc.SearchPrefix", query);
         }
 
         var normalized = path.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);

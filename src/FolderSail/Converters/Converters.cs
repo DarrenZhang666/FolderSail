@@ -1,4 +1,5 @@
 using FolderSail.Core.Models;
+using FolderSail.Helpers;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -93,25 +94,25 @@ public sealed class RelativeTimeConverter : IValueConverter
 
         if (span.TotalMinutes < 60)
         {
-            return "刚刚";
+            return Loc.Get("Loc.JustNow");
         }
 
         if (span.TotalHours < 24)
         {
-            return $"{(int)span.TotalHours} 时";
+            return Loc.Format("Loc.Hours", (int)span.TotalHours);
         }
 
         if (span.TotalDays < 31)
         {
-            return $"{(int)span.TotalDays} 天";
+            return Loc.Format("Loc.Days", (int)span.TotalDays);
         }
 
         if (span.TotalDays < 365)
         {
-            return $"{(int)(span.TotalDays / 30)} 月";
+            return Loc.Format("Loc.Months", (int)(span.TotalDays / 30));
         }
 
-        return $"{(int)(span.TotalDays / 365)} 年";
+        return Loc.Format("Loc.Years", (int)(span.TotalDays / 365));
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
@@ -190,9 +191,9 @@ public sealed class ItemKindLabelConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         value switch
         {
-            FileItemKind.Directory => "文件夹",
-            FileItemKind.Drive => "驱动器",
-            _ => "文件"
+            FileItemKind.Directory => Loc.Get("Loc.Folder"),
+            FileItemKind.Drive => Loc.Get("Loc.Drive"),
+            _ => Loc.Get("Loc.File")
         };
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>

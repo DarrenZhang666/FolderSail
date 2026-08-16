@@ -1,5 +1,6 @@
 using FolderSail.Core.Models;
 using FolderSail.Core.Services;
+using FolderSail.Helpers;
 using FolderSail.Mvvm;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -17,7 +18,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     private readonly List<PaneViewModel> _allPanes = [];
     private LayoutMode _layoutMode = LayoutMode.Dual;
     private int _activePaneIndex;
-    private string _statusMessage = "就绪";
+    private string _statusMessage = string.Empty;
     private double _sidebarWidth = 228;
     private string _searchText = string.Empty;
     private int _searchEpoch;
@@ -88,6 +89,9 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         SearchCommand = new RelayCommand(SubmitSearch, () => HasSearchText);
         ClearSearchCommand = new RelayCommand(ClearSearch, () => HasSearchText);
         ToggleThemeCommand = new RelayCommand(ToggleTheme);
+        ToggleLanguageCommand = new RelayCommand(ToggleLanguage);
+        LanguageManager.Changed += (_, _) => RefreshLocalization();
+        _statusMessage = Loc.Get("Loc.Ready");
     }
 
     public ObservableCollection<PaneViewModel> Panes { get; } = [];
@@ -95,17 +99,17 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public ObservableCollection<DriveItemViewModel> Drives { get; } = [];
     public ObservableCollection<LayoutPresetViewModel> LayoutPresets { get; } =
     [
-        new(LayoutMode.Single, "单窗格"),
-        new(LayoutMode.Dual, "左右双栏"),
-        new(LayoutMode.DualRows, "上下双栏"),
-        new(LayoutMode.TripleColumns, "三栏"),
-        new(LayoutMode.TripleRows, "三行"),
-        new(LayoutMode.TripleMainLeft, "左主右双"),
-        new(LayoutMode.TripleMainTop, "上主下双"),
-        new(LayoutMode.Quad, "四宫格"),
-        new(LayoutMode.QuadMainLeft, "左主右三"),
-        new(LayoutMode.QuadColumns, "四栏"),
-        new(LayoutMode.Hex, "六宫格")
+        new(LayoutMode.Single, "Loc.Layout.Single"),
+        new(LayoutMode.Dual, "Loc.Layout.Dual"),
+        new(LayoutMode.DualRows, "Loc.Layout.DualRows"),
+        new(LayoutMode.TripleColumns, "Loc.Layout.TripleColumns"),
+        new(LayoutMode.TripleRows, "Loc.Layout.TripleRows"),
+        new(LayoutMode.TripleMainLeft, "Loc.Layout.TripleMainLeft"),
+        new(LayoutMode.TripleMainTop, "Loc.Layout.TripleMainTop"),
+        new(LayoutMode.Quad, "Loc.Layout.Quad"),
+        new(LayoutMode.QuadMainLeft, "Loc.Layout.QuadMainLeft"),
+        new(LayoutMode.QuadColumns, "Loc.Layout.QuadColumns"),
+        new(LayoutMode.Hex, "Loc.Layout.Hex")
     ];
 
     public LayoutMode LayoutMode
@@ -121,7 +125,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
             UpdateLayoutPresetSelection();
             ApplyLayout(ActivePaneIndex, savedPaths: null);
             SaveSettings();
-            StatusMessage = $"已切换为 {LayoutPresets.First(p => p.Mode == value).Name}";
+            StatusMessage = Loc.Format("Loc.LayoutSwitched", LayoutPresets.First(p => p.Mode == value).Name);
         }
     }
 
@@ -183,7 +187,10 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     }
 
     public string ThemeToggleTip =>
-        IsDarkTheme ? "切换到浅色主题" : "切换到深色主题";
+        Loc.Get(IsDarkTheme ? "Loc.ThemeToLight" : "Loc.ThemeToDark");
+
+    public string LanguageToggleTip =>
+        Loc.Get(LanguageManager.IsEnglish ? "Loc.LanguageToChinese" : "Loc.LanguageToEnglish");
 
     public bool ExpandTagChildrenOnStartup
     {
@@ -202,9 +209,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     }
 
     public string ExpandTagChildrenOnStartupTip =>
-        ExpandTagChildrenOnStartup
-            ? "启动时展开各标签下的地址（已开启）"
-            : "启动时展开各标签下的地址（已关闭）";
+        Loc.Get(ExpandTagChildrenOnStartup ? "Loc.ExpandTagsOn" : "Loc.ExpandTagsOff");
 
     public double SidebarWidth
     {
@@ -230,6 +235,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public ICommand SearchCommand { get; }
     public ICommand ClearSearchCommand { get; }
     public ICommand ToggleThemeCommand { get; }
+    public ICommand ToggleLanguageCommand { get; }
 
     public void SubmitSearch()
     {
@@ -250,6 +256,38 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     }
 
     private void ToggleTheme() => IsDarkTheme = !IsDarkTheme;
+
+    private void ToggleLanguage()
+    {
+        LanguageManager.Apply(LanguageManager.IsEnglish ? LanguageManager.Chinese : LanguageManager.English);
+        SaveSettings();
+    }
+
+    private void RefreshLocalization()
+    {
+        OnPropertyChanged(nameof(ThemeToggleTip));
+        OnPropertyChanged(nameof(LanguageToggleTip));
+        OnPropertyChanged(nameof(ExpandTagChildrenOnStartupTip));
+        foreach (var preset in LayoutPresets)
+        {
+            preset.RefreshName();
+        }
+
+        foreach (var drive in Drives)
+        {
+            drive.RefreshLocalization();
+        }
+
+        foreach (var tag in Tags)
+        {
+            tag.RefreshLocalization();
+        }
+
+        foreach (var pane in _allPanes)
+        {
+            pane.RefreshLocalization();
+        }
+    }
 
     private async void ScheduleLiveSearch()
     {
@@ -331,7 +369,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
 
         if (!Directory.Exists(path))
         {
-            StatusMessage = $"路径不存在: {path}";
+            StatusMessage = Loc.Format("Loc.PathMissing", path);
             return;
         }
 
@@ -348,21 +386,21 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         ActivePane.Navigate(tag.ViewPath);
         UpdateTagSelection(tag);
         StatusMessage = tag.HasItems
-            ? $"「{tag.Name}」共 {tag.ItemCount} 项"
-            : $"「{tag.Name}」还没有内容，把文件夹拖到标签上即可";
+            ? Loc.Format("Loc.TagHasItems", tag.Name, tag.ItemCount)
+            : Loc.Format("Loc.TagEmptyHint", tag.Name);
     }
 
     private void OpenTaggedItem(TagViewModel tag, TaggedItemViewModel item)
     {
         if (!_fileService.PathExists(item.Path))
         {
-            StatusMessage = $"路径不存在: {item.Path}";
+            StatusMessage = Loc.Format("Loc.PathMissing", item.Path);
             return;
         }
 
         ActivePane?.Navigate(item.Path);
         UpdateTagSelection(tag);
-        StatusMessage = $"已打开 {item.Path}";
+        StatusMessage = Loc.Format("Loc.OpenedPath", item.Path);
     }
 
     private void RemoveTaggedItem(TagViewModel tag, TaggedItemViewModel item)
@@ -370,12 +408,12 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         tag.RemoveItem(item);
         PersistFavorites();
         RefreshTagViews();
-        StatusMessage = $"已从「{tag.Name}」移除（本地文件未删除）";
+        StatusMessage = Loc.Format("Loc.RemovedFromTag", tag.Name);
     }
 
     private void RenameTag(TagViewModel tag)
     {
-        var newName = PromptForText("重命名标签", "标签名称:", tag.Name);
+        var newName = PromptForText(Loc.Get("Loc.RenameTag"), Loc.Get("Loc.TagName"), tag.Name);
         if (string.IsNullOrWhiteSpace(newName))
         {
             return;
@@ -394,7 +432,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         }
 
         var result = MessageBox.Show(
-            $"确定清空标签「{tag.Name}」中的 {tag.ItemCount} 项吗？（不会删除文件）",
+            Loc.Format("Loc.ConfirmClearTag", tag.Name, tag.ItemCount),
             "FolderSail",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
@@ -407,7 +445,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         tag.Clear();
         PersistFavorites();
         RefreshTagViews();
-        StatusMessage = $"已清空「{tag.Name}」";
+        StatusMessage = Loc.Format("Loc.ClearedTag", tag.Name);
     }
 
     private void AddCurrentPathToTag(TagViewModel tag)
@@ -420,7 +458,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         var path = ActivePane.CurrentPath;
         if (ActivePane.IsVirtualView)
         {
-            StatusMessage = "当前位置无法添加标签";
+            StatusMessage = Loc.Get("Loc.CannotTagHere");
             return;
         }
 
@@ -448,11 +486,11 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         {
             PersistFavorites();
             RefreshTagViews();
-            StatusMessage = $"已为 {added} 个文件夹加上「{tag.Name}」标签";
+            StatusMessage = Loc.Format("Loc.TaggedFolders", added, tag.Name);
         }
         else if (ignored > 0)
         {
-            StatusMessage = "未添加：只接受文件夹，且同一标签不会重复记录";
+            StatusMessage = Loc.Get("Loc.TagNotAdded");
         }
     }
 
@@ -467,7 +505,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
 
         PersistFavorites();
         RefreshTagViews();
-        StatusMessage = "已移除标签";
+        StatusMessage = Loc.Get("Loc.TagRemoved");
     }
 
     /// <summary>Any pane currently showing a tag needs to re-read the tag contents.</summary>
@@ -570,6 +608,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
             PanePaths = _allPanes.Select(p => p.GetExportPath()).ToList(),
             SidebarWidth = SidebarWidth,
             IsDarkTheme = IsDarkTheme,
+            Language = LanguageManager.Current,
             ExpandTagChildrenOnStartup = ExpandTagChildrenOnStartup,
             PaneSortColumns = _allPanes.Select(p => (int)p.SortColumn).ToList(),
             PaneSortDescending = _allPanes.Select(p => p.SortDescending).ToList(),

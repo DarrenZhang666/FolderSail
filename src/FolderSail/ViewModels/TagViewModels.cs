@@ -1,4 +1,5 @@
 using FolderSail.Core.Models;
+using FolderSail.Helpers;
 using FolderSail.Mvvm;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -102,15 +103,18 @@ public sealed class TagViewModel : ObservableObject
 
     public string Name
     {
-        get => _name;
+        get => LocalizeName(_name);
         set
         {
-            if (SetProperty(ref _name, value))
+            var stored = CanonicalName(value);
+            if (SetProperty(ref _name, stored))
             {
-                Model.Name = value;
+                Model.Name = stored;
             }
         }
     }
+
+    public void RefreshLocalization() => OnPropertyChanged(nameof(Name));
 
     public ObservableCollection<TaggedItemViewModel> Items { get; } = [];
     public int ItemCount => Items.Count;
@@ -245,6 +249,48 @@ public sealed class TagViewModel : ObservableObject
         {
             Color = color;
         }
+    }
+
+    private static readonly Dictionary<string, string> PaletteNameKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["红色"] = "Loc.ColorRed",
+        ["Red"] = "Loc.ColorRed",
+        ["橙色"] = "Loc.ColorOrange",
+        ["Orange"] = "Loc.ColorOrange",
+        ["黄色"] = "Loc.ColorYellow",
+        ["Yellow"] = "Loc.ColorYellow",
+        ["绿色"] = "Loc.ColorGreen",
+        ["Green"] = "Loc.ColorGreen",
+        ["蓝色"] = "Loc.ColorBlue",
+        ["Blue"] = "Loc.ColorBlue",
+        ["紫色"] = "Loc.ColorPurple",
+        ["Purple"] = "Loc.ColorPurple",
+        ["灰色"] = "Loc.ColorGray",
+        ["Gray"] = "Loc.ColorGray",
+        ["Grey"] = "Loc.ColorGray"
+    };
+
+    private static string LocalizeName(string name) =>
+        PaletteNameKeys.TryGetValue(name, out var key) ? Loc.Get(key) : name;
+
+    private static string CanonicalName(string name)
+    {
+        if (!PaletteNameKeys.TryGetValue(name, out var key))
+        {
+            return name;
+        }
+
+        return key switch
+        {
+            "Loc.ColorRed" => "红色",
+            "Loc.ColorOrange" => "橙色",
+            "Loc.ColorYellow" => "黄色",
+            "Loc.ColorGreen" => "绿色",
+            "Loc.ColorBlue" => "蓝色",
+            "Loc.ColorPurple" => "紫色",
+            "Loc.ColorGray" => "灰色",
+            _ => name
+        };
     }
 
     private static string Normalize(string path)

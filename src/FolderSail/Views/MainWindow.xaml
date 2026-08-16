@@ -83,7 +83,7 @@
                 <StackPanel>
 
                     <!-- Drives with capacity keel bars -->
-                    <TextBlock Text="磁盘" Style="{StaticResource SectionLabel}" Margin="6,4,0,6" />
+                    <TextBlock Text="{DynamicResource Loc.Disks}" Style="{StaticResource SectionLabel}" Margin="6,4,0,6" />
 
                     <ItemsControl ItemsSource="{Binding Drives}">
                         <ItemsControl.ItemTemplate>
@@ -138,7 +138,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0"
-                                   Text="标签"
+                                   Text="{DynamicResource Loc.Tags}"
                                    Style="{StaticResource SectionLabel}" />
                         <ToggleButton Grid.Column="2"
                                       Style="{StaticResource IconToggleSmall}"
@@ -166,7 +166,7 @@
 
                                     <Grid Grid.Row="0">
                                         <Button Style="{StaticResource TagRow}"
-                                                ToolTip="点击查看该标签的全部地址，也可把文件夹拖到这里"
+                                                ToolTip="{DynamicResource Loc.TagDropTip}"
                                                 Command="{Binding OpenCommand}"
                                                 DragEnter="OnTagDragEnter"
                                                 DragOver="OnTagDragOver"
@@ -174,18 +174,18 @@
                                                 Drop="OnTagDrop">
                                             <Button.ContextMenu>
                                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                    <MenuItem Header="为当前位置加此标签" Command="{Binding TagCurrentLocationCommand}" />
-                                                    <MenuItem Header="重命名" Command="{Binding RenameCommand}" />
-                                                    <MenuItem Header="清空此标签" Command="{Binding ClearCommand}" />
+                                                    <MenuItem Header="{DynamicResource Loc.TagCurrent}" Command="{Binding TagCurrentLocationCommand}" />
+                                                    <MenuItem Header="{DynamicResource Loc.Rename}" Command="{Binding RenameCommand}" />
+                                                    <MenuItem Header="{DynamicResource Loc.ClearTag}" Command="{Binding ClearCommand}" />
                                                     <Separator />
-                                                    <MenuItem Header="更改颜色">
-                                                        <MenuItem Header="红色" Command="{Binding SetColorCommand}" CommandParameter="#D46A66" />
-                                                        <MenuItem Header="橙色" Command="{Binding SetColorCommand}" CommandParameter="#D4925A" />
-                                                        <MenuItem Header="黄色" Command="{Binding SetColorCommand}" CommandParameter="#C9A94A" />
-                                                        <MenuItem Header="绿色" Command="{Binding SetColorCommand}" CommandParameter="#5FA87A" />
-                                                        <MenuItem Header="蓝色" Command="{Binding SetColorCommand}" CommandParameter="#6A96C8" />
-                                                        <MenuItem Header="紫色" Command="{Binding SetColorCommand}" CommandParameter="#9A7FB0" />
-                                                        <MenuItem Header="灰色" Command="{Binding SetColorCommand}" CommandParameter="#8E8E93" />
+                                                    <MenuItem Header="{DynamicResource Loc.ChangeColor}">
+                                                        <MenuItem Header="{DynamicResource Loc.ColorRed}" Command="{Binding SetColorCommand}" CommandParameter="#D46A66" />
+                                                        <MenuItem Header="{DynamicResource Loc.ColorOrange}" Command="{Binding SetColorCommand}" CommandParameter="#D4925A" />
+                                                        <MenuItem Header="{DynamicResource Loc.ColorYellow}" Command="{Binding SetColorCommand}" CommandParameter="#C9A94A" />
+                                                        <MenuItem Header="{DynamicResource Loc.ColorGreen}" Command="{Binding SetColorCommand}" CommandParameter="#5FA87A" />
+                                                        <MenuItem Header="{DynamicResource Loc.ColorBlue}" Command="{Binding SetColorCommand}" CommandParameter="#6A96C8" />
+                                                        <MenuItem Header="{DynamicResource Loc.ColorPurple}" Command="{Binding SetColorCommand}" CommandParameter="#9A7FB0" />
+                                                        <MenuItem Header="{DynamicResource Loc.ColorGray}" Command="{Binding SetColorCommand}" CommandParameter="#8E8E93" />
                                                     </MenuItem>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
@@ -225,7 +225,7 @@
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 Style="{StaticResource IconButtonSmall}"
-                                                ToolTip="展开或收起本地地址"
+                                                ToolTip="{DynamicResource Loc.ToggleAddresses}"
                                                 IsEnabled="{Binding HasItems}"
                                                 Command="{Binding ToggleExpandedCommand}">
                                             <Grid>
@@ -284,7 +284,7 @@
                                                             VerticalAlignment="Center"
                                                             Style="{StaticResource IconButtonDanger}"
                                                             Content="&#xE711;"
-                                                            ToolTip="从此颜色标签移除（不会删除本地文件）"
+                                                            ToolTip="{DynamicResource Loc.RemoveFromTag}"
                                                             Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                             CommandParameter="{Binding}" />
                                                 </Grid>
@@ -316,20 +316,20 @@
                     <Button Style="{StaticResource TrafficLightButton}"
                             Background="{DynamicResource Traffic.Min}"
                             Tag="min"
-                            ToolTip="最小化"
+                            ToolTip="{DynamicResource Loc.Minimize}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Click="OnMinimizeWindow" />
                     <Button Style="{StaticResource TrafficLightButton}"
                             Background="{DynamicResource Traffic.Max}"
                             Tag="max"
-                            ToolTip="最大化"
+                            ToolTip="{DynamicResource Loc.Maximize}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Click="OnMaximizeWindow" />
                     <Button Style="{StaticResource TrafficLightButton}"
                             Background="{DynamicResource Traffic.Close}"
                             Tag="close"
                             Margin="0"
-                            ToolTip="关闭"
+                            ToolTip="{DynamicResource Loc.Close}"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True"
                             Click="OnCloseWindow" />
                 </StackPanel>
@@ -374,7 +374,7 @@
                                        Margin="8,0,6,0" />
                             <TextBlock x:Name="SearchPlaceholder"
                                        Grid.Column="1"
-                                       Text="搜索此电脑"
+                                       Text="{DynamicResource Loc.SearchThisPc}"
                                        IsHitTestVisible="False"
                                        Foreground="{DynamicResource Text.Tertiary}"
                                        FontSize="{StaticResource Size.FontSmall}"
@@ -383,7 +383,7 @@
                                      Grid.Column="1"
                                      Style="{StaticResource SearchField}"
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="按文件名搜索此电脑（Enter 立即搜索，Ctrl+F 聚焦）"
+                                     ToolTip="{DynamicResource Loc.SearchThisPcTip}"
                                      GotKeyboardFocus="OnSearchFocusChanged"
                                      LostKeyboardFocus="OnSearchFocusChanged"
                                      TextChanged="OnSearchTextChanged"
@@ -394,12 +394,33 @@
                                     Margin="0,0,3,0"
                                     Style="{StaticResource IconButtonSmall}"
                                     Content="&#xE711;"
-                                    ToolTip="清除搜索"
+                                    ToolTip="{DynamicResource Loc.ClearSearch}"
                                     Command="{Binding ClearSearchCommand}"
                                     Visibility="{Binding HasSearchText, Converter={StaticResource BoolToVisibility}}" />
                         </Grid>
                     </Border>
                 </Grid>
+
+                <Button Style="{StaticResource IconButtonSmall}"
+                        Width="Auto"
+                        MinWidth="28"
+                        Height="28"
+                        Padding="6,0"
+                        Margin="0,0,4,0"
+                        VerticalAlignment="Center"
+                        DockPanel.Dock="Right"
+                        FontFamily="{StaticResource Font.Ui}"
+                        FocusVisualStyle="{x:Null}"
+                        ToolTip="{Binding LanguageToggleTip}"
+                        Command="{Binding ToggleLanguageCommand}"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <TextBlock Text="{DynamicResource Loc.LanguageButton}"
+                               FontFamily="{StaticResource Font.Ui}"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource Text.Secondary}"
+                               VerticalAlignment="Center" />
+                </Button>
 
                 <Button Style="{StaticResource IconButtonSmall}"
                         Width="28"
@@ -490,7 +511,7 @@
                 </StackPanel>
 
                 <TextBlock Grid.Column="1"
-                           Text="列表打字过滤 · Ctrl+F 全盘搜索 · 拖拽复制 · F2 重命名 · F5 刷新"
+                           Text="{DynamicResource Loc.Shortcuts}"
                            Foreground="{DynamicResource Text.Tertiary}"
                            FontSize="10"
                            VerticalAlignment="Center" />

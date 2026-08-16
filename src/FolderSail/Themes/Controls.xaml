@@ -79,6 +79,7 @@
         <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -563,7 +564,7 @@
         <Setter Property="ResizeBehavior" Value="CurrentAndNext" />
         <Setter Property="ShowsPreview" Value="False" />
         <Setter Property="Panel.ZIndex" Value="2" />
-        <Setter Property="ToolTip" Value="拖动以调整导航栏宽度" />
+        <Setter Property="ToolTip" Value="{DynamicResource Loc.ResizeSidebar}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="GridSplitter">

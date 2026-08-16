@@ -43,7 +43,7 @@ public static class PreviewService
     {
         if (item == null)
         {
-            return new FilePreview { Hint = "选择一项以预览" };
+            return new FilePreview { Hint = Loc.Get("Loc.SelectToPreview") };
         }
 
         var meta = FormatMeta(item);
@@ -54,7 +54,7 @@ public static class PreviewService
                 Kind = PreviewKind.Folder,
                 Title = item.Name,
                 Meta = meta,
-                Hint = "双击打开此位置"
+                Hint = Loc.Get("Loc.PreviewFolder")
             };
         }
 
@@ -66,7 +66,7 @@ public static class PreviewService
                 Kind = PreviewKind.Generic,
                 Title = item.Name,
                 Meta = meta,
-                Hint = "无法内嵌预览 PDF，请双击打开"
+                Hint = Loc.Get("Loc.PreviewPdf")
             };
         }
 
@@ -107,7 +107,7 @@ public static class PreviewService
             Kind = PreviewKind.Generic,
             Title = item.Name,
             Meta = meta,
-            Hint = "双击用默认程序打开"
+            Hint = Loc.Get("Loc.PreviewGeneric")
         };
     }
 

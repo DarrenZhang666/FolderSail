@@ -166,7 +166,7 @@ public sealed class PaneViewModel : ObservableObject
         {
             if (IsThisPc)
             {
-                return "此电脑";
+                return Loc.Get("Loc.ThisPc");
             }
 
             if (IsTagView)
@@ -176,7 +176,7 @@ public sealed class PaneViewModel : ObservableObject
 
             if (IsSearchView)
             {
-                return SearchQuery.Length > 16 ? "搜索" : $"搜索 {SearchQuery}";
+                return SearchQuery.Length > 16 ? Loc.Get("Loc.Search") : Loc.Format("Loc.SearchPrefix", SearchQuery);
             }
 
             var name = Path.GetFileName(CurrentPath.TrimEnd('\\'));
@@ -191,7 +191,7 @@ public sealed class PaneViewModel : ObservableObject
     public bool IsVirtualView => IsThisPc || IsTagView || IsSearchView;
 
     private string TagName =>
-        TagPath.TryParse(CurrentPath, out var tagId) ? _tags?.GetTagName(tagId) ?? "标签" : string.Empty;
+        TagPath.TryParse(CurrentPath, out var tagId) ? _tags?.GetTagName(tagId) ?? Loc.Get("Loc.Tag") : string.Empty;
 
     private string SearchQuery =>
         SearchPath.TryParse(CurrentPath, out var query) ? query : string.Empty;
@@ -215,19 +215,33 @@ public sealed class PaneViewModel : ObservableObject
             if (IsSearching)
             {
                 return SearchQuery.Length == 0
-                    ? "正在搜索…"
-                    : $"正在搜索「{SearchQuery}」…";
+                    ? Loc.Get("Loc.Searching")
+                    : Loc.Format("Loc.SearchingQuery", SearchQuery);
             }
 
             var folders = Items.Count(i => i.Kind != FileItemKind.File);
             var files = Items.Count - folders;
             if (HasFilter)
             {
-                return $"显示 {VisibleItems.Count} / {Items.Count} 项";
+                return Loc.Format("Loc.FilterCount", VisibleItems.Count, Items.Count);
             }
 
-            return $"{folders} 个文件夹 · {files} 个文件";
+            return Loc.Format("Loc.ItemCounts", folders, files);
         }
+    }
+
+    public void RefreshLocalization()
+    {
+        RebuildBreadcrumbs();
+        OnPropertyChanged(nameof(DisplayTitle));
+        OnPropertyChanged(nameof(ItemSummary));
+        foreach (var tab in Tabs)
+        {
+            tab.RefreshTitle();
+        }
+
+        SchedulePreview();
+        ReplaceVisible(VisibleItems.ToList());
     }
 
     public bool IsThisPc => CurrentPath.Equals("ThisPC", StringComparison.OrdinalIgnoreCase);
@@ -521,7 +535,7 @@ public sealed class PaneViewModel : ObservableObject
         ResetIconLoads();
         Items = [];
         ReplaceVisible([]);
-        Preview = new FilePreview { Hint = "选择一项以预览" };
+        Preview = new FilePreview { Hint = Loc.Get("Loc.SelectToPreview") };
 
         if (SearchPath.TryParse(CurrentPath, out var query))
         {
@@ -568,7 +582,7 @@ public sealed class PaneViewModel : ObservableObject
 
         if (task.IsFaulted)
         {
-            StatusMessage?.Invoke(this, task.Exception?.InnerException?.Message ?? "无法读取目录");
+            StatusMessage?.Invoke(this, task.Exception?.InnerException?.Message ?? Loc.Get("Loc.CannotReadDir"));
             Items = [];
             ReplaceVisible([]);
             OnPropertyChanged(nameof(ItemSummary));
@@ -591,12 +605,12 @@ public sealed class PaneViewModel : ObservableObject
         if (_search is null)
         {
             IsSearching = false;
-            StatusMessage?.Invoke(this, "搜索服务不可用");
+            StatusMessage?.Invoke(this, Loc.Get("Loc.SearchUnavailable"));
             return;
         }
 
         IsSearching = true;
-        StatusMessage?.Invoke(this, $"正在搜索「{query}」…");
+        StatusMessage?.Invoke(this, Loc.Format("Loc.SearchingQuery", query));
         var cts = new CancellationTokenSource();
         _searchCts = cts;
         var token = cts.Token;
@@ -643,7 +657,7 @@ public sealed class PaneViewModel : ObservableObject
         if (task.IsFaulted)
         {
             IsSearching = false;
-            var message = task.Exception?.InnerException?.Message ?? "搜索失败";
+            var message = task.Exception?.InnerException?.Message ?? Loc.Get("Loc.SearchFailed");
             StatusMessage?.Invoke(this, message);
             RebuildVisible();
             OnPropertyChanged(nameof(ItemSummary));
@@ -664,7 +678,7 @@ public sealed class PaneViewModel : ObservableObject
         OnPropertyChanged(nameof(ItemSummary));
         StatusMessage?.Invoke(
             this,
-            task.Result.Count == 0 ? $"未找到「{query}」" : $"找到 {task.Result.Count} 项");
+            task.Result.Count == 0 ? Loc.Format("Loc.NoResults", query) : Loc.Format("Loc.FoundItems", task.Result.Count));
     }
 
     public void ApplySort(FileSortColumn column, bool descending, bool foldersFirst = true)
@@ -800,7 +814,7 @@ public sealed class PaneViewModel : ObservableObject
         var epoch = Interlocked.Increment(ref _previewEpoch);
         if (item == null)
         {
-            Preview = new FilePreview { Hint = "选择一项以预览" };
+            Preview = new FilePreview { Hint = Loc.Get("Loc.SelectToPreview") };
             return;
         }
 
@@ -808,7 +822,7 @@ public sealed class PaneViewModel : ObservableObject
         {
             Kind = PreviewKind.Generic,
             Title = item.Name,
-            Hint = "正在加载预览…"
+            Hint = Loc.Get("Loc.PreviewLoading")
         };
 
         _ = Task.Run(() => PreviewService.Load(item), CancellationToken.None)
@@ -833,7 +847,7 @@ public sealed class PaneViewModel : ObservableObject
                         {
                             Kind = PreviewKind.Generic,
                             Title = item.Name,
-                            Hint = "无法预览"
+                            Hint = Loc.Get("Loc.PreviewFailed")
                         };
                 });
             }, TaskScheduler.Default);
@@ -899,25 +913,25 @@ public sealed class PaneViewModel : ObservableObject
 
         if (IsThisPc)
         {
-            Breadcrumbs.Add(new BreadcrumbViewModel("此电脑", "ThisPC", isLast: true, path => Navigate(path)));
+            Breadcrumbs.Add(new BreadcrumbViewModel(Loc.Get("Loc.ThisPc"), "ThisPC", isLast: true, path => Navigate(path)));
             return;
         }
 
         if (IsTagView)
         {
-            Breadcrumbs.Add(new BreadcrumbViewModel("标签", "ThisPC", isLast: false, path => Navigate(path)));
+            Breadcrumbs.Add(new BreadcrumbViewModel(Loc.Get("Loc.Tags"), "ThisPC", isLast: false, path => Navigate(path)));
             Breadcrumbs.Add(new BreadcrumbViewModel(TagName, CurrentPath, isLast: true, path => Navigate(path)));
             return;
         }
 
         if (IsSearchView)
         {
-            Breadcrumbs.Add(new BreadcrumbViewModel("此电脑", "ThisPC", isLast: false, path => Navigate(path)));
-            Breadcrumbs.Add(new BreadcrumbViewModel($"搜索 {SearchQuery}", CurrentPath, isLast: true, path => Navigate(path)));
+            Breadcrumbs.Add(new BreadcrumbViewModel(Loc.Get("Loc.ThisPc"), "ThisPC", isLast: false, path => Navigate(path)));
+            Breadcrumbs.Add(new BreadcrumbViewModel(Loc.Format("Loc.SearchPrefix", SearchQuery), CurrentPath, isLast: true, path => Navigate(path)));
             return;
         }
 
-        Breadcrumbs.Add(new BreadcrumbViewModel("此电脑", "ThisPC", isLast: false, path => Navigate(path)));
+        Breadcrumbs.Add(new BreadcrumbViewModel(Loc.Get("Loc.ThisPc"), "ThisPC", isLast: false, path => Navigate(path)));
 
         var segments = CurrentPath.TrimEnd('\\').Split('\\', StringSplitOptions.RemoveEmptyEntries);
         var accumulated = string.Empty;
@@ -981,7 +995,7 @@ public sealed class PaneViewModel : ObservableObject
 
         if (!_fileService.PathExists(path))
         {
-            StatusMessage?.Invoke(this, $"路径不存在: {path}");
+            StatusMessage?.Invoke(this, Loc.Format("Loc.PathMissing", path));
             return;
         }
 
@@ -1065,7 +1079,7 @@ public sealed class PaneViewModel : ObservableObject
 
         if (!Directory.Exists(path))
         {
-            StatusMessage?.Invoke(this, $"路径不存在: {path}");
+            StatusMessage?.Invoke(this, Loc.Format("Loc.PathMissing", path));
             return;
         }
 
@@ -1106,7 +1120,7 @@ public sealed class PaneViewModel : ObservableObject
     private void NewTab()
     {
         AddAndActivateTab(NavigationHistory.ThisPcToken);
-        StatusMessage?.Invoke(this, "已新建标签页");
+        StatusMessage?.Invoke(this, Loc.Get("Loc.TabCreated"));
     }
 
     private void ActivateTab(PaneTabViewModel? tab)
@@ -1134,7 +1148,7 @@ public sealed class PaneViewModel : ObservableObject
         var insertAt = Tabs.IndexOf(tab) + 1;
         Tabs.Insert(insertAt, duplicate);
         ActiveTab = duplicate;
-        StatusMessage?.Invoke(this, "已复制标签页");
+        StatusMessage?.Invoke(this, Loc.Get("Loc.TabDuplicated"));
     }
 
     private void CloseTab(PaneTabViewModel? tab)
@@ -1161,7 +1175,7 @@ public sealed class PaneViewModel : ObservableObject
             ActiveTab = Tabs[Math.Clamp(closingIndex, 0, Tabs.Count - 1)];
         }
 
-        StatusMessage?.Invoke(this, "已关闭标签页");
+        StatusMessage?.Invoke(this, Loc.Get("Loc.TabClosed"));
     }
 
     private void CloseOtherTabs(PaneTabViewModel? tab)
@@ -1178,7 +1192,7 @@ public sealed class PaneViewModel : ObservableObject
         }
 
         ActiveTab = tab;
-        StatusMessage?.Invoke(this, "已关闭其他标签页");
+        StatusMessage?.Invoke(this, Loc.Get("Loc.OtherTabsClosed"));
     }
 
     private void CloseAllTabs()
@@ -1187,7 +1201,7 @@ public sealed class PaneViewModel : ObservableObject
         var remaining = new PaneTabViewModel(NavigationHistory.ThisPcToken, _tags);
         Tabs.Add(remaining);
         ActiveTab = remaining;
-        StatusMessage?.Invoke(this, "已关闭所有标签页");
+        StatusMessage?.Invoke(this, Loc.Get("Loc.AllTabsClosed"));
     }
 
     private bool CanOpenSelectedInNewTab() =>
@@ -1201,7 +1215,7 @@ public sealed class PaneViewModel : ObservableObject
         }
 
         AddAndActivateTab(SelectedItem.FullPath);
-        StatusMessage?.Invoke(this, "已在新标签页中打开");
+        StatusMessage?.Invoke(this, Loc.Get("Loc.OpenedInNewTab"));
     }
 
     private void AddAndActivateTab(string path)
@@ -1257,7 +1271,7 @@ public sealed class PaneViewModel : ObservableObject
         }
 
         FileClipboard.SetFiles(paths, cut: false);
-        StatusMessage?.Invoke(this, paths.Count == 1 ? "已复制到剪贴板" : $"已复制 {paths.Count} 项");
+        StatusMessage?.Invoke(this, paths.Count == 1 ? Loc.Get("Loc.CopiedOne") : Loc.Format("Loc.CopiedMany", paths.Count));
     }
 
     private void CutSelected()
@@ -1269,7 +1283,7 @@ public sealed class PaneViewModel : ObservableObject
         }
 
         FileClipboard.SetFiles(paths, cut: true);
-        StatusMessage?.Invoke(this, paths.Count == 1 ? "已剪切到剪贴板" : $"已剪切 {paths.Count} 项");
+        StatusMessage?.Invoke(this, paths.Count == 1 ? Loc.Get("Loc.CutOne") : Loc.Format("Loc.CutMany", paths.Count));
     }
 
     private async void Paste()
@@ -1288,7 +1302,7 @@ public sealed class PaneViewModel : ObservableObject
         var targetDir = ResolveWritableDirectory();
         _isPasting = true;
         CommandManager.InvalidateRequerySuggested();
-        StatusMessage?.Invoke(this, cut ? "正在移动…" : "正在复制…");
+        StatusMessage?.Invoke(this, cut ? Loc.Get("Loc.Moving") : Loc.Get("Loc.Copying"));
 
         try
         {
@@ -1305,12 +1319,12 @@ public sealed class PaneViewModel : ObservableObject
             }
 
             RefreshItems();
-            StatusMessage?.Invoke(this, cut ? "移动完成" : "粘贴完成");
+            StatusMessage?.Invoke(this, cut ? Loc.Get("Loc.MoveDone") : Loc.Get("Loc.PasteDone"));
         }
         catch (OperationCanceledException)
         {
             RefreshItems();
-            StatusMessage?.Invoke(this, "已取消");
+            StatusMessage?.Invoke(this, Loc.Get("Loc.Cancelled"));
         }
         catch (Exception ex)
         {
@@ -1335,7 +1349,7 @@ public sealed class PaneViewModel : ObservableObject
         {
             _fileService.DeleteToRecycleBin(paths);
             RefreshItems();
-            StatusMessage?.Invoke(this, "已移到回收站");
+            StatusMessage?.Invoke(this, Loc.Get("Loc.RecycleBin"));
         }
         catch (Exception ex)
         {
@@ -1354,7 +1368,7 @@ public sealed class PaneViewModel : ObservableObject
         {
             _fileService.Rename(SelectedItem.FullPath, newName.Trim());
             RefreshItems();
-            StatusMessage?.Invoke(this, "重命名完成");
+            StatusMessage?.Invoke(this, Loc.Get("Loc.Renamed"));
         }
         catch (Exception ex)
         {
@@ -1366,7 +1380,7 @@ public sealed class PaneViewModel : ObservableObject
     {
         var targetDir = ResolveWritableDirectory();
 
-        var name = "新建文件夹";
+        var name = Loc.Get("Loc.NewFolder");
         var candidate = name;
         var counter = 1;
         while (Directory.Exists(Path.Combine(targetDir, candidate)))
@@ -1382,7 +1396,7 @@ public sealed class PaneViewModel : ObservableObject
                 RefreshItems();
             }
 
-            StatusMessage?.Invoke(this, "已创建文件夹");
+            StatusMessage?.Invoke(this, Loc.Get("Loc.FolderCreated"));
         }
         catch (Exception ex)
         {
@@ -1402,7 +1416,7 @@ public sealed class PaneViewModel : ObservableObject
     public async void HandleDrop(string[] paths, bool move)
     {
         var targetDir = ResolveWritableDirectory();
-        StatusMessage?.Invoke(this, move ? "正在移动…" : "正在复制…");
+        StatusMessage?.Invoke(this, move ? Loc.Get("Loc.Moving") : Loc.Get("Loc.Copying"));
 
         try
         {
@@ -1414,12 +1428,12 @@ public sealed class PaneViewModel : ObservableObject
                 move).ConfigureAwait(true);
 
             RefreshItems();
-            StatusMessage?.Invoke(this, move ? "移动完成" : "复制完成");
+            StatusMessage?.Invoke(this, move ? Loc.Get("Loc.MoveDone") : Loc.Get("Loc.CopyDone"));
         }
         catch (OperationCanceledException)
         {
             RefreshItems();
-            StatusMessage?.Invoke(this, "已取消");
+            StatusMessage?.Invoke(this, Loc.Get("Loc.Cancelled"));
         }
         catch (Exception ex)
         {

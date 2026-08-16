@@ -58,21 +58,21 @@
                                         MouseDown="OnTabMouseDown">
                                     <Border.ContextMenu>
                                         <ContextMenu DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource Self}}">
-                                            <MenuItem Header="新建标签页"
+                                            <MenuItem Header="{DynamicResource Loc.NewTab}"
                                                       InputGestureText="Ctrl+T"
                                                       Command="{Binding Tag.NewTabCommand}" />
-                                            <MenuItem Header="复制标签页"
+                                            <MenuItem Header="{DynamicResource Loc.DuplicateTab}"
                                                       Command="{Binding Tag.DuplicateTabCommand}"
                                                       CommandParameter="{Binding DataContext}" />
                                             <Separator />
-                                            <MenuItem Header="关闭标签页"
+                                            <MenuItem Header="{DynamicResource Loc.CloseTab}"
                                                       InputGestureText="Ctrl+W"
                                                       Command="{Binding Tag.CloseTabCommand}"
                                                       CommandParameter="{Binding DataContext}" />
-                                            <MenuItem Header="关闭其他标签页"
+                                            <MenuItem Header="{DynamicResource Loc.CloseOtherTabs}"
                                                       Command="{Binding Tag.CloseOtherTabsCommand}"
                                                       CommandParameter="{Binding DataContext}" />
-                                            <MenuItem Header="关闭所有标签页"
+                                            <MenuItem Header="{DynamicResource Loc.CloseAllTabs}"
                                                       Command="{Binding Tag.CloseAllTabsCommand}" />
                                         </ContextMenu>
                                     </Border.ContextMenu>
@@ -104,7 +104,7 @@
                                                 Height="20"
                                                 Margin="4,0,0,0"
                                                 Content="&#xE711;"
-                                                ToolTip="关闭标签页"
+                                                ToolTip="{DynamicResource Loc.CloseTab}"
                                                 Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}" />
                                     </Grid>
@@ -126,26 +126,26 @@
                             Margin="2,0,6,0">
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE977;"
-                            ToolTip="此电脑"
+                            ToolTip="{DynamicResource Loc.ThisPc}"
                             Command="{Binding GoToThisPcCommand}" />
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE7F4;"
-                            ToolTip="桌面"
+                            ToolTip="{DynamicResource Loc.Desktop}"
                             Command="{Binding OpenKnownFolderCommand}"
                             CommandParameter="Desktop" />
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE8A5;"
-                            ToolTip="文档"
+                            ToolTip="{DynamicResource Loc.Documents}"
                             Command="{Binding OpenKnownFolderCommand}"
                             CommandParameter="Documents" />
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE896;"
-                            ToolTip="下载"
+                            ToolTip="{DynamicResource Loc.Downloads}"
                             Command="{Binding OpenKnownFolderCommand}"
                             CommandParameter="Downloads" />
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xEB9F;"
-                            ToolTip="图片"
+                            ToolTip="{DynamicResource Loc.Pictures}"
                             Command="{Binding OpenKnownFolderCommand}"
                             CommandParameter="Pictures" />
                 </StackPanel>
@@ -153,19 +153,19 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE721;"
-                            ToolTip="过滤当前目录（也可在列表中直接打字）"
+                            ToolTip="{DynamicResource Loc.FilterTip}"
                             Command="{Binding OpenFilterCommand}" />
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE710;"
-                            ToolTip="新建标签页 (Ctrl+T)"
+                            ToolTip="{DynamicResource Loc.NewTabTip}"
                             Command="{Binding NewTabCommand}" />
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE72C;"
-                            ToolTip="刷新 (F5)"
+                            ToolTip="{DynamicResource Loc.RefreshTip}"
                             Command="{Binding RefreshCommand}" />
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE8A7;"
-                            ToolTip="在资源管理器中打开"
+                            ToolTip="{DynamicResource Loc.OpenInExplorer}"
                             Command="{Binding OpenInExplorerCommand}" />
                 </StackPanel>
             </Grid>
@@ -180,15 +180,15 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,4,0">
                     <Button Style="{StaticResource IconButton}"
                             Content="&#xE72B;"
-                            ToolTip="后退"
+                            ToolTip="{DynamicResource Loc.Back}"
                             Command="{Binding GoBackCommand}" />
                     <Button Style="{StaticResource IconButton}"
                             Content="&#xE72A;"
-                            ToolTip="前进"
+                            ToolTip="{DynamicResource Loc.Forward}"
                             Command="{Binding GoForwardCommand}" />
                     <Button Style="{StaticResource IconButton}"
                             Content="&#xE74A;"
-                            ToolTip="上一级"
+                            ToolTip="{DynamicResource Loc.Up}"
                             Command="{Binding GoUpCommand}" />
                 </StackPanel>
 
@@ -201,7 +201,7 @@
                         Padding="2,0"
                         MinHeight="28"
                         Cursor="IBeam"
-                        ToolTip="单击编辑路径"
+                        ToolTip="{DynamicResource Loc.EditPath}"
                         PreviewMouseLeftButtonDown="OnBreadcrumbMouseDown"
                         Visibility="{Binding IsAddressEditing, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
                     <ScrollViewer HorizontalScrollBarVisibility="Hidden"
@@ -259,13 +259,13 @@
                     BorderBrush="{DynamicResource Line.Soft}"
                     BorderThickness="0,0,0,1"
                     Padding="8,8,8,7"
-                    ToolTip="点击排序，右键可设置升序/降序和文件夹置顶；拖动列缝调整列宽">
+                    ToolTip="{DynamicResource Loc.ColumnTip}">
                 <Border.ContextMenu>
                     <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                        <MenuItem Header="升序" Command="{Binding SortAscendingCommand}" />
-                        <MenuItem Header="降序" Command="{Binding SortDescendingCommand}" />
+                        <MenuItem Header="{DynamicResource Loc.Ascending}" Command="{Binding SortAscendingCommand}" />
+                        <MenuItem Header="{DynamicResource Loc.Descending}" Command="{Binding SortDescendingCommand}" />
                         <Separator />
-                        <MenuItem Header="文件夹置顶"
+                        <MenuItem Header="{DynamicResource Loc.FoldersFirst}"
                                   IsCheckable="True"
                                   IsChecked="{Binding FoldersFirst, Mode=TwoWay}" />
                     </ContextMenu>
@@ -284,7 +284,7 @@
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Name}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource ColumnLabel}" Text="名称" />
+                            <TextBlock Style="{StaticResource ColumnLabel}" Text="{DynamicResource Loc.Name}" />
                             <TextBlock Text="{Binding NameSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
@@ -295,7 +295,7 @@
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Size}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <TextBlock Style="{StaticResource ColumnLabel}" Text="大小" TextAlignment="Right" />
+                            <TextBlock Style="{StaticResource ColumnLabel}" Text="{DynamicResource Loc.Size}" TextAlignment="Right" />
                             <TextBlock Text="{Binding SizeSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
@@ -306,7 +306,7 @@
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Modified}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <TextBlock Style="{StaticResource ColumnLabel}" Text="更新" />
+                            <TextBlock Style="{StaticResource ColumnLabel}" Text="{DynamicResource Loc.Modified}" />
                             <TextBlock Text="{Binding ModifiedSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
@@ -317,7 +317,7 @@
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Kind}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <TextBlock Style="{StaticResource ColumnLabel}" Text="类型" />
+                            <TextBlock Style="{StaticResource ColumnLabel}" Text="{DynamicResource Loc.Type}" />
                             <TextBlock Text="{Binding KindSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
@@ -435,7 +435,7 @@
                            Foreground="{DynamicResource Text.Tertiary}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,8" />
-                <TextBlock Text="正在搜索…"
+                <TextBlock Text="{DynamicResource Loc.Searching}"
                            Foreground="{DynamicResource Text.Secondary}"
                            FontSize="13"
                            HorizontalAlignment="Center" />
@@ -471,7 +471,7 @@
                     <TextBox x:Name="FilterBox"
                              Grid.Column="1"
                              Style="{StaticResource SearchField}"
-                             ToolTip="Esc 清空"
+                             ToolTip="{DynamicResource Loc.ClearFilterEsc}"
                              Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
                              KeyDown="OnFilterKeyDown"
                              LostKeyboardFocus="OnFilterLostFocus" />
@@ -480,7 +480,7 @@
                             Height="20"
                             Style="{StaticResource IconButtonSmall}"
                             Content="&#xE711;"
-                            ToolTip="清除过滤"
+                            ToolTip="{DynamicResource Loc.ClearFilter}"
                             Command="{Binding ClearFilterCommand}" />
                 </Grid>
             </Border>
@@ -518,7 +518,7 @@
                     <Grid>
                         <TextBlock VerticalAlignment="Center"
                                    HorizontalAlignment="Center"
-                                   Text="选择一项以预览"
+                                   Text="{DynamicResource Loc.SelectToPreview}"
                                    TextWrapping="Wrap"
                                    TextAlignment="Center"
                                    Foreground="{DynamicResource Text.Tertiary}"
@@ -528,7 +528,7 @@
 
                         <DockPanel Visibility="{Binding IsPreviewEmpty, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
                             <TextBlock DockPanel.Dock="Top"
-                                       Text="预览"
+                                       Text="{DynamicResource Loc.Preview}"
                                        Style="{StaticResource ColumnLabel}"
                                        Margin="0,0,0,10" />
                             <TextBlock DockPanel.Dock="Top"
@@ -596,11 +596,11 @@
                                VerticalAlignment="Center" />
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Style="{StaticResource IconButtonSmall}" Content="&#xE8F4;" ToolTip="新建文件夹" Command="{Binding NewFolderCommand}" />
-                        <Button Style="{StaticResource IconButtonSmall}" Content="&#xE8C8;" ToolTip="复制 (Ctrl+C)" Command="{Binding CopySelectedCommand}" />
-                        <Button Style="{StaticResource IconButtonSmall}" Content="&#xE8C6;" ToolTip="剪切 (Ctrl+X)" Command="{Binding CutSelectedCommand}" />
-                        <Button Style="{StaticResource IconButtonSmall}" Content="&#xE77F;" ToolTip="粘贴 (Ctrl+V)" Command="{Binding PasteCommand}" />
-                        <Button Style="{StaticResource IconButtonDanger}" Content="&#xE74D;" ToolTip="删除 (Delete)" Command="{Binding DeleteSelectedCommand}" />
+                        <Button Style="{StaticResource IconButtonSmall}" Content="&#xE8F4;" ToolTip="{DynamicResource Loc.NewFolder}" Command="{Binding NewFolderCommand}" />
+                        <Button Style="{StaticResource IconButtonSmall}" Content="&#xE8C8;" ToolTip="{DynamicResource Loc.Copy}" Command="{Binding CopySelectedCommand}" />
+                        <Button Style="{StaticResource IconButtonSmall}" Content="&#xE8C6;" ToolTip="{DynamicResource Loc.Cut}" Command="{Binding CutSelectedCommand}" />
+                        <Button Style="{StaticResource IconButtonSmall}" Content="&#xE77F;" ToolTip="{DynamicResource Loc.Paste}" Command="{Binding PasteCommand}" />
+                        <Button Style="{StaticResource IconButtonDanger}" Content="&#xE74D;" ToolTip="{DynamicResource Loc.Delete}" Command="{Binding DeleteSelectedCommand}" />
                     </StackPanel>
                 </Grid>
             </Border>

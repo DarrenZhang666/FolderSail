@@ -1,4 +1,5 @@
 using FolderSail.Core.Models;
+using FolderSail.Helpers;
 using FolderSail.Mvvm;
 
 namespace FolderSail.ViewModels;
@@ -19,7 +20,9 @@ public sealed class DriveItemViewModel : ObservableObject
     public string Label => Model.Label;
     public double UsedRatio => Model.UsedRatio;
 
-    public string CapacityText => $"{Format(Model.FreeSize)} 可用 / {Format(Model.TotalSize)}";
+    public string CapacityText => Loc.Format("Loc.DriveCapacity", Format(Model.FreeSize), Format(Model.TotalSize));
+
+    public void RefreshLocalization() => OnPropertyChanged(nameof(CapacityText));
 
     public bool IsAlmostFull => Model.UsedRatio >= 0.9;
 

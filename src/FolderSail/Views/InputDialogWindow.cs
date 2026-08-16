@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using FolderSail.Helpers;
 
 namespace FolderSail.Views;
 
@@ -69,7 +70,7 @@ public class InputDialogWindow : Window
 
         var cancel = new Button
         {
-            Content = "取消",
+            Content = Loc.Get("Loc.Cancel"),
             Width = 78,
             Height = 30,
             Margin = new Thickness(0, 0, 8, 0),
@@ -85,7 +86,7 @@ public class InputDialogWindow : Window
 
         var ok = new Button
         {
-            Content = "确定",
+            Content = Loc.Get("Loc.Ok"),
             Width = 86,
             Height = 30,
             IsDefault = true

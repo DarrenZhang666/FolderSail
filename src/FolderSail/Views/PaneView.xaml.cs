@@ -383,14 +383,14 @@ public partial class PaneView : UserControl
         if (item?.Kind is FileItemKind.Directory or FileItemKind.Drive)
         {
             ownCommands.Add(new ShellContextMenu.OwnCommand(
-                "在 FolderSail 新标签页中打开",
+                Loc.Get("Loc.OpenInNewTab"),
                 () => _pane.OpenSelectedInNewTabCommand.Execute(null)));
         }
 
         if (item != null && _pane.IsTagView && owner.DataContext is MainViewModel main)
         {
             ownCommands.Add(new ShellContextMenu.OwnCommand(
-                "从此标签移除",
+                Loc.Get("Loc.RemoveFromThisTag"),
                 () => main.RemoveTaggedPath(item.FullPath)));
         }
 
@@ -411,7 +411,7 @@ public partial class PaneView : UserControl
                 onRename: () => pane.BeginInlineRename());
             if (!shown)
             {
-                pane.ReportStatus($"系统右键菜单失败：{ShellContextMenu.LastError ?? "未知错误"}");
+                pane.ReportStatus(Loc.Format("Loc.ContextMenuFailed", ShellContextMenu.LastError ?? Loc.Get("Loc.UnknownError")));
             }
 
             if (!pane.IsInlineRenaming)
