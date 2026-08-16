@@ -26,6 +26,9 @@ public sealed class PaneViewModel : ObservableObject
     private bool _isSearching;
     private string _filterText = string.Empty;
     private bool _filterOpen;
+    private double _sizeColumnWidth = 72;
+    private double _modifiedColumnWidth = 56;
+    private double _kindColumnWidth = 48;
     private int _filterEpoch;
     private int _previewEpoch;
     private FilePreview _preview = new();
@@ -73,6 +76,8 @@ public sealed class PaneViewModel : ObservableObject
         OpenSelectedInNewTabCommand = new RelayCommand(OpenSelectedInNewTab, CanOpenSelectedInNewTab);
         OpenKnownFolderCommand = new RelayCommand<string>(OpenKnownFolder);
         SortByCommand = new RelayCommand<FileSortColumn>(SortBy);
+        SortAscendingCommand = new RelayCommand(() => SetSortDirection(descending: false));
+        SortDescendingCommand = new RelayCommand(() => SetSortDirection(descending: true));
         ClearFilterCommand = new RelayCommand(ClearFilter);
         OpenFilterCommand = new RelayCommand(OpenFilter);
 
@@ -149,6 +154,7 @@ public sealed class PaneViewModel : ObservableObject
             SelectedItem = null;
             OnPropertyChanged(nameof(SortColumn));
             OnPropertyChanged(nameof(SortDescending));
+            OnPropertyChanged(nameof(FoldersFirst));
             NotifySortHeaders();
             RebuildVisible();
         }
@@ -300,6 +306,72 @@ public sealed class PaneViewModel : ObservableObject
 
     public bool SortDescending => ActiveTab?.SortDescending ?? false;
 
+    public bool FoldersFirst
+    {
+        get => ActiveTab?.FoldersFirst ?? true;
+        set
+        {
+            if (ActiveTab == null || ActiveTab.FoldersFirst == value)
+            {
+                return;
+            }
+
+            ActiveTab.FoldersFirst = value;
+            OnPropertyChanged();
+            RebuildVisible();
+            ViewStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public double SizeColumnWidth
+    {
+        get => _sizeColumnWidth;
+        private set => SetProperty(ref _sizeColumnWidth, value);
+    }
+
+    public double ModifiedColumnWidth
+    {
+        get => _modifiedColumnWidth;
+        private set => SetProperty(ref _modifiedColumnWidth, value);
+    }
+
+    public double KindColumnWidth
+    {
+        get => _kindColumnWidth;
+        private set => SetProperty(ref _kindColumnWidth, value);
+    }
+
+    public IReadOnlyList<double> GetColumnWidths() =>
+        [SizeColumnWidth, ModifiedColumnWidth, KindColumnWidth];
+
+    public void ApplyColumnWidths(IReadOnlyList<double>? widths)
+    {
+        if (widths is not { Count: >= 3 })
+        {
+            return;
+        }
+
+        SizeColumnWidth = ClampColumnWidth(widths[0], 48, 220);
+        ModifiedColumnWidth = ClampColumnWidth(widths[1], 44, 160);
+        KindColumnWidth = ClampColumnWidth(widths[2], 40, 120);
+    }
+
+    public void CommitColumnWidths(double size, double modified, double kind)
+    {
+        ApplyColumnWidths([size, modified, kind]);
+        ViewStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static double ClampColumnWidth(double width, double min, double max)
+    {
+        if (double.IsNaN(width) || double.IsInfinity(width))
+        {
+            return min;
+        }
+
+        return Math.Clamp(width, min, max);
+    }
+
     public string NameSortGlyph => SortGlyph(FileSortColumn.Name);
     public string SizeSortGlyph => SortGlyph(FileSortColumn.Size);
     public string ModifiedSortGlyph => SortGlyph(FileSortColumn.Modified);
@@ -354,6 +426,8 @@ public sealed class PaneViewModel : ObservableObject
     public ICommand OpenSelectedInNewTabCommand { get; }
     public ICommand OpenKnownFolderCommand { get; }
     public ICommand SortByCommand { get; }
+    public ICommand SortAscendingCommand { get; }
+    public ICommand SortDescendingCommand { get; }
     public ICommand ClearFilterCommand { get; }
     public ICommand OpenFilterCommand { get; }
 
@@ -593,7 +667,7 @@ public sealed class PaneViewModel : ObservableObject
             task.Result.Count == 0 ? $"未找到「{query}」" : $"找到 {task.Result.Count} 项");
     }
 
-    public void ApplySort(FileSortColumn column, bool descending)
+    public void ApplySort(FileSortColumn column, bool descending, bool foldersFirst = true)
     {
         if (ActiveTab == null)
         {
@@ -602,10 +676,26 @@ public sealed class PaneViewModel : ObservableObject
 
         ActiveTab.SortColumn = column;
         ActiveTab.SortDescending = descending;
+        ActiveTab.FoldersFirst = foldersFirst;
         OnPropertyChanged(nameof(SortColumn));
+        OnPropertyChanged(nameof(SortDescending));
+        OnPropertyChanged(nameof(FoldersFirst));
+        NotifySortHeaders();
+        RebuildVisible();
+    }
+
+    private void SetSortDirection(bool descending)
+    {
+        if (ActiveTab == null)
+        {
+            return;
+        }
+
+        ActiveTab.SortDescending = descending;
         OnPropertyChanged(nameof(SortDescending));
         NotifySortHeaders();
         RebuildVisible();
+        ViewStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void SortBy(FileSortColumn column)
@@ -653,16 +743,15 @@ public sealed class PaneViewModel : ObservableObject
     private void RebuildVisible()
     {
         var selected = SelectedItem;
+        var sorted = SortItems(Items);
         var filter = _filterText.Trim();
-        IEnumerable<FileItemViewModel> query = Items;
         if (filter.Length > 0)
         {
-            query = query.Where(item =>
+            sorted = sorted.Where(item =>
                 item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
         }
 
-        var sorted = SortItems(query).ToList();
-        ReplaceVisible(sorted);
+        ReplaceVisible(sorted.ToList());
 
         if (selected != null && VisibleItems.Contains(selected))
         {
@@ -684,22 +773,24 @@ public sealed class PaneViewModel : ObservableObject
 
     private IEnumerable<FileItemViewModel> SortItems(IEnumerable<FileItemViewModel> source)
     {
-        var foldersFirst = source.OrderByDescending(item => item.Kind != FileItemKind.File);
+        IOrderedEnumerable<FileItemViewModel> ordered = FoldersFirst
+            ? source.OrderByDescending(item => item.Kind != FileItemKind.File)
+            : source.OrderBy(_ => 0);
         var descending = SortDescending;
         return SortColumn switch
         {
             FileSortColumn.Size => descending
-                ? foldersFirst.ThenByDescending(item => item.Size)
-                : foldersFirst.ThenBy(item => item.Size),
+                ? ordered.ThenByDescending(item => item.Size)
+                : ordered.ThenBy(item => item.Size),
             FileSortColumn.Modified => descending
-                ? foldersFirst.ThenByDescending(item => item.ModifiedUtc)
-                : foldersFirst.ThenBy(item => item.ModifiedUtc),
+                ? ordered.ThenByDescending(item => item.ModifiedUtc)
+                : ordered.ThenBy(item => item.ModifiedUtc),
             FileSortColumn.Kind => descending
-                ? foldersFirst.ThenByDescending(item => item.Kind)
-                : foldersFirst.ThenBy(item => item.Kind),
+                ? ordered.ThenByDescending(item => item.Kind)
+                : ordered.ThenBy(item => item.Kind),
             _ => descending
-                ? foldersFirst.ThenByDescending(item => item.Name, StringComparer.OrdinalIgnoreCase)
-                : foldersFirst.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                ? ordered.ThenByDescending(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                : ordered.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
         };
     }
 
@@ -1037,7 +1128,8 @@ public sealed class PaneViewModel : ObservableObject
         var duplicate = new PaneTabViewModel(tab.Path, _tags)
         {
             SortColumn = tab.SortColumn,
-            SortDescending = tab.SortDescending
+            SortDescending = tab.SortDescending,
+            FoldersFirst = tab.FoldersFirst
         };
         var insertAt = Tabs.IndexOf(tab) + 1;
         Tabs.Insert(insertAt, duplicate);
@@ -1115,6 +1207,13 @@ public sealed class PaneViewModel : ObservableObject
     private void AddAndActivateTab(string path)
     {
         var tab = new PaneTabViewModel(path, _tags);
+        if (ActiveTab != null)
+        {
+            tab.SortColumn = ActiveTab.SortColumn;
+            tab.SortDescending = ActiveTab.SortDescending;
+            tab.FoldersFirst = ActiveTab.FoldersFirst;
+        }
+
         Tabs.Add(tab);
         ActiveTab = tab;
     }

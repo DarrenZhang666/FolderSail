@@ -29,9 +29,14 @@ public sealed class FileSizeConverter : IValueConverter
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not long size || size <= 0)
+        if (value is not long size)
         {
             return string.Empty;
+        }
+
+        if (size < 0)
+        {
+            return "…";
         }
 
         var order = 0;
@@ -42,7 +47,7 @@ public sealed class FileSizeConverter : IValueConverter
             len /= 1024;
         }
 
-        return $"{len:0.#} {Units[order]}";
+        return order == 0 ? $"{size} B" : $"{len:0.#} {Units[order]}";
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
@@ -225,4 +230,18 @@ public sealed class BoolToBrushConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
+}
+
+public sealed class DoubleToGridLengthConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var width = value is double d ? d : 70;
+        return new GridLength(Math.Max(1, width), GridUnitType.Pixel);
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is GridLength length && length.GridUnitType == GridUnitType.Pixel
+            ? length.Value
+            : 70d;
 }

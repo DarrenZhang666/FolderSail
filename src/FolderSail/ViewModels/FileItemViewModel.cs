@@ -8,20 +8,24 @@ namespace FolderSail.ViewModels;
 public sealed class FileItemViewModel : ObservableObject
 {
     private ImageSource? _icon;
+    private long _size;
     private bool _iconRequested;
+    private bool _sizeRequested;
     private bool _isRenaming;
     private string _renameText = string.Empty;
 
     public FileItemViewModel(FileItem item)
     {
         Item = item;
+        _size = item.Kind == FileItemKind.Directory ? -1 : item.Size;
     }
 
     public FileItem Item { get; }
     public string Name => Item.Name;
     public string FullPath => Item.FullPath;
     public FileItemKind Kind => Item.Kind;
-    public long Size => Item.Size;
+    public long Size => _size < 0 ? 0 : _size;
+    public long SizeDisplay => _size;
     public DateTime ModifiedUtc => Item.ModifiedUtc;
     public string Extension => Item.Extension;
 
@@ -61,6 +65,22 @@ public sealed class FileItemViewModel : ObservableObject
             {
                 _iconRequested = false;
             }
+        });
+    }
+
+    public void EnsureFolderSize(CancellationToken cancellationToken = default)
+    {
+        if (Kind != FileItemKind.Directory || _size >= 0 || _sizeRequested)
+        {
+            return;
+        }
+
+        _sizeRequested = true;
+        FolderSizeHelper.RequestSize(FullPath, cancellationToken, total =>
+        {
+            _size = total;
+            OnPropertyChanged(nameof(Size));
+            OnPropertyChanged(nameof(SizeDisplay));
         });
     }
 

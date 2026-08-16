@@ -57,6 +57,7 @@ public partial class PaneView : UserControl
         }
 
         ApplyActiveVisual();
+        ApplyHeaderColumnWidths();
     }
 
     private void OnPanePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -66,6 +67,11 @@ public partial class PaneView : UserControl
             case nameof(PaneViewModel.IsActive):
                 ApplyActiveVisual();
                 break;
+            case nameof(PaneViewModel.SizeColumnWidth):
+            case nameof(PaneViewModel.ModifiedColumnWidth):
+            case nameof(PaneViewModel.KindColumnWidth):
+                ApplyHeaderColumnWidths();
+                break;
             case nameof(PaneViewModel.IsAddressEditing) when _pane?.IsAddressEditing == true:
                 Dispatcher.BeginInvoke(() =>
                 {
@@ -74,6 +80,23 @@ public partial class PaneView : UserControl
                 });
                 break;
         }
+    }
+
+    private void ApplyHeaderColumnWidths()
+    {
+        if (_pane == null)
+        {
+            return;
+        }
+
+        SizeColumnDef.Width = new GridLength(_pane.SizeColumnWidth);
+        ModifiedColumnDef.Width = new GridLength(_pane.ModifiedColumnWidth);
+        KindColumnDef.Width = new GridLength(_pane.KindColumnWidth);
+    }
+
+    private void OnColumnDragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    {
+        _pane?.CommitColumnWidths(SizeColumnDef.ActualWidth, ModifiedColumnDef.ActualWidth, KindColumnDef.ActualWidth);
     }
 
     private void ApplyActiveVisual()
@@ -295,6 +318,7 @@ public partial class PaneView : UserControl
         if (sender is FrameworkElement { DataContext: FileItemViewModel item })
         {
             item.EnsureIcon(_pane?.IconLoadToken ?? CancellationToken.None);
+            item.EnsureFolderSize(_pane?.IconLoadToken ?? CancellationToken.None);
         }
     }
 

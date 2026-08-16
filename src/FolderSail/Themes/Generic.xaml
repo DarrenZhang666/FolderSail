@@ -9,6 +9,7 @@
     <conv:RelativeTimeBrushConverter x:Key="RelativeTimeBrush" />
     <conv:ItemKindLabelConverter x:Key="ItemKindLabel" />
     <conv:RatioToWidthConverter x:Key="RatioToWidth" />
+    <conv:DoubleToGridLengthConverter x:Key="DoubleToGridLength" />
 
     <!--
       No implicit TextBlock style here on purpose: an implicit style would win over the

@@ -253,6 +253,8 @@ public sealed class AppSettings
     public bool ExpandTagChildrenOnStartup { get; set; }
     public List<int> PaneSortColumns { get; set; } = [];
     public List<bool> PaneSortDescending { get; set; } = [];
+    public List<bool> PaneFoldersFirst { get; set; } = [];
+    public List<List<double>> PaneColumnWidths { get; set; } = [];
 }
 
 public sealed class FileTransferProgress

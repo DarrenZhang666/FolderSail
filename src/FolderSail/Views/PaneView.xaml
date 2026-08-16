@@ -258,52 +258,67 @@
                     Background="{DynamicResource Surface.Subtle}"
                     BorderBrush="{DynamicResource Line.Soft}"
                     BorderThickness="0,0,0,1"
-                    Padding="16,6,16,6">
-                <Grid>
+                    Padding="8,8,8,7"
+                    ToolTip="点击排序，右键可设置升序/降序和文件夹置顶；拖动列缝调整列宽">
+                <Border.ContextMenu>
+                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                        <MenuItem Header="升序" Command="{Binding SortAscendingCommand}" />
+                        <MenuItem Header="降序" Command="{Binding SortDescendingCommand}" />
+                        <Separator />
+                        <MenuItem Header="文件夹置顶"
+                                  IsCheckable="True"
+                                  IsChecked="{Binding FoldersFirst, Mode=TwoWay}" />
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <Grid x:Name="ColumnHeaderGrid">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="70" />
-                        <ColumnDefinition Width="52" />
-                        <ColumnDefinition Width="46" />
+                        <ColumnDefinition Width="*" MinWidth="80" />
+                        <ColumnDefinition Width="5" />
+                        <ColumnDefinition x:Name="SizeColumnDef" Width="72" MinWidth="48" />
+                        <ColumnDefinition Width="5" />
+                        <ColumnDefinition x:Name="ModifiedColumnDef" Width="56" MinWidth="44" />
+                        <ColumnDefinition Width="5" />
+                        <ColumnDefinition x:Name="KindColumnDef" Width="48" MinWidth="40" />
                     </Grid.ColumnDefinitions>
                     <Button Grid.Column="0" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Name}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource ColumnLabel}" Text="名称" />
-                            <TextBlock Text="{Binding NameSortGlyph}" FontFamily="{StaticResource Font.Icon}"
-                                       FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource Text.Tertiary}" />
+                            <TextBlock Text="{Binding NameSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
-                    <Button Grid.Column="1" Style="{StaticResource ColumnHeaderButton}"
+                    <GridSplitter Grid.Column="1"
+                                  Style="{StaticResource ColumnSplitter}"
+                                  DragCompleted="OnColumnDragCompleted" />
+                    <Button Grid.Column="2" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Size}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <TextBlock Style="{StaticResource ColumnLabel}" Text="大小" TextAlignment="Right" />
-                            <TextBlock Text="{Binding SizeSortGlyph}" FontFamily="{StaticResource Font.Icon}"
-                                       FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource Text.Tertiary}" />
+                            <TextBlock Text="{Binding SizeSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
-                    <Button Grid.Column="2" Style="{StaticResource ColumnHeaderButton}"
+                    <GridSplitter Grid.Column="3"
+                                  Style="{StaticResource ColumnSplitter}"
+                                  DragCompleted="OnColumnDragCompleted" />
+                    <Button Grid.Column="4" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Modified}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <TextBlock Style="{StaticResource ColumnLabel}" Text="更新" />
-                            <TextBlock Text="{Binding ModifiedSortGlyph}" FontFamily="{StaticResource Font.Icon}"
-                                       FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource Text.Tertiary}" />
+                            <TextBlock Text="{Binding ModifiedSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
-                    <Button Grid.Column="3" Style="{StaticResource ColumnHeaderButton}"
+                    <GridSplitter Grid.Column="5"
+                                  Style="{StaticResource ColumnSplitter}"
+                                  DragCompleted="OnColumnDragCompleted" />
+                    <Button Grid.Column="6" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Kind}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <TextBlock Style="{StaticResource ColumnLabel}" Text="类型" />
-                            <TextBlock Text="{Binding KindSortGlyph}" FontFamily="{StaticResource Font.Icon}"
-                                       FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource Text.Tertiary}" />
+                            <TextBlock Text="{Binding KindSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
                 </Grid>
@@ -320,7 +335,7 @@
                      FocusVisualStyle="{x:Null}"
                      Background="Transparent"
                      BorderThickness="0"
-                     Margin="2,0,0,0"
+                     Margin="0"
                      Padding="0"
                      FontFamily="{StaticResource Font.Ui}"
                      FontSize="{StaticResource Size.FontBody}"
@@ -338,12 +353,16 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid Height="28"
+                              Margin="8,0"
                               PreviewMouseMove="OnRowMouseMove">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="70" />
-                                <ColumnDefinition Width="52" />
-                                <ColumnDefinition Width="46" />
+                                <ColumnDefinition Width="*" MinWidth="80" />
+                                <ColumnDefinition Width="5" />
+                                <ColumnDefinition Width="{Binding DataContext.SizeColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="48" />
+                                <ColumnDefinition Width="5" />
+                                <ColumnDefinition Width="{Binding DataContext.ModifiedColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="44" />
+                                <ColumnDefinition Width="5" />
+                                <ColumnDefinition Width="{Binding DataContext.KindColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="40" />
                             </Grid.ColumnDefinitions>
 
                             <Grid Grid.Column="0" VerticalAlignment="Center">
@@ -376,8 +395,8 @@
                             </Grid>
 
                             <TextBlock x:Name="SizeText"
-                                       Grid.Column="1"
-                                       Text="{Binding Size, Converter={StaticResource FileSize}}"
+                                       Grid.Column="2"
+                                       Text="{Binding SizeDisplay, Converter={StaticResource FileSize}}"
                                        Foreground="{DynamicResource Text.Secondary}"
                                        FontSize="{StaticResource Size.FontSmall}"
                                        TextAlignment="Right"
@@ -385,7 +404,7 @@
                                        Margin="0,0,10,0" />
 
                             <TextBlock x:Name="TimeText"
-                                       Grid.Column="2"
+                                       Grid.Column="4"
                                        Text="{Binding ModifiedUtc, Converter={StaticResource RelativeTime}}"
                                        Foreground="{DynamicResource Text.Secondary}"
                                        FontSize="11"
@@ -393,7 +412,7 @@
                                        VerticalAlignment="Center" />
 
                             <TextBlock x:Name="KindText"
-                                       Grid.Column="3"
+                                       Grid.Column="6"
                                        Text="{Binding Kind, Converter={StaticResource ItemKindLabel}}"
                                        Foreground="{DynamicResource Text.Secondary}"
                                        FontSize="10"

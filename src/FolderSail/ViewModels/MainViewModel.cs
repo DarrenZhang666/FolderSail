@@ -25,6 +25,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     private bool _expandTagChildrenOnStartup;
     private readonly List<int> _paneSortColumns;
     private readonly List<bool> _paneSortDescending;
+    private readonly List<bool> _paneFoldersFirst;
+    private readonly List<List<double>> _paneColumnWidths;
 
     public const double SidebarMinWidth = 156;
     public const double SidebarMaxWidth = 520;
@@ -71,6 +73,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         _expandTagChildrenOnStartup = settings.ExpandTagChildrenOnStartup;
         _paneSortColumns = settings.PaneSortColumns;
         _paneSortDescending = settings.PaneSortDescending;
+        _paneFoldersFirst = settings.PaneFoldersFirst;
+        _paneColumnWidths = settings.PaneColumnWidths;
         ApplyTagChildExpansion(_expandTagChildrenOnStartup);
         ApplyLayout(settings.ActivePaneIndex, settings.PanePaths);
         UpdateLayoutPresetSelection();
@@ -522,7 +526,13 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
             {
                 var column = (FileSortColumn)Math.Clamp(_paneSortColumns[i], 0, 3);
                 var descending = i < _paneSortDescending.Count && _paneSortDescending[i];
-                pane.ApplySort(column, descending);
+                var foldersFirst = i >= _paneFoldersFirst.Count || _paneFoldersFirst[i];
+                pane.ApplySort(column, descending, foldersFirst);
+            }
+
+            if (i < _paneColumnWidths.Count)
+            {
+                pane.ApplyColumnWidths(_paneColumnWidths[i]);
             }
 
             _allPanes.Add(pane);
@@ -562,7 +572,9 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
             IsDarkTheme = IsDarkTheme,
             ExpandTagChildrenOnStartup = ExpandTagChildrenOnStartup,
             PaneSortColumns = _allPanes.Select(p => (int)p.SortColumn).ToList(),
-            PaneSortDescending = _allPanes.Select(p => p.SortDescending).ToList()
+            PaneSortDescending = _allPanes.Select(p => p.SortDescending).ToList(),
+            PaneFoldersFirst = _allPanes.Select(p => p.FoldersFirst).ToList(),
+            PaneColumnWidths = _allPanes.Select(p => p.GetColumnWidths().ToList()).ToList()
         });
     }
 

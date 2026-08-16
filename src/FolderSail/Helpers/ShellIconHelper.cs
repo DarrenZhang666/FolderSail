@@ -39,7 +39,7 @@ public static class ShellIconHelper
     private const uint FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
     private const uint FILE_ATTRIBUTE_NORMAL = 0x00000080;
 
-    private static readonly ConcurrentDictionary<string, ImageSource?> Cache = new();
+    private static readonly ConcurrentDictionary<string, ImageSource> Cache = new();
     private static readonly SemaphoreSlim Gate = new(2, 2);
 
     public static ImageSource? GetIcon(string path, bool isDirectory) =>
@@ -64,7 +64,7 @@ public static class ShellIconHelper
             return;
         }
 
-        _ = Task.Run(() => LoadAndCallback(key, path, isDirectory, cancellationToken, callback), cancellationToken);
+        _ = Task.Run(() => LoadAndCallback(key, path, isDirectory, cancellationToken, callback), CancellationToken.None);
     }
 
     private static async Task LoadAndCallback(
@@ -76,33 +76,83 @@ public static class ShellIconHelper
     {
         try
         {
-            await Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await Gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (ObjectDisposedException)
         {
             return;
         }
 
-        ImageSource? icon = null;
+        IntPtr hIcon = IntPtr.Zero;
         try
         {
-            if (cancellationToken.IsCancellationRequested)
+            if (Cache.TryGetValue(key, out var existing))
             {
+                Dispatch(cancellationToken, () => callback(existing));
                 return;
             }
 
-            icon = Cache.GetOrAdd(key, _ => LoadIcon(path, isDirectory));
+            hIcon = ExtractHIcon(path, isDirectory);
         }
         finally
         {
             Gate.Release();
         }
 
-        if (cancellationToken.IsCancellationRequested)
+        if (hIcon == IntPtr.Zero)
         {
+            Dispatch(cancellationToken, () => callback(null));
             return;
         }
 
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null)
+        {
+            DestroyIcon(hIcon);
+            return;
+        }
+
+        _ = dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                if (Cache.TryGetValue(key, out var existing))
+                {
+                    if (!cancellationToken.IsCancellationRequested)
+                    {
+                        callback(existing);
+                    }
+
+                    return;
+                }
+
+                var source = Imaging.CreateBitmapSourceFromHIcon(
+                    hIcon,
+                    Int32Rect.Empty,
+                    BitmapSizeOptions.FromEmptyOptions());
+                source.Freeze();
+                Cache.TryAdd(key, source);
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    callback(source);
+                }
+            }
+            catch
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    callback(null);
+                }
+            }
+            finally
+            {
+                DestroyIcon(hIcon);
+            }
+        }, DispatcherPriority.Normal);
+    }
+
+    private static void Dispatch(CancellationToken cancellationToken, Action action)
+    {
         var dispatcher = Application.Current?.Dispatcher;
         if (dispatcher is null)
         {
@@ -113,9 +163,9 @@ public static class ShellIconHelper
         {
             if (!cancellationToken.IsCancellationRequested)
             {
-                callback(icon);
+                action();
             }
-        }, DispatcherPriority.Background);
+        }, DispatcherPriority.Normal);
     }
 
     private static string CacheKey(string path, bool isDirectory)
@@ -131,35 +181,32 @@ public static class ShellIconHelper
             : extension.ToLowerInvariant();
     }
 
-    private static ImageSource? LoadIcon(string path, bool isDirectory)
+    private static IntPtr ExtractHIcon(string path, bool isDirectory)
     {
         var shfi = new SHFILEINFO();
         var flags = SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES;
         var attrs = isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL;
-        var probe = isDirectory ? "folder" : "file" + Path.GetExtension(path);
+        var probe = isDirectory
+            ? @"C:\Windows"
+            : string.IsNullOrWhiteSpace(Path.GetExtension(path))
+                ? "file"
+                : "file" + Path.GetExtension(path);
+
         var result = SHGetFileInfo(probe, attrs, ref shfi, (uint)Marshal.SizeOf<SHFILEINFO>(), flags);
-
-        if (result == IntPtr.Zero || shfi.hIcon == IntPtr.Zero)
+        if (result != IntPtr.Zero && shfi.hIcon != IntPtr.Zero)
         {
-            return null;
+            return shfi.hIcon;
         }
 
-        try
+        if (isDirectory)
         {
-            var source = Imaging.CreateBitmapSourceFromHIcon(
-                shfi.hIcon,
-                Int32Rect.Empty,
-                BitmapSizeOptions.FromEmptyOptions());
-            source.Freeze();
-            return source;
+            result = SHGetFileInfo(path, FILE_ATTRIBUTE_DIRECTORY, ref shfi, (uint)Marshal.SizeOf<SHFILEINFO>(), flags);
+            if (result != IntPtr.Zero && shfi.hIcon != IntPtr.Zero)
+            {
+                return shfi.hIcon;
+            }
         }
-        catch
-        {
-            return null;
-        }
-        finally
-        {
-            DestroyIcon(shfi.hIcon);
-        }
+
+        return IntPtr.Zero;
     }
 }

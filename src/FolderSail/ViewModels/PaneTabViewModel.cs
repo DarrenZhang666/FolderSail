@@ -12,6 +12,7 @@ public sealed class PaneTabViewModel : ObservableObject
     private bool _isActive;
     private FileSortColumn _sortColumn = FileSortColumn.Name;
     private bool _sortDescending;
+    private bool _foldersFirst = true;
 
     public PaneTabViewModel(string path, ITagLookup? tags = null)
     {
@@ -59,6 +60,12 @@ public sealed class PaneTabViewModel : ObservableObject
     {
         get => _sortDescending;
         set => SetProperty(ref _sortDescending, value);
+    }
+
+    public bool FoldersFirst
+    {
+        get => _foldersFirst;
+        set => SetProperty(ref _foldersFirst, value);
     }
 
     private string GetTitle(string path)
