@@ -3,6 +3,7 @@ using FolderSail.Core.Navigation;
 using FolderSail.Core.Services;
 using FolderSail.Helpers;
 using FolderSail.Mvvm;
+using FolderSail.Views;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 
@@ -818,17 +819,16 @@ public sealed class PaneViewModel : ObservableObject
         var targetDir = ResolveWritableDirectory();
         _isPasting = true;
         CommandManager.InvalidateRequerySuggested();
-        StatusMessage?.Invoke(this, "正在粘贴…");
+        StatusMessage?.Invoke(this, cut ? "正在移动…" : "正在复制…");
 
         try
         {
-            await Task.Run(() =>
-            {
-                foreach (var source in paths)
-                {
-                    _fileService.Copy(source, targetDir, cut);
-                }
-            }).ConfigureAwait(true);
+            await CopyProgressWindow.RunAsync(
+                System.Windows.Application.Current?.MainWindow,
+                _fileService,
+                paths,
+                targetDir,
+                cut).ConfigureAwait(true);
 
             if (cut)
             {
@@ -836,7 +836,12 @@ public sealed class PaneViewModel : ObservableObject
             }
 
             RefreshItems();
-            StatusMessage?.Invoke(this, "粘贴完成");
+            StatusMessage?.Invoke(this, cut ? "移动完成" : "粘贴完成");
+        }
+        catch (OperationCanceledException)
+        {
+            RefreshItems();
+            StatusMessage?.Invoke(this, "已取消");
         }
         catch (Exception ex)
         {
@@ -932,16 +937,20 @@ public sealed class PaneViewModel : ObservableObject
 
         try
         {
-            await Task.Run(() =>
-            {
-                foreach (var source in paths)
-                {
-                    _fileService.Copy(source, targetDir, move);
-                }
-            }).ConfigureAwait(true);
+            await CopyProgressWindow.RunAsync(
+                System.Windows.Application.Current?.MainWindow,
+                _fileService,
+                paths,
+                targetDir,
+                move).ConfigureAwait(true);
 
             RefreshItems();
             StatusMessage?.Invoke(this, move ? "移动完成" : "复制完成");
+        }
+        catch (OperationCanceledException)
+        {
+            RefreshItems();
+            StatusMessage?.Invoke(this, "已取消");
         }
         catch (Exception ex)
         {

@@ -9,6 +9,12 @@ public interface IFileService
     IReadOnlyList<FileItem> ListPaths(IEnumerable<string> paths);
     IReadOnlyList<DriveItem> ListDriveDetails();
     void Copy(string sourcePath, string destinationDirectory, bool move);
+    void Transfer(
+        IReadOnlyList<string> sourcePaths,
+        string destinationDirectory,
+        bool move,
+        IProgress<FileTransferProgress>? progress,
+        CancellationToken cancellationToken);
     void DeleteToRecycleBin(IEnumerable<string> paths);
     void Rename(string path, string newName);
     void CreateDirectory(string parentPath, string folderName);
@@ -171,16 +177,51 @@ public sealed class FileService : IFileService
         return drives;
     }
 
-    public void Copy(string sourcePath, string destinationDirectory, bool move)
+    public void Copy(string sourcePath, string destinationDirectory, bool move) =>
+        Transfer([sourcePath], destinationDirectory, move, progress: null, CancellationToken.None);
+
+    public void Transfer(
+        IReadOnlyList<string> sourcePaths,
+        string destinationDirectory,
+        bool move,
+        IProgress<FileTransferProgress>? progress,
+        CancellationToken cancellationToken)
     {
         if (!Directory.Exists(destinationDirectory))
         {
             throw new DirectoryNotFoundException($"目标目录不存在: {destinationDirectory}");
         }
 
-        sourcePath = Path.GetFullPath(sourcePath);
         destinationDirectory = Path.GetFullPath(destinationDirectory);
+        var sources = sourcePaths
+            .Where(path => File.Exists(path) || Directory.Exists(path))
+            .Select(Path.GetFullPath)
+            .ToList();
 
+        var (totalBytes, totalFiles) = Measure(sources);
+        var state = new TransferState
+        {
+            TotalBytes = Math.Max(totalBytes, 1),
+            TotalFiles = Math.Max(totalFiles, 1)
+        };
+
+        Report(progress, state, "正在准备…");
+
+        foreach (var source in sources)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CopyOne(source, destinationDirectory, move, state, progress, cancellationToken);
+        }
+    }
+
+    private void CopyOne(
+        string sourcePath,
+        string destinationDirectory,
+        bool move,
+        TransferState state,
+        IProgress<FileTransferProgress>? progress,
+        CancellationToken cancellationToken)
+    {
         var isDirectory = Directory.Exists(sourcePath);
         if (!isDirectory && !File.Exists(sourcePath))
         {
@@ -211,13 +252,36 @@ public sealed class FileService : IFileService
                 ? UniqueDestination(destinationDirectory, fileName, isDirectory)
                 : intended;
 
+            if (SameVolume(sourcePath, destinationPath))
+            {
+                var extraBytes = 0L;
+                var extraFiles = 0;
+                MeasurePath(sourcePath, ref extraBytes, ref extraFiles);
+                if (isDirectory)
+                {
+                    Directory.Move(sourcePath, destinationPath);
+                }
+                else
+                {
+                    File.Move(sourcePath, destinationPath);
+                }
+
+                state.BytesCopied += extraBytes;
+                state.FilesCopied += extraFiles;
+                state.CurrentName = fileName;
+                Report(progress, state, fileName);
+                return;
+            }
+
             if (isDirectory)
             {
-                Directory.Move(sourcePath, destinationPath);
+                CopyDirectory(sourcePath, destinationPath, state, progress, cancellationToken);
+                Directory.Delete(sourcePath, recursive: true);
             }
             else
             {
-                File.Move(sourcePath, destinationPath);
+                CopyFile(sourcePath, destinationPath, state, progress, cancellationToken);
+                File.Delete(sourcePath);
             }
 
             return;
@@ -229,11 +293,11 @@ public sealed class FileService : IFileService
 
         if (isDirectory)
         {
-            CopyDirectory(sourcePath, copyDest);
+            CopyDirectory(sourcePath, copyDest, state, progress, cancellationToken);
             return;
         }
 
-        File.Copy(sourcePath, copyDest, overwrite: false);
+        CopyFile(sourcePath, copyDest, state, progress, cancellationToken);
     }
 
     public void DeleteToRecycleBin(IEnumerable<string> paths)
@@ -349,11 +413,12 @@ public sealed class FileService : IFileService
             .ToList();
     }
 
-    /// <summary>
-    /// Snapshot children before creating dest so pasting a folder into itself
-    /// cannot recurse forever (Explorer-style).
-    /// </summary>
-    private static void CopyDirectory(string sourceDir, string destDir)
+    private static void CopyDirectory(
+        string sourceDir,
+        string destDir,
+        TransferState state,
+        IProgress<FileTransferProgress>? progress,
+        CancellationToken cancellationToken)
     {
         sourceDir = Path.GetFullPath(sourceDir);
         destDir = Path.GetFullPath(destDir);
@@ -372,19 +437,163 @@ public sealed class FileService : IFileService
 
         foreach (var file in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var destFile = Path.Combine(destDir, Path.GetFileName(file));
             if (PathsEqual(file, destFile))
             {
                 continue;
             }
 
-            File.Copy(file, destFile, overwrite: false);
+            CopyFile(file, destFile, state, progress, cancellationToken);
         }
 
         foreach (var subDir in dirs)
         {
-            CopyDirectory(subDir, Path.Combine(destDir, Path.GetFileName(subDir)));
+            cancellationToken.ThrowIfCancellationRequested();
+            CopyDirectory(
+                subDir,
+                Path.Combine(destDir, Path.GetFileName(subDir)),
+                state,
+                progress,
+                cancellationToken);
         }
+    }
+
+    private static void CopyFile(
+        string sourcePath,
+        string destinationPath,
+        TransferState state,
+        IProgress<FileTransferProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        state.CurrentName = Path.GetFileName(sourcePath);
+        Report(progress, state, state.CurrentName);
+
+        const int bufferSize = 256 * 1024;
+        try
+        {
+            using var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan);
+            using var output = new FileStream(destinationPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize, FileOptions.SequentialScan);
+            var buffer = new byte[bufferSize];
+            int read;
+            while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                output.Write(buffer, 0, read);
+                state.BytesCopied += read;
+                Report(progress, state, state.CurrentName);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            TryDelete(destinationPath);
+            throw;
+        }
+
+        state.FilesCopied++;
+        Report(progress, state, state.CurrentName);
+    }
+
+    private static (long Bytes, int Files) Measure(IEnumerable<string> paths)
+    {
+        long bytes = 0;
+        var files = 0;
+        foreach (var path in paths)
+        {
+            MeasurePath(path, ref bytes, ref files);
+        }
+
+        return (bytes, files);
+    }
+
+    private static void MeasurePath(string path, ref long bytes, ref int files)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                bytes += new FileInfo(path).Length;
+                files++;
+                return;
+            }
+
+            if (!Directory.Exists(path))
+            {
+                return;
+            }
+
+            foreach (var file in Directory.EnumerateFiles(path))
+            {
+                try
+                {
+                    bytes += new FileInfo(file).Length;
+                    files++;
+                }
+                catch
+                {
+                }
+            }
+
+            foreach (var dir in Directory.EnumerateDirectories(path))
+            {
+                MeasurePath(dir, ref bytes, ref files);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static void Report(IProgress<FileTransferProgress>? progress, TransferState state, string name)
+    {
+        var now = Environment.TickCount64;
+        var done = state.BytesCopied >= state.TotalBytes;
+        if (!done && now - state.LastReportTick < 50)
+        {
+            return;
+        }
+
+        state.LastReportTick = now;
+        progress?.Report(new FileTransferProgress
+        {
+            CurrentName = name,
+            BytesCopied = state.BytesCopied,
+            TotalBytes = state.TotalBytes,
+            FilesCopied = state.FilesCopied,
+            TotalFiles = state.TotalFiles
+        });
+    }
+
+    private static bool SameVolume(string left, string right)
+    {
+        var a = Path.GetPathRoot(Path.GetFullPath(left));
+        var b = Path.GetPathRoot(Path.GetFullPath(right));
+        return !string.IsNullOrEmpty(a) &&
+               string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private sealed class TransferState
+    {
+        public long BytesCopied;
+        public long TotalBytes = 1;
+        public int FilesCopied;
+        public int TotalFiles = 1;
+        public string CurrentName = string.Empty;
+        public long LastReportTick;
     }
 
     private static string UniqueDestination(string directory, string originalName, bool isFolder)

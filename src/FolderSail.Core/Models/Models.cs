@@ -244,3 +244,12 @@ public sealed class AppSettings
     public bool IsDarkTheme { get; set; }
     public bool ExpandTagChildrenOnStartup { get; set; }
 }
+
+public sealed class FileTransferProgress
+{
+    public string CurrentName { get; init; } = string.Empty;
+    public long BytesCopied { get; init; }
+    public long TotalBytes { get; init; }
+    public int FilesCopied { get; init; }
+    public int TotalFiles { get; init; }
+}
