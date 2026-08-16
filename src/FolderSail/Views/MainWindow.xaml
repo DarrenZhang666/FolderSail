@@ -130,9 +130,29 @@
                     </ItemsControl>
 
                     <!-- Colour tags, laid out like the Finder sidebar's Tags section -->
-                    <TextBlock Text="标签"
-                               Style="{StaticResource SectionLabel}"
-                               Margin="6,18,0,6" />
+                    <Grid Margin="6,18,4,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="标签"
+                                   Style="{StaticResource SectionLabel}" />
+                        <ToggleButton Grid.Column="2"
+                                      Style="{StaticResource IconToggleSmall}"
+                                      IsChecked="{Binding ExpandTagChildrenOnStartup, Mode=TwoWay}"
+                                      ToolTip="{Binding ExpandTagChildrenOnStartupTip}">
+                            <Grid>
+                                <TextBlock Text="&#xE76C;"
+                                           Style="{StaticResource GlyphTextSmall}"
+                                           Visibility="{Binding ExpandTagChildrenOnStartup, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+                                <TextBlock Text="&#xE70D;"
+                                           Style="{StaticResource GlyphTextSmall}"
+                                           Visibility="{Binding ExpandTagChildrenOnStartup, Converter={StaticResource BoolToVisibility}}" />
+                            </Grid>
+                        </ToggleButton>
+                    </Grid>
 
                     <ItemsControl ItemsSource="{Binding Tags}">
                         <ItemsControl.ItemTemplate>
