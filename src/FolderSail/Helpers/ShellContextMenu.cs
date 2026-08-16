@@ -5,10 +5,9 @@ using System.Windows.Interop;
 namespace FolderSail.Helpers;
 
 /// <summary>
-/// Hosts the real Windows Shell context menu for one filesystem item. This is
-/// intentionally native rather than a reimplementation: installed Shell
-/// extensions (7-Zip, Git, OneDrive, antivirus tools, and so on) participate
-/// exactly as they do in Explorer.
+/// Shows the real Windows Shell context menu. A dedicated Win32 popup host is
+/// used because FolderSail's chrome-less WPF window cannot reliably own
+/// TrackPopupMenu.
 /// </summary>
 public static class ShellContextMenu
 {
@@ -21,7 +20,7 @@ public static class ShellContextMenu
     private const uint CmfCanRename = 0x00000010;
     private const uint CmfExtendedVerbs = 0x00000100;
 
-    private const uint TpmRightButton = 0x0002;
+    private const uint TpmLeftAlign = 0x0000;
     private const uint TpmReturnCommand = 0x0100;
 
     private const uint MfByPosition = 0x00000400;
@@ -31,6 +30,10 @@ public static class ShellContextMenu
     private const uint CmicMaskUnicode = 0x00004000;
     private const uint CmicMaskPtInvoke = 0x20000000;
     private const int SwShowNormal = 1;
+    private const int SwShowNoActivate = 4;
+
+    private const int WsPopup = unchecked((int)0x80000000);
+    private const int WsExToolWindow = 0x00000080;
 
     private const int WmInitMenuPopup = 0x0117;
     private const int WmDrawItem = 0x002B;
@@ -39,14 +42,14 @@ public static class ShellContextMenu
 
     public static string? LastError { get; private set; }
 
-    /// <summary>A FolderSail-specific entry prepended above the Shell's own verbs.</summary>
     public sealed record OwnCommand(string Label, Action Invoke);
 
     public static bool Show(
         Window owner,
         string path,
         IReadOnlyList<OwnCommand> ownCommands,
-        bool showExtendedVerbs)
+        bool showExtendedVerbs,
+        bool folderBackground = false)
     {
         LastError = null;
 
@@ -56,41 +59,51 @@ public static class ShellContextMenu
             return false;
         }
 
-        var ownerHandle = new WindowInteropHelper(owner).Handle;
-        if (ownerHandle == IntPtr.Zero)
-        {
-            LastError = "无法取得窗口句柄";
-            return false;
-        }
-
         IntPtr absolutePidl = IntPtr.Zero;
+        IntPtr pidlArray = IntPtr.Zero;
+        IntPtr parentPointer = IntPtr.Zero;
+        IntPtr folderPointer = IntPtr.Zero;
         IntPtr contextMenuPointer = IntPtr.Zero;
         IShellFolder? parentFolder = null;
+        IShellFolder? folder = null;
         IContextMenu? contextMenu = null;
         IContextMenu2? contextMenu2 = null;
         IContextMenu3? contextMenu3 = null;
-        HwndSourceHook? hook = null;
+        HwndSource? host = null;
         IntPtr menu = IntPtr.Zero;
 
         try
         {
             ThrowIfFailed(SHParseDisplayName(path, IntPtr.Zero, out absolutePidl, 0, out _));
+            if (absolutePidl == IntPtr.Zero)
+            {
+                LastError = "无法解析路径";
+                return false;
+            }
 
             var shellFolderId = typeof(IShellFolder).GUID;
-            ThrowIfFailed(SHBindToParent(
-                absolutePidl,
-                ref shellFolderId,
-                out parentFolder,
-                out var childPidl));
+            ThrowIfFailed(SHBindToParent(absolutePidl, ref shellFolderId, out parentPointer, out var childPidl));
+            parentFolder = (IShellFolder)Marshal.GetObjectForIUnknown(parentPointer);
 
             var contextMenuId = typeof(IContextMenu).GUID;
-            ThrowIfFailed(parentFolder.GetUIObjectOf(
-                ownerHandle,
-                1,
-                [childPidl],
-                ref contextMenuId,
-                IntPtr.Zero,
-                out contextMenuPointer));
+            if (folderBackground)
+            {
+                ThrowIfFailed(parentFolder.BindToObject(childPidl, IntPtr.Zero, ref shellFolderId, out folderPointer));
+                folder = (IShellFolder)Marshal.GetObjectForIUnknown(folderPointer);
+                ThrowIfFailed(folder.CreateViewObject(IntPtr.Zero, ref contextMenuId, out contextMenuPointer));
+            }
+            else
+            {
+                pidlArray = Marshal.AllocCoTaskMem(IntPtr.Size);
+                Marshal.WriteIntPtr(pidlArray, childPidl);
+                ThrowIfFailed(parentFolder.GetUIObjectOf(
+                    IntPtr.Zero,
+                    1,
+                    pidlArray,
+                    ref contextMenuId,
+                    IntPtr.Zero,
+                    out contextMenuPointer));
+            }
 
             contextMenu = (IContextMenu)Marshal.GetObjectForIUnknown(contextMenuPointer);
             Marshal.Release(contextMenuPointer);
@@ -116,6 +129,12 @@ public static class ShellContextMenu
                 LastShellCommand,
                 queryFlags));
 
+            if (GetMenuItemCount(menu) <= 0 && ownCommands.Count == 0)
+            {
+                LastError = "系统菜单为空";
+                return false;
+            }
+
             for (var i = 0; i < ownCommands.Count; i++)
             {
                 InsertMenu(
@@ -131,64 +150,27 @@ public static class ShellContextMenu
                 InsertMenu(menu, (uint)ownCommands.Count, MfByPosition | MfSeparator, 0, null);
             }
 
-            contextMenu3 = TryGetContextMenu3(contextMenu);
-            contextMenu2 = contextMenu3 == null ? TryGetContextMenu2(contextMenu) : null;
-
-            if ((contextMenu3 != null || contextMenu2 != null) &&
-                HwndSource.FromHwnd(ownerHandle) is { } source)
-            {
-                hook = (IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled) =>
-                {
-                    if (message is not (WmInitMenuPopup or WmDrawItem or WmMeasureItem or WmMenuChar))
-                    {
-                        return IntPtr.Zero;
-                    }
-
-                    try
-                    {
-                        if (contextMenu3 != null)
-                        {
-                            var result = contextMenu3.HandleMenuMsg2(
-                                (uint)message,
-                                wParam,
-                                lParam,
-                                out var menuResult);
-
-                            if (result == 0)
-                            {
-                                handled = message == WmMenuChar;
-                                return menuResult;
-                            }
-                        }
-                        else if (contextMenu2 != null && message != WmMenuChar)
-                        {
-                            contextMenu2.HandleMenuMsg((uint)message, wParam, lParam);
-                        }
-                    }
-                    catch (COMException)
-                    {
-                        // A third-party extension may reject a message. Let the
-                        // window continue processing it rather than taking down the app.
-                    }
-
-                    return IntPtr.Zero;
-                };
-
-                source.AddHook(hook);
-            }
+            contextMenu3 = TryGetInterface<IContextMenu3>(contextMenu);
+            contextMenu2 = contextMenu3 == null ? TryGetInterface<IContextMenu2>(contextMenu) : null;
 
             GetCursorPos(out var cursor);
+            host = CreateHost(cursor, contextMenu2, contextMenu3);
+            ShowWindow(host.Handle, SwShowNoActivate);
+            BringToFront(host.Handle);
+
             var command = TrackPopupMenuEx(
                 menu,
-                TpmRightButton | TpmReturnCommand,
+                TpmLeftAlign | TpmReturnCommand,
                 cursor.X,
                 cursor.Y,
-                ownerHandle,
+                host.Handle,
                 IntPtr.Zero);
+
+            PostMessage(host.Handle, 0x0000, IntPtr.Zero, IntPtr.Zero);
 
             if (command == 0)
             {
-                return false;
+                return true;
             }
 
             if (command >= FirstOwnCommand && command < FirstOwnCommand + ownCommands.Count)
@@ -202,50 +184,47 @@ public static class ShellContextMenu
                 return false;
             }
 
-            Invoke(contextMenu, ownerHandle, command - FirstShellCommand, cursor);
+            Invoke(contextMenu, new WindowInteropHelper(owner).EnsureHandle(), command - FirstShellCommand, cursor);
             return true;
         }
-        catch (Exception exception) when (
-            exception is COMException or InvalidCastException or SEHException)
+        catch (Exception exception)
         {
             LastError = $"{exception.GetType().Name}: {exception.Message}";
             return false;
         }
         finally
         {
-            if (hook != null && HwndSource.FromHwnd(ownerHandle) is { } source)
-            {
-                source.RemoveHook(hook);
-            }
-
             if (menu != IntPtr.Zero)
             {
                 DestroyMenu(menu);
             }
 
-            if (contextMenu3 != null)
-            {
-                SafeRelease(contextMenu3);
-            }
+            host?.Dispose();
 
-            if (contextMenu2 != null)
-            {
-                SafeRelease(contextMenu2);
-            }
-
-            if (contextMenu != null)
-            {
-                SafeRelease(contextMenu);
-            }
+            SafeRelease(contextMenu3);
+            SafeRelease(contextMenu2);
+            SafeRelease(contextMenu);
+            SafeRelease(folder);
+            SafeRelease(parentFolder);
 
             if (contextMenuPointer != IntPtr.Zero)
             {
                 Marshal.Release(contextMenuPointer);
             }
 
-            if (parentFolder != null)
+            if (folderPointer != IntPtr.Zero)
             {
-                SafeRelease(parentFolder);
+                Marshal.Release(folderPointer);
+            }
+
+            if (parentPointer != IntPtr.Zero)
+            {
+                Marshal.Release(parentPointer);
+            }
+
+            if (pidlArray != IntPtr.Zero)
+            {
+                Marshal.FreeCoTaskMem(pidlArray);
             }
 
             if (absolutePidl != IntPtr.Zero)
@@ -255,11 +234,54 @@ public static class ShellContextMenu
         }
     }
 
-    private static IContextMenu3? TryGetContextMenu3(IContextMenu contextMenu)
-        => TryGetInterface<IContextMenu3>(contextMenu);
+    private static HwndSourceHook? _activeHook;
 
-    private static IContextMenu2? TryGetContextMenu2(IContextMenu contextMenu)
-        => TryGetInterface<IContextMenu2>(contextMenu);
+    private static HwndSource CreateHost(NativePoint cursor, IContextMenu2? menu2, IContextMenu3? menu3)
+    {
+        _activeHook = (IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+        {
+            if (message is not (WmInitMenuPopup or WmDrawItem or WmMeasureItem or WmMenuChar))
+            {
+                return IntPtr.Zero;
+            }
+
+            try
+            {
+                if (menu3 != null)
+                {
+                    var result = menu3.HandleMenuMsg2((uint)message, wParam, lParam, out var menuResult);
+                    if (result == 0)
+                    {
+                        handled = message == WmMenuChar;
+                        return menuResult;
+                    }
+                }
+                else if (menu2 != null && message != WmMenuChar)
+                {
+                    menu2.HandleMenuMsg((uint)message, wParam, lParam);
+                }
+            }
+            catch (COMException)
+            {
+            }
+
+            return IntPtr.Zero;
+        };
+
+        var parameters = new HwndSourceParameters("FolderSailShellMenu")
+        {
+            Width = 1,
+            Height = 1,
+            PositionX = cursor.X,
+            PositionY = cursor.Y,
+            WindowStyle = WsPopup,
+            ExtendedWindowStyle = WsExToolWindow
+        };
+
+        var source = new HwndSource(parameters);
+        source.AddHook(_activeHook);
+        return source;
+    }
 
     private static T? TryGetInterface<T>(IContextMenu contextMenu)
         where T : class
@@ -309,6 +331,23 @@ public static class ShellContextMenu
         ThrowIfFailed(contextMenu.InvokeCommand(ref commandInfo));
     }
 
+    private static void BringToFront(IntPtr window)
+    {
+        var foreground = GetForegroundWindow();
+        var currentThread = GetCurrentThreadId();
+        var foregroundThread = GetWindowThreadProcessId(foreground, IntPtr.Zero);
+        if (foregroundThread != 0 && foregroundThread != currentThread)
+        {
+            AttachThreadInput(foregroundThread, currentThread, true);
+            SetForegroundWindow(window);
+            AttachThreadInput(foregroundThread, currentThread, false);
+        }
+        else
+        {
+            SetForegroundWindow(window);
+        }
+    }
+
     private static void ThrowIfFailed(int hResult)
     {
         if (hResult < 0)
@@ -317,8 +356,13 @@ public static class ShellContextMenu
         }
     }
 
-    private static void SafeRelease(object comObject)
+    private static void SafeRelease(object? comObject)
     {
+        if (comObject == null)
+        {
+            return;
+        }
+
         try
         {
             if (Marshal.IsComObject(comObject))
@@ -328,7 +372,6 @@ public static class ShellContextMenu
         }
         catch (InvalidComObjectException)
         {
-            // The same RCW can surface through both IContextMenu and IContextMenu3.
         }
     }
 
@@ -357,34 +400,6 @@ public static class ShellContextMenu
         public IntPtr DirectoryW;
         public IntPtr TitleW;
         public NativePoint InvokePoint;
-    }
-
-    [ComImport]
-    [Guid("000214F4-0000-0000-C000-000000000046")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IContextMenu2
-    {
-        [PreserveSig]
-        int QueryContextMenu(
-            IntPtr menu,
-            uint indexMenu,
-            uint firstCommand,
-            uint lastCommand,
-            uint flags);
-
-        [PreserveSig]
-        int InvokeCommand(ref CommandInfoEx commandInfo);
-
-        [PreserveSig]
-        int GetCommandString(
-            UIntPtr commandOffset,
-            uint flags,
-            IntPtr reserved,
-            IntPtr name,
-            uint characterCount);
-
-        [PreserveSig]
-        int HandleMenuMsg(uint message, IntPtr wParam, IntPtr lParam);
     }
 
     [ComImport]
@@ -417,19 +432,19 @@ public static class ShellContextMenu
         int CreateViewObject(IntPtr hwndOwner, ref Guid interfaceId, out IntPtr result);
 
         [PreserveSig]
-        int GetAttributesOf(uint itemCount, IntPtr[] itemIdLists, ref uint attributes);
+        int GetAttributesOf(uint itemCount, IntPtr itemIdLists, ref uint attributes);
 
         [PreserveSig]
         int GetUIObjectOf(
             IntPtr hwndOwner,
             uint itemCount,
-            [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] IntPtr[] itemIdLists,
+            IntPtr itemIdLists,
             ref Guid interfaceId,
             IntPtr reserved,
             out IntPtr result);
 
         [PreserveSig]
-        int GetDisplayNameOf(IntPtr itemIdList, uint flags, out IntPtr name);
+        int GetDisplayNameOf(IntPtr itemIdList, uint flags, IntPtr name);
 
         [PreserveSig]
         int SetNameOf(
@@ -466,31 +481,27 @@ public static class ShellContextMenu
     }
 
     [ComImport]
+    [Guid("000214F4-0000-0000-C000-000000000046")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IContextMenu2
+    {
+        void QueryContextMenuSlot();
+        void InvokeCommandSlot();
+        void GetCommandStringSlot();
+
+        [PreserveSig]
+        int HandleMenuMsg(uint message, IntPtr wParam, IntPtr lParam);
+    }
+
+    [ComImport]
     [Guid("BCFCE0A0-EC17-11D0-8D10-00A0C90F2719")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IContextMenu3
     {
-        [PreserveSig]
-        int QueryContextMenu(
-            IntPtr menu,
-            uint indexMenu,
-            uint firstCommand,
-            uint lastCommand,
-            uint flags);
-
-        [PreserveSig]
-        int InvokeCommand(ref CommandInfoEx commandInfo);
-
-        [PreserveSig]
-        int GetCommandString(
-            UIntPtr commandOffset,
-            uint flags,
-            IntPtr reserved,
-            IntPtr name,
-            uint characterCount);
-
-        [PreserveSig]
-        int HandleMenuMsg(uint message, IntPtr wParam, IntPtr lParam);
+        void QueryContextMenuSlot();
+        void InvokeCommandSlot();
+        void GetCommandStringSlot();
+        void HandleMenuMsgSlot();
 
         [PreserveSig]
         int HandleMenuMsg2(uint message, IntPtr wParam, IntPtr lParam, out IntPtr result);
@@ -508,11 +519,14 @@ public static class ShellContextMenu
     private static extern int SHBindToParent(
         IntPtr itemIdList,
         ref Guid interfaceId,
-        [MarshalAs(UnmanagedType.Interface)] out IShellFolder parentFolder,
+        out IntPtr parentFolder,
         out IntPtr childItemIdList);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr CreatePopupMenu();
+
+    [DllImport("user32.dll")]
+    private static extern int GetMenuItemCount(IntPtr menu);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -539,6 +553,31 @@ public static class ShellContextMenu
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr window, IntPtr processId);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool AttachThreadInput(uint attach, uint attachTo, [MarshalAs(UnmanagedType.Bool)] bool connect);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ShowWindow(IntPtr window, int command);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
 
     [DllImport("ole32.dll")]
     private static extern void CoTaskMemFree(IntPtr memory);
