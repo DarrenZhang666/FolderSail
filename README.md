@@ -17,8 +17,6 @@ Windows 上的轻量多窗格文件管理器。界面接近 Finder：彩色标�
 - 复制、剪切、粘贴、删除到回收站、新建文件夹、F2 重命名
 - 右键使用系统资源管理器菜单
 - 窗格间拖拽：默认复制，按住 Shift 为移动
-<img width="1355" height="858" alt="image" src="https://github.com/user-attachments/assets/64fd2913-7987-468a-b1fb-d6e8308f2aae" />
-
 ## 发给客户
 
 1. 先关掉正在运行的 FolderSail
