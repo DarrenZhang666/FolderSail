@@ -32,7 +32,6 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <ScrollViewer Grid.Column="0"
@@ -73,6 +72,8 @@
                                             <MenuItem Header="关闭其他标签页"
                                                       Command="{Binding Tag.CloseOtherTabsCommand}"
                                                       CommandParameter="{Binding DataContext}" />
+                                            <MenuItem Header="关闭所有标签页"
+                                                      Command="{Binding Tag.CloseAllTabsCommand}" />
                                         </ContextMenu>
                                     </Border.ContextMenu>
 
@@ -149,57 +150,11 @@
                             CommandParameter="Pictures" />
                 </StackPanel>
 
-                <Border Grid.Column="2"
-                        Width="168"
-                        Height="26"
-                        Margin="0,0,8,0"
-                        VerticalAlignment="Center"
-                        Background="{DynamicResource Surface.Subtle}"
-                        BorderBrush="{DynamicResource Line.Soft}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        MouseLeftButtonDown="OnFilterChromeMouseDown">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0"
-                                   Text="&#xE721;"
-                                   FontFamily="{StaticResource Font.Icon}"
-                                   FontSize="11"
-                                   Foreground="{DynamicResource Text.Tertiary}"
-                                   VerticalAlignment="Center"
-                                   Margin="8,0,4,0" />
-                        <TextBlock x:Name="FilterPlaceholder"
-                                   Grid.Column="1"
-                                   Text="过滤当前目录"
-                                   IsHitTestVisible="False"
-                                   Foreground="{DynamicResource Text.Tertiary}"
-                                   FontSize="{StaticResource Size.FontSmall}"
-                                   VerticalAlignment="Center" />
-                        <TextBox x:Name="FilterBox"
-                                 Grid.Column="1"
-                                 Style="{StaticResource SearchField}"
-                                 ToolTip="过滤当前列表（Esc 清空）"
-                                 Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
-                                 KeyDown="OnFilterKeyDown"
-                                 GotKeyboardFocus="OnFilterFocusChanged"
-                                 LostKeyboardFocus="OnFilterFocusChanged" />
-                        <Button Grid.Column="2"
-                                Width="20"
-                                Height="20"
-                                Margin="0,0,3,0"
-                                Style="{StaticResource IconButtonSmall}"
-                                Content="&#xE711;"
-                                ToolTip="清除过滤"
-                                Command="{Binding ClearFilterCommand}"
-                                Visibility="{Binding HasFilter, Converter={StaticResource BoolToVisibility}}" />
-                    </Grid>
-                </Border>
-
-                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource IconButtonSmall}"
+                            Content="&#xE721;"
+                            ToolTip="过滤当前目录（也可在列表中直接打字）"
+                            Command="{Binding OpenFilterCommand}" />
                     <Button Style="{StaticResource IconButtonSmall}"
                             Content="&#xE710;"
                             ToolTip="新建标签页 (Ctrl+T)"
@@ -466,6 +421,50 @@
                            FontSize="13"
                            HorizontalAlignment="Center" />
             </StackPanel>
+
+            <Border Grid.Row="1"
+                    Grid.Column="0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Margin="10,0,10,10"
+                    Padding="6,2,4,2"
+                    MinWidth="160"
+                    MaxWidth="240"
+                    Background="{DynamicResource Surface.Card}"
+                    BorderBrush="{DynamicResource Line.Soft}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Panel.ZIndex="4"
+                    Visibility="{Binding ShowFilterChrome, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="&#xE721;"
+                               FontFamily="{StaticResource Font.Icon}"
+                               FontSize="11"
+                               Foreground="{DynamicResource Text.Tertiary}"
+                               VerticalAlignment="Center"
+                               Margin="2,0,6,0" />
+                    <TextBox x:Name="FilterBox"
+                             Grid.Column="1"
+                             Style="{StaticResource SearchField}"
+                             ToolTip="Esc 清空"
+                             Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
+                             KeyDown="OnFilterKeyDown"
+                             LostKeyboardFocus="OnFilterLostFocus" />
+                    <Button Grid.Column="2"
+                            Width="20"
+                            Height="20"
+                            Style="{StaticResource IconButtonSmall}"
+                            Content="&#xE711;"
+                            ToolTip="清除过滤"
+                            Command="{Binding ClearFilterCommand}" />
+                </Grid>
+            </Border>
 
             <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
                           Width="8"

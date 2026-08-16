@@ -25,6 +25,7 @@ public sealed class PaneViewModel : ObservableObject
     private PaneTabViewModel? _activeTab;
     private bool _isSearching;
     private string _filterText = string.Empty;
+    private bool _filterOpen;
     private int _filterEpoch;
     private int _previewEpoch;
     private FilePreview _preview = new();
@@ -68,10 +69,12 @@ public sealed class PaneViewModel : ObservableObject
         CloseTabCommand = new RelayCommand<PaneTabViewModel>(CloseTab);
         DuplicateTabCommand = new RelayCommand<PaneTabViewModel>(DuplicateTab);
         CloseOtherTabsCommand = new RelayCommand<PaneTabViewModel>(CloseOtherTabs);
+        CloseAllTabsCommand = new RelayCommand(CloseAllTabs);
         OpenSelectedInNewTabCommand = new RelayCommand(OpenSelectedInNewTab, CanOpenSelectedInNewTab);
         OpenKnownFolderCommand = new RelayCommand<string>(OpenKnownFolder);
         SortByCommand = new RelayCommand<FileSortColumn>(SortBy);
-        ClearFilterCommand = new RelayCommand(() => FilterText = string.Empty);
+        ClearFilterCommand = new RelayCommand(ClearFilter);
+        OpenFilterCommand = new RelayCommand(OpenFilter);
 
         var initialTab = new PaneTabViewModel(initialPath, _tags);
         Tabs.Add(initialTab);
@@ -141,6 +144,8 @@ public sealed class PaneViewModel : ObservableObject
             _switchingTab = false;
             IsAddressEditing = false;
             FilterText = string.Empty;
+            _filterOpen = false;
+            OnPropertyChanged(nameof(ShowFilterChrome));
             SelectedItem = null;
             OnPropertyChanged(nameof(SortColumn));
             OnPropertyChanged(nameof(SortDescending));
@@ -266,6 +271,7 @@ public sealed class PaneViewModel : ObservableObject
             }
 
             OnPropertyChanged(nameof(HasFilter));
+            OnPropertyChanged(nameof(ShowFilterChrome));
             var epoch = Interlocked.Increment(ref _filterEpoch);
             _ = Task.Delay(80).ContinueWith(_ =>
             {
@@ -287,6 +293,8 @@ public sealed class PaneViewModel : ObservableObject
     }
 
     public bool HasFilter => !string.IsNullOrWhiteSpace(_filterText);
+
+    public bool ShowFilterChrome => HasFilter || _filterOpen;
 
     public FileSortColumn SortColumn => ActiveTab?.SortColumn ?? FileSortColumn.Name;
 
@@ -342,16 +350,44 @@ public sealed class PaneViewModel : ObservableObject
     public ICommand CloseTabCommand { get; }
     public ICommand DuplicateTabCommand { get; }
     public ICommand CloseOtherTabsCommand { get; }
+    public ICommand CloseAllTabsCommand { get; }
     public ICommand OpenSelectedInNewTabCommand { get; }
     public ICommand OpenKnownFolderCommand { get; }
     public ICommand SortByCommand { get; }
     public ICommand ClearFilterCommand { get; }
+    public ICommand OpenFilterCommand { get; }
 
     public event EventHandler? ActiveChanged;
     public event EventHandler<string>? StatusMessage;
     public event EventHandler? InlineRenameStarted;
+    public event EventHandler? FilterFocusRequested;
 
     public bool IsInlineRenaming => Items.Any(item => item.IsRenaming);
+
+    public void OpenFilter()
+    {
+        _filterOpen = true;
+        OnPropertyChanged(nameof(ShowFilterChrome));
+        FilterFocusRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void CloseFilterIfEmpty()
+    {
+        if (HasFilter)
+        {
+            return;
+        }
+
+        _filterOpen = false;
+        OnPropertyChanged(nameof(ShowFilterChrome));
+    }
+
+    private void ClearFilter()
+    {
+        FilterText = string.Empty;
+        _filterOpen = false;
+        OnPropertyChanged(nameof(ShowFilterChrome));
+    }
 
     public void ReportStatus(string message) => StatusMessage?.Invoke(this, message);
 
@@ -1051,6 +1087,15 @@ public sealed class PaneViewModel : ObservableObject
 
         ActiveTab = tab;
         StatusMessage?.Invoke(this, "已关闭其他标签页");
+    }
+
+    private void CloseAllTabs()
+    {
+        Tabs.Clear();
+        var remaining = new PaneTabViewModel(NavigationHistory.ThisPcToken, _tags);
+        Tabs.Add(remaining);
+        ActiveTab = remaining;
+        StatusMessage?.Invoke(this, "已关闭所有标签页");
     }
 
     private bool CanOpenSelectedInNewTab() =>

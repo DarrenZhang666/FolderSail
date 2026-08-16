@@ -490,7 +490,7 @@
                 </StackPanel>
 
                 <TextBlock Grid.Column="1"
-                           Text="Ctrl+F 搜索 · 拖拽复制 · Shift 拖拽移动 · F2 重命名 · F5 刷新"
+                           Text="列表打字过滤 · Ctrl+F 全盘搜索 · 拖拽复制 · F2 重命名 · F5 刷新"
                            Foreground="{DynamicResource Text.Tertiary}"
                            FontSize="10"
                            VerticalAlignment="Center" />

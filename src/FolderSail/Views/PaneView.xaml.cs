@@ -30,6 +30,7 @@ public partial class PaneView : UserControl
             {
                 _pane.PropertyChanged -= OnPanePropertyChanged;
                 _pane.InlineRenameStarted -= OnInlineRenameStarted;
+                _pane.FilterFocusRequested -= OnFilterFocusRequested;
             }
         };
         FolderSail.Helpers.ThemeManager.Changed += OnThemeChanged;
@@ -43,6 +44,7 @@ public partial class PaneView : UserControl
         {
             _pane.PropertyChanged -= OnPanePropertyChanged;
             _pane.InlineRenameStarted -= OnInlineRenameStarted;
+            _pane.FilterFocusRequested -= OnFilterFocusRequested;
         }
 
         _pane = e.NewValue as PaneViewModel;
@@ -51,10 +53,10 @@ public partial class PaneView : UserControl
         {
             _pane.PropertyChanged += OnPanePropertyChanged;
             _pane.InlineRenameStarted += OnInlineRenameStarted;
+            _pane.FilterFocusRequested += OnFilterFocusRequested;
         }
 
         ApplyActiveVisual();
-        UpdateFilterPlaceholder();
     }
 
     private void OnPanePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -63,10 +65,6 @@ public partial class PaneView : UserControl
         {
             case nameof(PaneViewModel.IsActive):
                 ApplyActiveVisual();
-                break;
-            case nameof(PaneViewModel.HasFilter):
-            case nameof(PaneViewModel.FilterText):
-                UpdateFilterPlaceholder();
                 break;
             case nameof(PaneViewModel.IsAddressEditing) when _pane?.IsAddressEditing == true:
                 Dispatcher.BeginInvoke(() =>
@@ -253,20 +251,15 @@ public partial class PaneView : UserControl
         _pane.SetSelectedItems(FilesList.SelectedItems.OfType<FileItemViewModel>());
     }
 
-    private void OnFilterChromeMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        FilterBox.Focus();
-        UpdateFilterPlaceholder();
-    }
+    private void OnFilterFocusRequested(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(() =>
+        {
+            FilterBox.Focus();
+            FilterBox.SelectAll();
+        }, DispatcherPriority.Input);
 
-    private void OnFilterFocusChanged(object sender, KeyboardFocusChangedEventArgs e) =>
-        UpdateFilterPlaceholder();
-
-    private void UpdateFilterPlaceholder()
-    {
-        var show = !FilterBox.IsKeyboardFocusWithin && string.IsNullOrWhiteSpace(_pane?.FilterText);
-        FilterPlaceholder.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-    }
+    private void OnFilterLostFocus(object sender, KeyboardFocusChangedEventArgs e) =>
+        _pane?.CloseFilterIfEmpty();
 
     private void OnFilterKeyDown(object sender, KeyEventArgs e)
     {
@@ -275,7 +268,7 @@ public partial class PaneView : UserControl
             return;
         }
 
-        _pane.FilterText = string.Empty;
+        _pane.ClearFilterCommand.Execute(null);
         FilesList.Focus();
         e.Handled = true;
     }
@@ -316,7 +309,20 @@ public partial class PaneView : UserControl
 
         if (e.Key == Key.Escape && _pane?.HasFilter == true)
         {
-            _pane.FilterText = string.Empty;
+            _pane.ClearFilterCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Back && _pane?.HasFilter == true && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            var text = _pane.FilterText;
+            _pane.FilterText = text.Length <= 1 ? string.Empty : text[..^1];
+            if (string.IsNullOrEmpty(_pane.FilterText))
+            {
+                _pane.CloseFilterIfEmpty();
+            }
+
             e.Handled = true;
         }
     }
