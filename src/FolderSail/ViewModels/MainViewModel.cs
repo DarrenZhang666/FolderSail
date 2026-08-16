@@ -22,6 +22,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     private string _searchText = string.Empty;
     private int _searchEpoch;
     private bool _isDarkTheme;
+    private bool _expandTagChildrenOnStartup;
 
     public const double SidebarMinWidth = 156;
     public const double SidebarMaxWidth = 520;
@@ -65,6 +66,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         _layoutMode = settings.LayoutMode;
         _sidebarWidth = ClampSidebarWidth(settings.SidebarWidth);
         _isDarkTheme = settings.IsDarkTheme;
+        _expandTagChildrenOnStartup = settings.ExpandTagChildrenOnStartup;
+        ApplyTagChildExpansion(_expandTagChildrenOnStartup);
         ApplyLayout(settings.ActivePaneIndex, settings.PanePaths);
         UpdateLayoutPresetSelection();
         LoadDrives();
@@ -173,6 +176,27 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
 
     public string ThemeToggleTip =>
         IsDarkTheme ? "切换到浅色主题" : "切换到深色主题";
+
+    public bool ExpandTagChildrenOnStartup
+    {
+        get => _expandTagChildrenOnStartup;
+        set
+        {
+            if (!SetProperty(ref _expandTagChildrenOnStartup, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(ExpandTagChildrenOnStartupTip));
+            ApplyTagChildExpansion(value);
+            SaveSettings();
+        }
+    }
+
+    public string ExpandTagChildrenOnStartupTip =>
+        ExpandTagChildrenOnStartup
+            ? "启动时展开各标签下的地址（已开启）"
+            : "启动时展开各标签下的地址（已关闭）";
 
     public double SidebarWidth
     {
@@ -523,8 +547,17 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
             ActivePaneIndex = ActivePaneIndex,
             PanePaths = _allPanes.Select(p => p.GetExportPath()).ToList(),
             SidebarWidth = SidebarWidth,
-            IsDarkTheme = IsDarkTheme
+            IsDarkTheme = IsDarkTheme,
+            ExpandTagChildrenOnStartup = ExpandTagChildrenOnStartup
         });
+    }
+
+    private void ApplyTagChildExpansion(bool expanded)
+    {
+        foreach (var tag in Tags)
+        {
+            tag.IsExpanded = expanded && tag.HasItems;
+        }
     }
 
     private static double ClampSidebarWidth(double width)
