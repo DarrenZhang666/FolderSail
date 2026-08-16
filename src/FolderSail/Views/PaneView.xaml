@@ -276,12 +276,12 @@
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      VirtualizingPanel.IsVirtualizing="True"
                      VirtualizingPanel.VirtualizationMode="Recycling"
-                     MouseDoubleClick="OnItemDoubleClick">
+                     MouseDoubleClick="OnItemDoubleClick"
+                     PreviewMouseRightButtonUp="OnFilesRightClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid Height="28"
-                              PreviewMouseMove="OnRowMouseMove"
-                              PreviewMouseRightButtonDown="OnRowRightClick">
+                              PreviewMouseMove="OnRowMouseMove">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="70" />

@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Threading;
 
 namespace FolderSail.Views;
 
@@ -195,54 +196,77 @@ public partial class PaneView : UserControl
         DragDrop.DoDragDrop(this, data, DragDropEffects.Copy | DragDropEffects.Move);
     }
 
-    private void OnRowRightClick(object sender, MouseButtonEventArgs e)
+    private void OnFilesRightClick(object sender, MouseButtonEventArgs e)
     {
-        if (_pane == null ||
-            sender is not FrameworkElement { DataContext: FileItemViewModel item } ||
-            Window.GetWindow(this) is not { } owner)
+        if (_pane == null || Window.GetWindow(this) is not { } owner)
         {
             return;
         }
 
-        // Context menu actions must always target the row under the pointer,
-        // not whichever item happened to be selected previously.
-        _pane.SelectedItem = item;
-        e.Handled = true;
-
-        // Open the native menu after WPF finishes processing the mouse event.
-        // This prevents WPF's own context-menu service from competing for capture.
-        Dispatcher.BeginInvoke(() =>
+        var item = FindFileItem(e.OriginalSource as DependencyObject);
+        if (item != null)
         {
-            var ownCommands = new List<ShellContextMenu.OwnCommand>();
+            _pane.SelectedItem = item;
+        }
 
-            if (item.Kind is FileItemKind.Directory or FileItemKind.Drive)
+        e.Handled = true;
+        Mouse.Capture(null);
+
+        var path = item?.FullPath;
+        var folderBackground = item == null;
+        if (folderBackground)
+        {
+            if (_pane.IsVirtualView || string.IsNullOrWhiteSpace(_pane.CurrentPath))
             {
-                ownCommands.Add(new ShellContextMenu.OwnCommand(
-                    "在 FolderSail 新标签页中打开",
-                    () => _pane.OpenSelectedInNewTabCommand.Execute(null)));
+                return;
             }
 
-            // Removing a tag only makes sense while the pane lists that tag.
-            if (_pane.IsTagView && owner.DataContext is MainViewModel main)
+            path = _pane.CurrentPath;
+        }
+
+        var ownCommands = new List<ShellContextMenu.OwnCommand>();
+        if (item?.Kind is FileItemKind.Directory or FileItemKind.Drive)
+        {
+            ownCommands.Add(new ShellContextMenu.OwnCommand(
+                "在 FolderSail 新标签页中打开",
+                () => _pane.OpenSelectedInNewTabCommand.Execute(null)));
+        }
+
+        if (item != null && _pane.IsTagView && owner.DataContext is MainViewModel main)
+        {
+            ownCommands.Add(new ShellContextMenu.OwnCommand(
+                "从此标签移除",
+                () => main.RemoveTaggedPath(item.FullPath)));
+        }
+
+        var targetPath = path!;
+        var extended = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+        var pane = _pane;
+
+        // Wait until WPF finishes this mouse-up. Showing a Win32 menu during the
+        // event (especially on a chrome-less window) makes it close immediately.
+        owner.Dispatcher.BeginInvoke(() =>
+        {
+            var shown = ShellContextMenu.Show(owner, targetPath, ownCommands, extended, folderBackground);
+            if (!shown)
             {
-                ownCommands.Add(new ShellContextMenu.OwnCommand(
-                    "从此标签移除",
-                    () => main.RemoveTaggedPath(item.FullPath)));
+                pane.ReportStatus($"系统右键菜单失败：{ShellContextMenu.LastError ?? "未知错误"}");
             }
 
-            var shown = ShellContextMenu.Show(
-                owner,
-                item.FullPath,
-                ownCommands,
-                (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift);
+            pane.RefreshItems();
+        }, DispatcherPriority.ApplicationIdle);
+    }
 
-            if (!shown && !string.IsNullOrWhiteSpace(ShellContextMenu.LastError))
+    private static FileItemViewModel? FindFileItem(DependencyObject? origin)
+    {
+        for (var current = origin; current != null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is FrameworkElement { DataContext: FileItemViewModel item })
             {
-                _pane.ReportStatus($"系统右键菜单失败：{ShellContextMenu.LastError}");
+                return item;
             }
+        }
 
-            // Native verbs such as rename, delete and extract may change this directory.
-            _pane.RefreshItems();
-        });
+        return null;
     }
 }
