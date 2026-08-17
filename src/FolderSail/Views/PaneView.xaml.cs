@@ -18,6 +18,7 @@ public partial class PaneView : UserControl
     private Point _dragOrigin;
     private bool _ignoreRenameLostFocus;
     private bool _updatingColumnWidths;
+    private bool _cancellingAddressEdit;
 
     public PaneView()
     {
@@ -157,10 +158,29 @@ public partial class PaneView : UserControl
             return;
         }
 
+        // List empty space often does not take focus; commit the path on any click outside the box.
+        if (_pane.IsAddressEditing && !IsInsideAddressInput(e.OriginalSource as DependencyObject))
+        {
+            _pane.GoToAddressCommand.Execute(null);
+        }
+
         if (Window.GetWindow(this)?.DataContext is MainViewModel main)
         {
             main.ActivatePaneCommand.Execute(_pane.Index);
         }
+    }
+
+    private static bool IsInsideAddressInput(DependencyObject? origin)
+    {
+        for (var current = origin; current != null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is TextBox { Name: "AddressInput" })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void OnInlineRenameStarted(object? sender, EventArgs e) =>
@@ -205,13 +225,47 @@ public partial class PaneView : UserControl
             return;
         }
 
+        // Double-click anywhere on the bar → type the path (Explorer-style).
+        if (e.ClickCount >= 2)
+        {
+            _pane.BeginEditAddressCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        // Single-click a breadcrumb segment → navigate; do not steal the click.
+        if (IsBreadcrumbSegment(e.OriginalSource as DependencyObject))
+        {
+            return;
+        }
+
+        // Single-click empty space in the bar → edit the path.
         _pane.BeginEditAddressCommand.Execute(null);
         e.Handled = true;
     }
 
+    private static bool IsBreadcrumbSegment(DependencyObject? origin)
+    {
+        for (var current = origin; current != null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is FrameworkElement { DataContext: BreadcrumbViewModel })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void OnAddressLostFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
-        _pane?.CancelEditAddressCommand.Execute(null);
+        // Like Explorer: leaving the address bar confirms the path.
+        if (_pane == null || _cancellingAddressEdit || !_pane.IsAddressEditing)
+        {
+            return;
+        }
+
+        _pane.GoToAddressCommand.Execute(null);
     }
 
     private void OnAddressKeyDown(object sender, KeyEventArgs e)
@@ -228,7 +282,16 @@ public partial class PaneView : UserControl
         }
         else if (e.Key == Key.Escape)
         {
-            _pane.CancelEditAddressCommand.Execute(null);
+            _cancellingAddressEdit = true;
+            try
+            {
+                _pane.CancelEditAddressCommand.Execute(null);
+            }
+            finally
+            {
+                _cancellingAddressEdit = false;
+            }
+
             e.Handled = true;
         }
     }

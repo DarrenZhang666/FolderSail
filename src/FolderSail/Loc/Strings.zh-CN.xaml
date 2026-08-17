@@ -52,7 +52,7 @@
     <sys:String x:Key="Loc.Back">后退</sys:String>
     <sys:String x:Key="Loc.Forward">前进</sys:String>
     <sys:String x:Key="Loc.Up">上一级</sys:String>
-    <sys:String x:Key="Loc.EditPath">单击编辑路径</sys:String>
+    <sys:String x:Key="Loc.EditPath">单击分段跳转 · 双击或点空白处编辑路径</sys:String>
     <sys:String x:Key="Loc.ColumnTip">点击排序，右键可设置升序/降序和文件夹置顶；拖动列缝调整列宽</sys:String>
     <sys:String x:Key="Loc.Ascending">升序</sys:String>
     <sys:String x:Key="Loc.Descending">降序</sys:String>

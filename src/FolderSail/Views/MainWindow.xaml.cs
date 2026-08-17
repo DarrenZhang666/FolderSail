@@ -47,25 +47,39 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.OriginalSource is DependencyObject origin && IsInsideRenameBox(origin))
+        if (e.OriginalSource is not DependencyObject origin)
         {
             return;
         }
 
+        if (IsInsideRenameBox(origin))
+        {
+            return;
+        }
+
+        var insideAddress = IsInsideNamedTextBox(origin, "AddressInput");
         foreach (var pane in vm.Panes)
         {
             if (pane.IsInlineRenaming)
             {
                 pane.CommitInlineRename();
             }
+
+            if (pane.IsAddressEditing && !insideAddress)
+            {
+                pane.GoToAddressCommand.Execute(null);
+            }
         }
     }
 
-    private static bool IsInsideRenameBox(DependencyObject origin)
+    private static bool IsInsideRenameBox(DependencyObject origin) =>
+        IsInsideNamedTextBox(origin, "RenameBox");
+
+    private static bool IsInsideNamedTextBox(DependencyObject origin, string name)
     {
         for (var current = origin; current != null; current = VisualTreeHelper.GetParent(current))
         {
-            if (current is TextBox { Name: "RenameBox" })
+            if (current is TextBox box && box.Name == name)
             {
                 return true;
             }

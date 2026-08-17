@@ -200,7 +200,7 @@
                         CornerRadius="8"
                         Padding="2,0"
                         MinHeight="28"
-                        Cursor="IBeam"
+                        Cursor="Arrow"
                         ToolTip="{DynamicResource Loc.EditPath}"
                         PreviewMouseLeftButtonDown="OnBreadcrumbMouseDown"
                         Visibility="{Binding IsAddressEditing, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">

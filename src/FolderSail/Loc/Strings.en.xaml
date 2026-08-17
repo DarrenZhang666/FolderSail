@@ -52,7 +52,7 @@
     <sys:String x:Key="Loc.Back">Back</sys:String>
     <sys:String x:Key="Loc.Forward">Forward</sys:String>
     <sys:String x:Key="Loc.Up">Up</sys:String>
-    <sys:String x:Key="Loc.EditPath">Click to edit the path</sys:String>
+    <sys:String x:Key="Loc.EditPath">Click a segment to go there · Double-click or click empty space to edit</sys:String>
     <sys:String x:Key="Loc.ColumnTip">Click to sort. Right-click for order and folders first. Drag edges to resize.</sys:String>
     <sys:String x:Key="Loc.Ascending">Ascending</sys:String>
     <sys:String x:Key="Loc.Descending">Descending</sys:String>
