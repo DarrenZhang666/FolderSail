@@ -72,7 +72,7 @@
     <sys:String x:Key="Loc.Paste">粘贴 (Ctrl+V)</sys:String>
     <sys:String x:Key="Loc.Delete">删除 (Delete)</sys:String>
     <sys:String x:Key="Loc.Folder">文件夹</sys:String>
-    <sys:String x:Key="Loc.File">文件</sys:String>
+    <sys:String x:Key="Loc.TypedFile">{0} 文件</sys:String>
     <sys:String x:Key="Loc.Drive">驱动器</sys:String>
     <sys:String x:Key="Loc.JustNow">刚刚</sys:String>
     <sys:String x:Key="Loc.Hours">{0} 时</sys:String>

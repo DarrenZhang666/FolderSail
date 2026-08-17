@@ -278,7 +278,7 @@
                         <ColumnDefinition Width="5" />
                         <ColumnDefinition x:Name="ModifiedColumnDef" Width="56" MinWidth="44" />
                         <ColumnDefinition Width="5" />
-                        <ColumnDefinition x:Name="KindColumnDef" Width="48" MinWidth="40" />
+                        <ColumnDefinition x:Name="KindColumnDef" Width="96" MinWidth="56" />
                     </Grid.ColumnDefinitions>
                     <Button Grid.Column="0" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
@@ -362,7 +362,7 @@
                                 <ColumnDefinition Width="5" />
                                 <ColumnDefinition Width="{Binding DataContext.ModifiedColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="44" />
                                 <ColumnDefinition Width="5" />
-                                <ColumnDefinition Width="{Binding DataContext.KindColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="40" />
+                                <ColumnDefinition Width="{Binding DataContext.KindColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="56" />
                             </Grid.ColumnDefinitions>
 
                             <Grid Grid.Column="0" VerticalAlignment="Center">
@@ -413,10 +413,10 @@
 
                             <TextBlock x:Name="KindText"
                                        Grid.Column="6"
-                                       Text="{Binding Kind, Converter={StaticResource ItemKindLabel}}"
+                                       Text="{Binding TypeName}"
                                        Foreground="{DynamicResource Text.Secondary}"
-                                       FontSize="10"
-                                       TextAlignment="Right"
+                                       FontSize="11"
+                                       TextTrimming="CharacterEllipsis"
                                        VerticalAlignment="Center"
                                        Margin="0,0,4,0" />
                         </Grid>

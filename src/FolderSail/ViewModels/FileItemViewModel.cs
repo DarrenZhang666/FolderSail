@@ -28,6 +28,10 @@ public sealed class FileItemViewModel : ObservableObject
     public long SizeDisplay => _size;
     public DateTime ModifiedUtc => Item.ModifiedUtc;
     public string Extension => Item.Extension;
+    public string TypeName => ShellIconHelper.GetTypeName(
+        FullPath,
+        Kind == FileItemKind.Directory,
+        Kind == FileItemKind.Drive);
 
     public ImageSource? Icon
     {

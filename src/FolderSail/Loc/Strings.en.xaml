@@ -72,7 +72,7 @@
     <sys:String x:Key="Loc.Paste">Paste (Ctrl+V)</sys:String>
     <sys:String x:Key="Loc.Delete">Delete (Delete)</sys:String>
     <sys:String x:Key="Loc.Folder">Folder</sys:String>
-    <sys:String x:Key="Loc.File">File</sys:String>
+    <sys:String x:Key="Loc.TypedFile">{0} File</sys:String>
     <sys:String x:Key="Loc.Drive">Drive</sys:String>
     <sys:String x:Key="Loc.JustNow">Just now</sys:String>
     <sys:String x:Key="Loc.Hours">{0}h</sys:String>

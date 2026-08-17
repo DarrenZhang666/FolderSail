@@ -28,7 +28,7 @@ public sealed class PaneViewModel : ObservableObject
     private bool _filterOpen;
     private double _sizeColumnWidth = 72;
     private double _modifiedColumnWidth = 56;
-    private double _kindColumnWidth = 48;
+    private double _kindColumnWidth = 96;
     private int _filterEpoch;
     private int _previewEpoch;
     private FilePreview _preview = new();
@@ -367,7 +367,9 @@ public sealed class PaneViewModel : ObservableObject
 
         SizeColumnWidth = ClampColumnWidth(widths[0], 48, 220);
         ModifiedColumnWidth = ClampColumnWidth(widths[1], 44, 160);
-        KindColumnWidth = ClampColumnWidth(widths[2], 40, 120);
+        KindColumnWidth = widths[2] <= 48
+            ? 96
+            : ClampColumnWidth(widths[2], 56, 200);
     }
 
     public void CommitColumnWidths(double size, double modified, double kind)
@@ -800,8 +802,8 @@ public sealed class PaneViewModel : ObservableObject
                 ? ordered.ThenByDescending(item => item.ModifiedUtc)
                 : ordered.ThenBy(item => item.ModifiedUtc),
             FileSortColumn.Kind => descending
-                ? ordered.ThenByDescending(item => item.Kind)
-                : ordered.ThenBy(item => item.Kind),
+                ? ordered.ThenByDescending(item => item.TypeName, StringComparer.OrdinalIgnoreCase)
+                : ordered.ThenBy(item => item.TypeName, StringComparer.OrdinalIgnoreCase),
             _ => descending
                 ? ordered.ThenByDescending(item => item.Name, StringComparer.OrdinalIgnoreCase)
                 : ordered.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)

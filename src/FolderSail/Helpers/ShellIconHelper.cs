@@ -1,10 +1,12 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Microsoft.Win32;
 
 namespace FolderSail.Helpers;
 
@@ -33,13 +35,24 @@ public static class ShellIconHelper
     [DllImport("user32.dll")]
     private static extern bool DestroyIcon(IntPtr hIcon);
 
+    [DllImport("shlwapi.dll", CharSet = CharSet.Unicode, EntryPoint = "AssocQueryStringW")]
+    private static extern int AssocQueryString(
+        uint flags,
+        uint str,
+        string pszAssoc,
+        string? pszExtra,
+        StringBuilder? pszOut,
+        ref uint pcchOut);
+
     private const uint SHGFI_ICON = 0x000000100;
     private const uint SHGFI_SMALLICON = 0x000000001;
     private const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;
+    private const uint SHGFI_TYPENAME = 0x000000400;
     private const uint FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
     private const uint FILE_ATTRIBUTE_NORMAL = 0x00000080;
 
     private static readonly ConcurrentDictionary<string, ImageSource> Cache = new();
+    private static readonly ConcurrentDictionary<string, string> TypeCache = new();
     private static readonly SemaphoreSlim Gate = new(2, 2);
 
     public static ImageSource? GetIcon(string path, bool isDirectory) =>
@@ -208,5 +221,104 @@ public static class ShellIconHelper
         }
 
         return IntPtr.Zero;
+    }
+
+    public static string GetTypeName(string path, bool isDirectory, bool isDrive = false)
+    {
+        var key = isDrive
+            ? ":drive:"
+            : CacheKey(path, isDirectory);
+        return TypeCache.GetOrAdd(key, _ => QueryTypeName(path, isDirectory, isDrive));
+    }
+
+    /// <summary>
+    /// Same lookup Explorer uses: file associations, then the shell, then
+    /// "EXT File" for anything that has no registered type.
+    /// </summary>
+    private static string QueryTypeName(string path, bool isDirectory, bool isDrive)
+    {
+        if (isDrive)
+        {
+            return QueryShellTypeName(path, 0, SHGFI_TYPENAME)
+                   ?? Loc.Get("Loc.Drive");
+        }
+
+        if (isDirectory)
+        {
+            return QueryShellTypeName(@"C:\Windows", FILE_ATTRIBUTE_DIRECTORY, SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES)
+                   ?? QueryShellTypeName(path, FILE_ATTRIBUTE_DIRECTORY, SHGFI_TYPENAME)
+                   ?? Loc.Get("Loc.Folder");
+        }
+
+        var extension = Path.GetExtension(path);
+        if (!string.IsNullOrWhiteSpace(extension))
+        {
+            return QueryFriendlyDocName(extension)
+                   ?? QueryRegistryTypeName(extension)
+                   ?? QueryShellTypeName("file" + extension, FILE_ATTRIBUTE_NORMAL, SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES)
+                   ?? QueryShellTypeName(path, 0, SHGFI_TYPENAME)
+                   ?? Loc.Format("Loc.TypedFile", extension.TrimStart('.').ToUpperInvariant());
+        }
+
+        return QueryShellTypeName(path, FILE_ATTRIBUTE_NORMAL, SHGFI_TYPENAME)
+               ?? Loc.Get("Loc.File");
+    }
+
+    private static string? QueryFriendlyDocName(string extension)
+    {
+        try
+        {
+            uint length = 260;
+            var buffer = new StringBuilder((int)length);
+            var hr = AssocQueryString(0, AssocStrFriendlyDocName, extension, null, buffer, ref length);
+            if (hr != 0 || buffer.Length == 0)
+            {
+                return null;
+            }
+
+            var name = buffer.ToString().Trim();
+            return string.IsNullOrWhiteSpace(name) ? null : name;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private const uint AssocStrFriendlyDocName = 3;
+
+    private static string? QueryRegistryTypeName(string extension)
+    {
+        try
+        {
+            using var extKey = Registry.ClassesRoot.OpenSubKey(extension);
+            var progId = extKey?.GetValue(null) as string;
+            if (string.IsNullOrWhiteSpace(progId))
+            {
+                return null;
+            }
+
+            using var progKey = Registry.ClassesRoot.OpenSubKey(progId);
+            var name = progKey?.GetValue(null) as string;
+            return string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? QueryShellTypeName(string probe, uint attributes, uint flags)
+    {
+        if (string.IsNullOrWhiteSpace(probe))
+        {
+            return null;
+        }
+
+        var shfi = new SHFILEINFO();
+        var result = SHGetFileInfo(probe, attributes, ref shfi, (uint)Marshal.SizeOf<SHFILEINFO>(), flags);
+        return result != IntPtr.Zero && !string.IsNullOrWhiteSpace(shfi.szTypeName)
+            ? shfi.szTypeName.Trim()
+            : null;
     }
 }
