@@ -4,6 +4,7 @@ using FolderSail.ViewModels;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
@@ -15,8 +16,8 @@ public partial class PaneView : UserControl
 {
     private PaneViewModel? _pane;
     private Point _dragOrigin;
-
     private bool _ignoreRenameLostFocus;
+    private bool _updatingColumnWidths;
 
     public PaneView()
     {
@@ -84,7 +85,7 @@ public partial class PaneView : UserControl
 
     private void ApplyHeaderColumnWidths()
     {
-        if (_pane == null)
+        if (_pane == null || _updatingColumnWidths)
         {
             return;
         }
@@ -94,7 +95,49 @@ public partial class PaneView : UserControl
         KindColumnDef.Width = new GridLength(_pane.KindColumnWidth);
     }
 
-    private void OnColumnDragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    // Name is *; only change Size so the name column absorbs the rest.
+    private void OnNameSizeColumnDragDelta(object sender, DragDeltaEventArgs e) =>
+        ApplyColumnWidthsLive(
+            SizeColumnDef.ActualWidth - e.HorizontalChange,
+            ModifiedColumnDef.ActualWidth,
+            KindColumnDef.ActualWidth);
+
+    private void OnSizeModifiedColumnDragDelta(object sender, DragDeltaEventArgs e)
+    {
+        var size = SizeColumnDef.ActualWidth + e.HorizontalChange;
+        var modified = ModifiedColumnDef.ActualWidth - e.HorizontalChange;
+        ApplyColumnWidthsLive(size, modified, KindColumnDef.ActualWidth);
+    }
+
+    private void OnModifiedKindColumnDragDelta(object sender, DragDeltaEventArgs e)
+    {
+        var modified = ModifiedColumnDef.ActualWidth + e.HorizontalChange;
+        var kind = KindColumnDef.ActualWidth - e.HorizontalChange;
+        ApplyColumnWidthsLive(SizeColumnDef.ActualWidth, modified, kind);
+    }
+
+    private void ApplyColumnWidthsLive(double size, double modified, double kind)
+    {
+        if (_pane == null)
+        {
+            return;
+        }
+
+        _updatingColumnWidths = true;
+        try
+        {
+            _pane.PreviewColumnWidths(size, modified, kind);
+            SizeColumnDef.Width = new GridLength(_pane.SizeColumnWidth);
+            ModifiedColumnDef.Width = new GridLength(_pane.ModifiedColumnWidth);
+            KindColumnDef.Width = new GridLength(_pane.KindColumnWidth);
+        }
+        finally
+        {
+            _updatingColumnWidths = false;
+        }
+    }
+
+    private void OnColumnDragCompleted(object sender, DragCompletedEventArgs e)
     {
         _pane?.CommitColumnWidths(SizeColumnDef.ActualWidth, ModifiedColumnDef.ActualWidth, KindColumnDef.ActualWidth);
     }

@@ -30,8 +30,6 @@ public sealed class PaneViewModel : ObservableObject
     private double _modifiedColumnWidth = 56;
     private double _kindColumnWidth = 96;
     private int _filterEpoch;
-    private int _previewEpoch;
-    private FilePreview _preview = new();
     private CancellationTokenSource? _listCts;
     private CancellationTokenSource _iconCts = new();
 
@@ -240,7 +238,6 @@ public sealed class PaneViewModel : ObservableObject
             tab.RefreshTitle();
         }
 
-        SchedulePreview();
         ReplaceVisible(VisibleItems.ToList());
     }
 
@@ -263,13 +260,7 @@ public sealed class PaneViewModel : ObservableObject
     public FileItemViewModel? SelectedItem
     {
         get => _selectedItem;
-        set
-        {
-            if (SetProperty(ref _selectedItem, value))
-            {
-                SchedulePreview();
-            }
-        }
+        set => SetProperty(ref _selectedItem, value);
     }
 
     public List<FileItemViewModel> SelectedItems { get; } = [];
@@ -365,12 +356,15 @@ public sealed class PaneViewModel : ObservableObject
             return;
         }
 
-        SizeColumnWidth = ClampColumnWidth(widths[0], 48, 220);
-        ModifiedColumnWidth = ClampColumnWidth(widths[1], 44, 160);
+        SizeColumnWidth = ClampColumnWidth(widths[0], 40, 320);
+        ModifiedColumnWidth = ClampColumnWidth(widths[1], 40, 220);
         KindColumnWidth = widths[2] <= 48
             ? 96
-            : ClampColumnWidth(widths[2], 56, 200);
+            : ClampColumnWidth(widths[2], 48, 280);
     }
+
+    public void PreviewColumnWidths(double size, double modified, double kind) =>
+        ApplyColumnWidths([size, modified, kind]);
 
     public void CommitColumnWidths(double size, double modified, double kind)
     {
@@ -392,25 +386,6 @@ public sealed class PaneViewModel : ObservableObject
     public string SizeSortGlyph => SortGlyph(FileSortColumn.Size);
     public string ModifiedSortGlyph => SortGlyph(FileSortColumn.Modified);
     public string KindSortGlyph => SortGlyph(FileSortColumn.Kind);
-
-    public FilePreview Preview
-    {
-        get => _preview;
-        private set
-        {
-            _preview = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(HasImagePreview));
-            OnPropertyChanged(nameof(HasTextPreview));
-            OnPropertyChanged(nameof(HasGenericPreview));
-            OnPropertyChanged(nameof(IsPreviewEmpty));
-        }
-    }
-
-    public bool HasImagePreview => Preview.Kind == PreviewKind.Image;
-    public bool HasTextPreview => Preview.Kind == PreviewKind.Text;
-    public bool IsPreviewEmpty => Preview.Kind == PreviewKind.Empty;
-    public bool HasGenericPreview => Preview.Kind is PreviewKind.Generic or PreviewKind.Folder;
 
     public event EventHandler? ViewStateChanged;
 
@@ -537,7 +512,6 @@ public sealed class PaneViewModel : ObservableObject
         ResetIconLoads();
         Items = [];
         ReplaceVisible([]);
-        Preview = new FilePreview { Hint = Loc.Get("Loc.SelectToPreview") };
 
         if (SearchPath.TryParse(CurrentPath, out var query))
         {
@@ -598,7 +572,6 @@ public sealed class PaneViewModel : ObservableObject
 
         Items = task.Result.Select(item => new FileItemViewModel(item)).ToList();
         RebuildVisible();
-        SchedulePreview();
         OnPropertyChanged(nameof(ItemSummary));
     }
 
@@ -808,51 +781,6 @@ public sealed class PaneViewModel : ObservableObject
                 ? ordered.ThenByDescending(item => item.Name, StringComparer.OrdinalIgnoreCase)
                 : ordered.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
         };
-    }
-
-    private void SchedulePreview()
-    {
-        var item = SelectedItem?.Item;
-        var epoch = Interlocked.Increment(ref _previewEpoch);
-        if (item == null)
-        {
-            Preview = new FilePreview { Hint = Loc.Get("Loc.SelectToPreview") };
-            return;
-        }
-
-        Preview = new FilePreview
-        {
-            Kind = PreviewKind.Generic,
-            Title = item.Name,
-            Hint = Loc.Get("Loc.PreviewLoading")
-        };
-
-        _ = Task.Run(() => PreviewService.Load(item), CancellationToken.None)
-            .ContinueWith(task =>
-            {
-                if (epoch != _previewEpoch)
-                {
-                    return;
-                }
-
-                var dispatcher = System.Windows.Application.Current?.Dispatcher;
-                dispatcher?.Invoke(() =>
-                {
-                    if (epoch != _previewEpoch)
-                    {
-                        return;
-                    }
-
-                    Preview = task.Status == TaskStatus.RanToCompletion
-                        ? task.Result
-                        : new FilePreview
-                        {
-                            Kind = PreviewKind.Generic,
-                            Title = item.Name,
-                            Hint = Loc.Get("Loc.PreviewFailed")
-                        };
-                });
-            }, TaskScheduler.Default);
     }
 
     private void CancelListing()

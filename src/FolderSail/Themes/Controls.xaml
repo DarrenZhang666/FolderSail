@@ -501,28 +501,32 @@
         <Setter Property="Opacity" Value="0.85" />
     </Style>
 
-    <Style x:Key="ColumnSplitter" TargetType="GridSplitter">
-        <Setter Property="Width" Value="5" />
+    <!-- Wide hit target for column resize; avoids GridSplitter + * column fights. -->
+    <Style x:Key="ColumnResizeThumb" TargetType="Thumb">
+        <Setter Property="Width" Value="10" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Cursor" Value="SizeWE" />
-        <Setter Property="ResizeDirection" Value="Columns" />
-        <Setter Property="ResizeBehavior" Value="PreviousAndNext" />
-        <Setter Property="ShowsPreview" Value="False" />
         <Setter Property="Focusable" Value="False" />
-        <Setter Property="Panel.ZIndex" Value="3" />
+        <Setter Property="Panel.ZIndex" Value="10" />
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="GridSplitter">
-                    <Border Background="Transparent">
-                        <Border Width="1"
+                <ControlTemplate TargetType="Thumb">
+                    <Border Background="Transparent" Cursor="SizeWE">
+                        <Border x:Name="Line"
+                                Width="1"
                                 HorizontalAlignment="Center"
                                 Background="{DynamicResource Line.Soft}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Cursor" Value="SizeWE" />
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Text.Tertiary}" />
+                            <Setter TargetName="Line" Property="Width" Value="2" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.Base}" />
+                            <Setter TargetName="Line" Property="Width" Value="2" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

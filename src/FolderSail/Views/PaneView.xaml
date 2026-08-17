@@ -242,19 +242,14 @@
                          Visibility="{Binding IsAddressEditing, Converter={StaticResource BoolToVisibility}}" />
             </Grid>
 
-            <!-- Rows + preview -->
+            <!-- File list -->
             <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" MinWidth="180" />
-                    <ColumnDefinition Width="8" />
-                    <ColumnDefinition Width="140" MinWidth="112" />
-                </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Grid.Column="0"
+            <Border Grid.Row="0"
                     Background="{DynamicResource Surface.Subtle}"
                     BorderBrush="{DynamicResource Line.Soft}"
                     BorderThickness="0,0,0,1"
@@ -272,13 +267,13 @@
                 </Border.ContextMenu>
                 <Grid x:Name="ColumnHeaderGrid">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="80" />
-                        <ColumnDefinition Width="5" />
-                        <ColumnDefinition x:Name="SizeColumnDef" Width="72" MinWidth="48" />
-                        <ColumnDefinition Width="5" />
-                        <ColumnDefinition x:Name="ModifiedColumnDef" Width="56" MinWidth="44" />
-                        <ColumnDefinition Width="5" />
-                        <ColumnDefinition x:Name="KindColumnDef" Width="96" MinWidth="56" />
+                        <ColumnDefinition Width="*" MinWidth="100" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition x:Name="SizeColumnDef" Width="72" MinWidth="40" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition x:Name="ModifiedColumnDef" Width="56" MinWidth="40" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition x:Name="KindColumnDef" Width="96" MinWidth="48" />
                     </Grid.ColumnDefinitions>
                     <Button Grid.Column="0" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
@@ -288,9 +283,10 @@
                             <TextBlock Text="{Binding NameSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
-                    <GridSplitter Grid.Column="1"
-                                  Style="{StaticResource ColumnSplitter}"
-                                  DragCompleted="OnColumnDragCompleted" />
+                    <Thumb Grid.Column="1"
+                           Style="{StaticResource ColumnResizeThumb}"
+                           DragDelta="OnNameSizeColumnDragDelta"
+                           DragCompleted="OnColumnDragCompleted" />
                     <Button Grid.Column="2" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Size}">
@@ -299,9 +295,10 @@
                             <TextBlock Text="{Binding SizeSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
-                    <GridSplitter Grid.Column="3"
-                                  Style="{StaticResource ColumnSplitter}"
-                                  DragCompleted="OnColumnDragCompleted" />
+                    <Thumb Grid.Column="3"
+                           Style="{StaticResource ColumnResizeThumb}"
+                           DragDelta="OnSizeModifiedColumnDragDelta"
+                           DragCompleted="OnColumnDragCompleted" />
                     <Button Grid.Column="4" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Modified}">
@@ -310,9 +307,10 @@
                             <TextBlock Text="{Binding ModifiedSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
                     </Button>
-                    <GridSplitter Grid.Column="5"
-                                  Style="{StaticResource ColumnSplitter}"
-                                  DragCompleted="OnColumnDragCompleted" />
+                    <Thumb Grid.Column="5"
+                           Style="{StaticResource ColumnResizeThumb}"
+                           DragDelta="OnModifiedKindColumnDragDelta"
+                           DragCompleted="OnColumnDragCompleted" />
                     <Button Grid.Column="6" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Kind}">
@@ -326,7 +324,6 @@
 
             <ListBox x:Name="FilesList"
                      Grid.Row="1"
-                     Grid.Column="0"
                      ItemsSource="{Binding VisibleItems}"
                      PreviewTextInput="OnFilesTextInput"
                      SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
@@ -356,13 +353,13 @@
                               Margin="8,0"
                               PreviewMouseMove="OnRowMouseMove">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" MinWidth="80" />
-                                <ColumnDefinition Width="5" />
-                                <ColumnDefinition Width="{Binding DataContext.SizeColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="48" />
-                                <ColumnDefinition Width="5" />
-                                <ColumnDefinition Width="{Binding DataContext.ModifiedColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="44" />
-                                <ColumnDefinition Width="5" />
-                                <ColumnDefinition Width="{Binding DataContext.KindColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="56" />
+                                <ColumnDefinition Width="*" MinWidth="100" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="{Binding DataContext.SizeColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="40" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="{Binding DataContext.ModifiedColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="40" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="{Binding DataContext.KindColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="48" />
                             </Grid.ColumnDefinitions>
 
                             <Grid Grid.Column="0" VerticalAlignment="Center">
@@ -425,7 +422,6 @@
             </ListBox>
 
             <StackPanel Grid.Row="1"
-                        Grid.Column="0"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Visibility="{Binding IsSearching, Converter={StaticResource BoolToVisibility}}">
@@ -442,7 +438,6 @@
             </StackPanel>
 
             <Border Grid.Row="1"
-                    Grid.Column="0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Bottom"
                     Margin="10,0,10,10"
@@ -483,96 +478,6 @@
                             ToolTip="{DynamicResource Loc.ClearFilter}"
                             Command="{Binding ClearFilterCommand}" />
                 </Grid>
-            </Border>
-
-            <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
-                          Width="8"
-                          HorizontalAlignment="Stretch"
-                          Background="Transparent"
-                          Cursor="SizeWE"
-                          ShowsPreview="False"
-                          ResizeBehavior="PreviousAndNext">
-                <GridSplitter.Template>
-                    <ControlTemplate TargetType="GridSplitter">
-                        <Border Background="Transparent">
-                            <Border Width="1"
-                                    HorizontalAlignment="Center"
-                                    Background="{DynamicResource Line.Soft}" />
-                        </Border>
-                    </ControlTemplate>
-                </GridSplitter.Template>
-            </GridSplitter>
-
-            <Border Grid.Row="0"
-                    Grid.RowSpan="2"
-                    Grid.Column="2"
-                    Background="{DynamicResource Surface.Subtle}"
-                    BorderBrush="{DynamicResource Line.Soft}"
-                    BorderThickness="1,0,0,0"
-                    Padding="8">
-                <Border Background="{DynamicResource Surface.Card}"
-                        BorderBrush="{DynamicResource Line.Soft}"
-                        BorderThickness="1"
-                        CornerRadius="10"
-                        Padding="12">
-                    <Grid>
-                        <TextBlock VerticalAlignment="Center"
-                                   HorizontalAlignment="Center"
-                                   Text="{DynamicResource Loc.SelectToPreview}"
-                                   TextWrapping="Wrap"
-                                   TextAlignment="Center"
-                                   Foreground="{DynamicResource Text.Tertiary}"
-                                   FontSize="12"
-                                   Margin="8,0"
-                                   Visibility="{Binding IsPreviewEmpty, Converter={StaticResource BoolToVisibility}}" />
-
-                        <DockPanel Visibility="{Binding IsPreviewEmpty, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
-                            <TextBlock DockPanel.Dock="Top"
-                                       Text="{DynamicResource Loc.Preview}"
-                                       Style="{StaticResource ColumnLabel}"
-                                       Margin="0,0,0,10" />
-                            <TextBlock DockPanel.Dock="Top"
-                                       Text="{Binding Preview.Title}"
-                                       FontWeight="SemiBold"
-                                       FontSize="13"
-                                       TextTrimming="CharacterEllipsis"
-                                       Margin="0,0,0,4" />
-                            <TextBlock DockPanel.Dock="Top"
-                                       Text="{Binding Preview.Meta}"
-                                       Foreground="{DynamicResource Text.Tertiary}"
-                                       FontSize="11"
-                                       Margin="0,0,0,10" />
-                            <Border CornerRadius="8"
-                                    Background="{DynamicResource Surface.Subtle}"
-                                    Padding="6"
-                                    Visibility="{Binding HasImagePreview, Converter={StaticResource BoolToVisibility}}">
-                                <Image Source="{Binding Preview.Image}"
-                                       Stretch="Uniform"
-                                       MaxHeight="200" />
-                            </Border>
-                            <Border CornerRadius="8"
-                                    Background="{DynamicResource Surface.Subtle}"
-                                    Padding="8"
-                                    Visibility="{Binding HasTextPreview, Converter={StaticResource BoolToVisibility}}">
-                                <TextBox Text="{Binding Preview.Text, Mode=OneWay}"
-                                         IsReadOnly="True"
-                                         TextWrapping="Wrap"
-                                         BorderThickness="0"
-                                         Background="Transparent"
-                                         Foreground="{DynamicResource Text.Secondary}"
-                                         FontFamily="Cascadia Mono, Consolas, monospace"
-                                         FontSize="11"
-                                         VerticalScrollBarVisibility="Auto" />
-                            </Border>
-                            <TextBlock Text="{Binding Preview.Hint}"
-                                       TextWrapping="Wrap"
-                                       Foreground="{DynamicResource Text.Secondary}"
-                                       FontSize="12"
-                                       VerticalAlignment="Top"
-                                       Visibility="{Binding HasGenericPreview, Converter={StaticResource BoolToVisibility}}" />
-                        </DockPanel>
-                    </Grid>
-                </Border>
             </Border>
             </Grid>
 
