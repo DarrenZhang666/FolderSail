@@ -243,6 +243,22 @@ public sealed class FavoritesDocument
     public List<FavoriteCategory> Categories { get; set; } = [];
 }
 
+public sealed class PaneBounds
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; } = 1;
+    public double Height { get; set; } = 1;
+
+    public PaneBounds Clone() => new()
+    {
+        X = X,
+        Y = Y,
+        Width = Width,
+        Height = Height
+    };
+}
+
 public sealed class AppSettings
 {
     public LayoutMode LayoutMode { get; set; } = LayoutMode.Dual;
@@ -256,6 +272,7 @@ public sealed class AppSettings
     public List<bool> PaneSortDescending { get; set; } = [];
     public List<bool> PaneFoldersFirst { get; set; } = [];
     public List<List<double>> PaneColumnWidths { get; set; } = [];
+    public Dictionary<string, List<PaneBounds>> LayoutPaneBounds { get; set; } = [];
 }
 
 public sealed class FileTransferProgress

@@ -28,6 +28,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     private readonly List<bool> _paneSortDescending;
     private readonly List<bool> _paneFoldersFirst;
     private readonly List<List<double>> _paneColumnWidths;
+    private readonly Dictionary<string, List<PaneBounds>> _layoutPaneBounds;
 
     public const double SidebarMinWidth = 156;
     public const double SidebarMaxWidth = 520;
@@ -76,6 +77,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         _paneSortDescending = settings.PaneSortDescending;
         _paneFoldersFirst = settings.PaneFoldersFirst;
         _paneColumnWidths = settings.PaneColumnWidths;
+        _layoutPaneBounds = settings.LayoutPaneBounds ?? [];
         ApplyTagChildExpansion(_expandTagChildrenOnStartup);
         ApplyLayout(settings.ActivePaneIndex, settings.PanePaths);
         UpdateLayoutPresetSelection();
@@ -613,9 +615,21 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
             PaneSortColumns = _allPanes.Select(p => (int)p.SortColumn).ToList(),
             PaneSortDescending = _allPanes.Select(p => p.SortDescending).ToList(),
             PaneFoldersFirst = _allPanes.Select(p => p.FoldersFirst).ToList(),
-            PaneColumnWidths = _allPanes.Select(p => p.GetColumnWidths().ToList()).ToList()
+            PaneColumnWidths = _allPanes.Select(p => p.GetColumnWidths().ToList()).ToList(),
+            LayoutPaneBounds = _layoutPaneBounds
         });
     }
+
+    public IReadOnlyList<PaneBounds>? GetLayoutPaneBounds(LayoutMode mode) =>
+        _layoutPaneBounds.TryGetValue(LayoutKey(mode), out var bounds) ? bounds : null;
+
+    public void SaveLayoutPaneBounds(LayoutMode mode, IReadOnlyList<PaneBounds> bounds)
+    {
+        _layoutPaneBounds[LayoutKey(mode)] = bounds.Select(item => item.Clone()).ToList();
+        SaveSettings();
+    }
+
+    private static string LayoutKey(LayoutMode mode) => ((int)mode).ToString();
 
     private void ApplyTagChildExpansion(bool expanded)
     {

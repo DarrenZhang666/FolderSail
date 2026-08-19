@@ -589,6 +589,94 @@
         </Setter>
     </Style>
 
+    <Style x:Key="PaneSplitter" TargetType="GridSplitter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="ShowsPreview" Value="False" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="ResizeBehavior" Value="PreviousAndNext" />
+        <Setter Property="Panel.ZIndex" Value="8" />
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Cursor" Value="SizeWE" />
+        <Setter Property="ResizeDirection" Value="Columns" />
+        <Setter Property="ToolTip" Value="{DynamicResource Loc.ResizePane}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GridSplitter">
+                    <Border Background="Transparent">
+                        <Border x:Name="Line"
+                                Width="1"
+                                HorizontalAlignment="Center"
+                                Background="{DynamicResource Line.Soft}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Width" Value="2" />
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.Muted}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Width" Value="2" />
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.FocusLine}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="ResizeDirection" Value="Rows">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="Height" Value="8" />
+                <Setter Property="Cursor" Value="SizeNS" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Border Background="Transparent">
+                                <Border x:Name="Line"
+                                        Height="1"
+                                        VerticalAlignment="Center"
+                                        Background="{DynamicResource Line.Soft}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Line" Property="Height" Value="2" />
+                                    <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.Muted}" />
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                    <Setter TargetName="Line" Property="Height" Value="2" />
+                                    <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.FocusLine}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="PaneEdgeThumb" TargetType="Thumb">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border Background="Transparent">
+                        <Border x:Name="Line"
+                                Background="Transparent" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.Muted}" />
+                            <Setter TargetName="Line" Property="Opacity" Value="0.85" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.FocusLine}" />
+                            <Setter TargetName="Line" Property="Opacity" Value="1" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ============ Finder-style colour tag row ============ -->
     <Style x:Key="TagRow" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />

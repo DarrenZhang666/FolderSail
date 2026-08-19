@@ -15,6 +15,7 @@
     <sys:String x:Key="Loc.Maximize">最大化</sys:String>
     <sys:String x:Key="Loc.Close">关闭</sys:String>
     <sys:String x:Key="Loc.ResizeSidebar">拖动以调整导航栏宽度</sys:String>
+    <sys:String x:Key="Loc.ResizePane">拖动窗格边缘以调整大小</sys:String>
     <sys:String x:Key="Loc.ThemeToLight">切换到浅色主题</sys:String>
     <sys:String x:Key="Loc.ThemeToDark">切换到深色主题</sys:String>
     <sys:String x:Key="Loc.LanguageToEnglish">Switch to English</sys:String>

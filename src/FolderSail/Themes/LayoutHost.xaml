@@ -5,7 +5,9 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="views:LayoutHost">
-                    <Grid x:Name="PART_Grid" />
+                    <Canvas x:Name="PART_Host"
+                            ClipToBounds="True"
+                            Background="Transparent" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

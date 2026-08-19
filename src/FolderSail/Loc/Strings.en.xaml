@@ -15,6 +15,7 @@
     <sys:String x:Key="Loc.Maximize">Maximize</sys:String>
     <sys:String x:Key="Loc.Close">Close</sys:String>
     <sys:String x:Key="Loc.ResizeSidebar">Drag to resize the sidebar</sys:String>
+    <sys:String x:Key="Loc.ResizePane">Drag a pane edge to resize</sys:String>
     <sys:String x:Key="Loc.ThemeToLight">Switch to light theme</sys:String>
     <sys:String x:Key="Loc.ThemeToDark">Switch to dark theme</sys:String>
     <sys:String x:Key="Loc.LanguageToEnglish">Switch to English</sys:String>
