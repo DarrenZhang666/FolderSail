@@ -610,12 +610,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Line" Property="Width" Value="2" />
-                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.Muted}" />
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Line.Strong}" />
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
-                            <Setter TargetName="Line" Property="Width" Value="2" />
-                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.FocusLine}" />
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Line.Strong}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -637,12 +635,10 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Line" Property="Height" Value="2" />
-                                    <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.Muted}" />
+                                    <Setter TargetName="Line" Property="Background" Value="{DynamicResource Line.Strong}" />
                                 </Trigger>
                                 <Trigger Property="IsDragging" Value="True">
-                                    <Setter TargetName="Line" Property="Height" Value="2" />
-                                    <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.FocusLine}" />
+                                    <Setter TargetName="Line" Property="Background" Value="{DynamicResource Line.Strong}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -652,7 +648,7 @@
         </Style.Triggers>
     </Style>
 
-    <Style x:Key="PaneEdgeThumb" TargetType="Thumb">
+    <Style x:Key="PaneEdgeThumbH" TargetType="Thumb">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Focusable" Value="False" />
         <Setter Property="Template">
@@ -660,16 +656,41 @@
                 <ControlTemplate TargetType="Thumb">
                     <Border Background="Transparent">
                         <Border x:Name="Line"
+                                Height="1"
+                                VerticalAlignment="Center"
                                 Background="Transparent" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.Muted}" />
-                            <Setter TargetName="Line" Property="Opacity" Value="0.85" />
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Line.Base}" />
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
-                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Accent.FocusLine}" />
-                            <Setter TargetName="Line" Property="Opacity" Value="1" />
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Line.Strong}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PaneEdgeThumbV" TargetType="Thumb">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border Background="Transparent">
+                        <Border x:Name="Line"
+                                Width="1"
+                                HorizontalAlignment="Center"
+                                Background="Transparent" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Line.Base}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Background" Value="{DynamicResource Line.Strong}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

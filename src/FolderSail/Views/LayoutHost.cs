@@ -170,7 +170,7 @@ public class LayoutHost : ItemsControl
             Tag = (paneIndex, edge)
         };
 
-        if (TryFindResource("PaneEdgeThumb") is Style style)
+        if (TryFindResource(edge is EdgeKind.Left or EdgeKind.Right ? "PaneEdgeThumbV" : "PaneEdgeThumbH") is Style style)
         {
             thumb.Style = style;
             thumb.Cursor = edge is EdgeKind.Left or EdgeKind.Right ? Cursors.SizeWE : Cursors.SizeNS;
