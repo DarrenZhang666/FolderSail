@@ -10,7 +10,7 @@
     <sys:String x:Key="Loc.SearchThisPcTip">按文件名搜索此电脑（Enter 立即搜索，Ctrl+F 聚焦）</sys:String>
     <sys:String x:Key="Loc.ClearSearch">清除搜索</sys:String>
     <sys:String x:Key="Loc.Ready">就绪</sys:String>
-    <sys:String x:Key="Loc.Shortcuts">列表打字过滤 · Ctrl+F 全盘搜索 · 拖拽复制 · F2 重命名 · F5 刷新</sys:String>
+    <sys:String x:Key="Loc.Shortcuts">列表打字过滤 · Ctrl+F 全盘搜索 · 拖动框选 · 选中后拖拽复制 · F2 重命名 · F5 刷新</sys:String>
     <sys:String x:Key="Loc.Minimize">最小化</sys:String>
     <sys:String x:Key="Loc.Maximize">最大化</sys:String>
     <sys:String x:Key="Loc.Close">关闭</sys:String>

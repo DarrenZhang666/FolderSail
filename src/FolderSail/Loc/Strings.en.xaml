@@ -10,7 +10,7 @@
     <sys:String x:Key="Loc.SearchThisPcTip">Search this PC by file name (Enter to search, Ctrl+F to focus)</sys:String>
     <sys:String x:Key="Loc.ClearSearch">Clear search</sys:String>
     <sys:String x:Key="Loc.Ready">Ready</sys:String>
-    <sys:String x:Key="Loc.Shortcuts">Type to filter · Ctrl+F search PC · Drag to copy · F2 rename · F5 refresh</sys:String>
+    <sys:String x:Key="Loc.Shortcuts">Type to filter · Ctrl+F search PC · Drag to select · Drag selected to copy · F2 rename · F5 refresh</sys:String>
     <sys:String x:Key="Loc.Minimize">Minimize</sys:String>
     <sys:String x:Key="Loc.Maximize">Maximize</sys:String>
     <sys:String x:Key="Loc.Close">Close</sys:String>

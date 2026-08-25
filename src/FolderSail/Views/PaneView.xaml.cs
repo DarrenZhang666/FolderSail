@@ -14,8 +14,20 @@ namespace FolderSail.Views;
 
 public partial class PaneView : UserControl
 {
+    private enum ListGestureKind
+    {
+        None,
+        Pending,
+        Marquee,
+        DragDrop,
+    }
+
     private PaneViewModel? _pane;
-    private Point _dragOrigin;
+    private ListGestureKind _listGesture;
+    private Point _gestureOrigin;
+    private FileItemViewModel? _gestureItem;
+    private bool _gestureStartedOnSelected;
+    private bool _gestureAdditive;
     private bool _ignoreRenameLostFocus;
     private bool _updatingColumnWidths;
     private bool _cancellingAddressEdit;
@@ -335,39 +347,308 @@ public partial class PaneView : UserControl
         _pane.HandleDrop(paths, move);
     }
 
-    private void OnRowMouseMove(object sender, MouseEventArgs e)
+    private void OnFilesPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.LeftButton != MouseButtonState.Pressed ||
-            sender is not FrameworkElement { DataContext: FileItemViewModel item } ||
-            item.IsRenaming)
+        // Leave double-click / rename / Ctrl·Shift clicks to the ListBox defaults.
+        if (e.ClickCount > 1 ||
+            _pane?.IsInlineRenaming == true ||
+            Keyboard.Modifiers is ModifierKeys.Control or ModifierKeys.Shift or (ModifierKeys.Control | ModifierKeys.Shift) ||
+            IsInsideRenameBox(e.OriginalSource as DependencyObject))
         {
-            _dragOrigin = default;
+            ResetListGesture();
             return;
         }
 
-        var position = e.GetPosition(this);
+        _gestureOrigin = e.GetPosition(FilesList);
+        _gestureItem = FindFileItem(e.OriginalSource as DependencyObject);
+        _gestureStartedOnSelected = _gestureItem != null && FilesList.SelectedItems.Contains(_gestureItem);
+        _gestureAdditive = false;
+        _listGesture = ListGestureKind.Pending;
 
-        if (_dragOrigin == default)
+        // Own the gesture so Explorer-like rules apply:
+        // - drag from empty / unselected → rubber-band multi-select
+        // - drag from already-selected → file drag-drop
+        // - click without drag → normal selection on mouse up
+        FilesList.Focus();
+        Mouse.Capture(FilesList);
+        e.Handled = true;
+    }
+
+    private void OnFilesPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_listGesture == ListGestureKind.None || e.LeftButton != MouseButtonState.Pressed)
         {
-            _dragOrigin = position;
             return;
         }
 
-        // Require a deliberate drag so a plain click still selects the row.
-        if (Math.Abs(position.X - _dragOrigin.X) < SystemParameters.MinimumHorizontalDragDistance &&
-            Math.Abs(position.Y - _dragOrigin.Y) < SystemParameters.MinimumVerticalDragDistance)
+        var position = e.GetPosition(FilesList);
+        if (_listGesture == ListGestureKind.Pending)
+        {
+            if (Math.Abs(position.X - _gestureOrigin.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(position.Y - _gestureOrigin.Y) < SystemParameters.MinimumVerticalDragDistance)
+            {
+                return;
+            }
+
+            // Same as Explorer: only an already-selected item starts a file drag.
+            // Otherwise rubber-band select so a left-drag multi-selects instead of copying.
+            if (_gestureItem != null && _gestureStartedOnSelected)
+            {
+                BeginFileDragDrop();
+                return;
+            }
+
+            _listGesture = ListGestureKind.Marquee;
+            MarqueeRect.Visibility = Visibility.Visible;
+        }
+
+        if (_listGesture != ListGestureKind.Marquee)
         {
             return;
         }
 
-        _dragOrigin = default;
-        if (_pane == null)
+        AutoScrollList(position);
+        UpdateMarqueeVisual(position);
+        ApplyMarqueeSelection(GetMarqueeRect(_gestureOrigin, position));
+        e.Handled = true;
+    }
+
+    private void OnFilesPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_listGesture == ListGestureKind.None)
         {
             return;
         }
 
-        var data = new DataObject(DataFormats.FileDrop, _pane.GetSelectedPathsForDrag(item.FullPath).ToArray());
+        if (_listGesture == ListGestureKind.Pending)
+        {
+            ApplyClickSelection();
+        }
+
+        ResetListGesture();
+        if (Mouse.Captured == FilesList)
+        {
+            Mouse.Capture(null);
+        }
+
+        e.Handled = true;
+    }
+
+    private void OnFilesLostMouseCapture(object sender, MouseEventArgs e)
+    {
+        if (_listGesture is ListGestureKind.Pending or ListGestureKind.Marquee)
+        {
+            ResetListGesture();
+        }
+    }
+
+    private void BeginFileDragDrop()
+    {
+        if (_pane == null || _gestureItem == null)
+        {
+            ResetListGesture();
+            return;
+        }
+
+        _listGesture = ListGestureKind.DragDrop;
+        var paths = _pane.GetSelectedPathsForDrag(_gestureItem.FullPath).ToArray();
+        ResetListGesture();
+        if (Mouse.Captured == FilesList)
+        {
+            Mouse.Capture(null);
+        }
+
+        if (paths.Length == 0)
+        {
+            return;
+        }
+
+        var data = new DataObject(DataFormats.FileDrop, paths);
         DragDrop.DoDragDrop(this, data, DragDropEffects.Copy | DragDropEffects.Move);
+    }
+
+    private void ApplyClickSelection()
+    {
+        if (_gestureItem == null)
+        {
+            FilesList.SelectedItems.Clear();
+            return;
+        }
+
+        FilesList.SelectedItems.Clear();
+        FilesList.SelectedItems.Add(_gestureItem);
+        FilesList.SelectedItem = _gestureItem;
+    }
+
+    private void UpdateMarqueeVisual(Point current)
+    {
+        var rect = GetMarqueeRect(_gestureOrigin, current);
+        Canvas.SetLeft(MarqueeRect, rect.X);
+        Canvas.SetTop(MarqueeRect, rect.Y);
+        MarqueeRect.Width = Math.Max(0, rect.Width);
+        MarqueeRect.Height = Math.Max(0, rect.Height);
+    }
+
+    private void ApplyMarqueeSelection(Rect marquee)
+    {
+        var min = int.MaxValue;
+        var max = int.MinValue;
+
+        for (var i = 0; i < FilesList.Items.Count; i++)
+        {
+            if (FilesList.ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem container)
+            {
+                continue;
+            }
+
+            var bounds = new Rect(
+                container.TranslatePoint(new Point(0, 0), FilesList),
+                container.RenderSize);
+            if (!marquee.IntersectsWith(bounds))
+            {
+                continue;
+            }
+
+            min = Math.Min(min, i);
+            max = Math.Max(max, i);
+        }
+
+        ExpandIndexRangeByPoint(new Point(marquee.Left + marquee.Width / 2, marquee.Top), ref min, ref max);
+        ExpandIndexRangeByPoint(new Point(marquee.Left + marquee.Width / 2, marquee.Bottom), ref min, ref max);
+
+        if (!_gestureAdditive)
+        {
+            FilesList.SelectedItems.Clear();
+        }
+
+        if (min == int.MaxValue)
+        {
+            return;
+        }
+
+        for (var i = min; i <= max; i++)
+        {
+            if (FilesList.Items[i] is FileItemViewModel item && !FilesList.SelectedItems.Contains(item))
+            {
+                FilesList.SelectedItems.Add(item);
+            }
+        }
+    }
+
+    private void ExpandIndexRangeByPoint(Point point, ref int min, ref int max)
+    {
+        var index = IndexFromPoint(point);
+        if (index < 0)
+        {
+            return;
+        }
+
+        min = min == int.MaxValue ? index : Math.Min(min, index);
+        max = max == int.MinValue ? index : Math.Max(max, index);
+    }
+
+    private int IndexFromPoint(Point point)
+    {
+        var hit = FilesList.InputHitTest(point) as DependencyObject;
+        var item = FindFileItem(hit);
+        if (item != null)
+        {
+            return FilesList.Items.IndexOf(item);
+        }
+
+        // Empty band below / between rows: map Y onto the nearest realized row.
+        ListBoxItem? nearest = null;
+        var nearestDistance = double.MaxValue;
+        for (var i = 0; i < FilesList.Items.Count; i++)
+        {
+            if (FilesList.ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem container)
+            {
+                continue;
+            }
+
+            var top = container.TranslatePoint(new Point(0, 0), FilesList).Y;
+            var bottom = top + container.RenderSize.Height;
+            var distance = point.Y < top ? top - point.Y : point.Y > bottom ? point.Y - bottom : 0;
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearest = container;
+            }
+        }
+
+        return nearest == null ? -1 : FilesList.ItemContainerGenerator.IndexFromContainer(nearest);
+    }
+
+    private void AutoScrollList(Point position)
+    {
+        var scrollViewer = FindScrollViewer(FilesList);
+        if (scrollViewer == null)
+        {
+            return;
+        }
+
+        const double edge = 28;
+        const double step = 1; // logical item units when CanContentScroll is true
+        if (position.Y < edge)
+        {
+            scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - step);
+        }
+        else if (position.Y > FilesList.ActualHeight - edge)
+        {
+            scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset + step);
+        }
+    }
+
+    private void ResetListGesture()
+    {
+        _listGesture = ListGestureKind.None;
+        _gestureItem = null;
+        _gestureStartedOnSelected = false;
+        _gestureAdditive = false;
+        _gestureOrigin = default;
+        MarqueeRect.Visibility = Visibility.Collapsed;
+        MarqueeRect.Width = 0;
+        MarqueeRect.Height = 0;
+    }
+
+    private static Rect GetMarqueeRect(Point origin, Point current)
+    {
+        var x = Math.Min(origin.X, current.X);
+        var y = Math.Min(origin.Y, current.Y);
+        return new Rect(x, y, Math.Abs(current.X - origin.X), Math.Abs(current.Y - origin.Y));
+    }
+
+    private static ScrollViewer? FindScrollViewer(DependencyObject root)
+    {
+        if (root is ScrollViewer viewer)
+        {
+            return viewer;
+        }
+
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+        {
+            var found = FindScrollViewer(VisualTreeHelper.GetChild(root, i));
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsInsideRenameBox(DependencyObject? origin)
+    {
+        for (var current = origin; current != null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is TextBox { Name: "RenameBox" })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void OnFilesSelectionChanged(object sender, SelectionChangedEventArgs e)

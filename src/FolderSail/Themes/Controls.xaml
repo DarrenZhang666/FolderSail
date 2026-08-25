@@ -411,7 +411,7 @@
                 <ControlTemplate TargetType="ListBoxItem">
                     <Border x:Name="Chrome"
                             Background="Transparent"
-                            CornerRadius="6"
+                            CornerRadius="4"
                             Padding="4,1"
                             Margin="2,1"
                             SnapsToDevicePixels="True">
