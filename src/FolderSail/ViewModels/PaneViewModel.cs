@@ -1345,7 +1345,14 @@ public sealed class PaneViewModel : ObservableObject
 
     public async void HandleDrop(string[] paths, bool move)
     {
+        if (_isPasting || paths.Length == 0)
+        {
+            return;
+        }
+
         var targetDir = ResolveWritableDirectory();
+        _isPasting = true;
+        CommandManager.InvalidateRequerySuggested();
         StatusMessage?.Invoke(this, move ? Loc.Get("Loc.Moving") : Loc.Get("Loc.Copying"));
 
         try
@@ -1368,6 +1375,11 @@ public sealed class PaneViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage?.Invoke(this, ex.Message);
+        }
+        finally
+        {
+            _isPasting = false;
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 

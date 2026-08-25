@@ -64,6 +64,7 @@ public sealed class CopyProgressWindow : Window
             Minimum = 0,
             Maximum = 100,
             Value = 0,
+            IsIndeterminate = true,
             Foreground = TryBrush("Accent.Base", Brushes.SteelBlue),
             Background = TryBrush("Line.Soft", Brushes.LightGray),
             BorderThickness = new Thickness(0)
@@ -71,7 +72,7 @@ public sealed class CopyProgressWindow : Window
 
         _percentText = new TextBlock
         {
-            Text = Loc.Format("Loc.PercentDone", 0),
+            Text = Loc.Get("Loc.Preparing"),
             Margin = new Thickness(0, 8, 0, 18),
             Foreground = TryBrush("Text.Secondary", Brushes.Gray)
         };
@@ -127,11 +128,24 @@ public sealed class CopyProgressWindow : Window
 
     public void Apply(FileTransferProgress progress)
     {
+        var startedCopying = progress.BytesCopied > 0 ||
+            (!string.IsNullOrWhiteSpace(progress.CurrentName) &&
+             !string.Equals(progress.CurrentName, "正在准备…", StringComparison.Ordinal));
+
+        if (_bar.IsIndeterminate && startedCopying)
+        {
+            _bar.IsIndeterminate = false;
+        }
+
         var ratio = progress.TotalBytes <= 0
             ? 0
             : Math.Clamp(progress.BytesCopied / (double)progress.TotalBytes, 0, 1);
-        _bar.Value = ratio * 100;
-        _percentText.Text = Loc.Format("Loc.PercentDone", $"{ratio * 100:0}");
+        if (!_bar.IsIndeterminate)
+        {
+            _bar.Value = ratio * 100;
+            _percentText.Text = Loc.Format("Loc.PercentDone", $"{ratio * 100:0}");
+        }
+
         if (!string.IsNullOrWhiteSpace(progress.CurrentName))
         {
             _nameText.Text = progress.CurrentName;
@@ -176,6 +190,7 @@ public sealed class CopyProgressWindow : Window
                     fileService.Transfer(sources, destination, move, progress, dialog.Token),
                 dialog.Token).ConfigureAwait(true);
 
+            dialog._bar.IsIndeterminate = false;
             dialog._bar.Value = 100;
             dialog._percentText.Text = Loc.Format("Loc.PercentDone", 100);
             await Task.Delay(180).ConfigureAwait(true);
@@ -190,6 +205,10 @@ public sealed class CopyProgressWindow : Window
         {
             dialog.Close();
             throw;
+        }
+        finally
+        {
+            dialog._cts.Dispose();
         }
     }
 

@@ -187,13 +187,16 @@ public sealed class FileService : IFileService
             .Select(Path.GetFullPath)
             .ToList();
 
-        var (totalBytes, totalFiles) = Measure(sources);
         var state = new TransferState
         {
-            TotalBytes = Math.Max(totalBytes, 1),
-            TotalFiles = Math.Max(totalFiles, 1)
+            TotalBytes = 1,
+            TotalFiles = 1
         };
+        Report(progress, state, "正在准备…");
 
+        var (totalBytes, totalFiles) = Measure(sources, progress, state, cancellationToken);
+        state.TotalBytes = Math.Max(totalBytes, 1);
+        state.TotalFiles = Math.Max(totalFiles, 1);
         Report(progress, state, "正在准备…");
 
         foreach (var source in sources)
@@ -243,9 +246,11 @@ public sealed class FileService : IFileService
 
             if (SameVolume(sourcePath, destinationPath))
             {
-                var extraBytes = 0L;
-                var extraFiles = 0;
-                MeasurePath(sourcePath, ref extraBytes, ref extraFiles);
+                var (extraBytes, extraFiles) = Measure(
+                    [sourcePath],
+                    progress: null,
+                    state: null,
+                    cancellationToken);
                 if (isDirectory)
                 {
                     Directory.Move(sourcePath, destinationPath);
@@ -255,8 +260,8 @@ public sealed class FileService : IFileService
                     File.Move(sourcePath, destinationPath);
                 }
 
-                state.BytesCopied += extraBytes;
-                state.FilesCopied += extraFiles;
+                state.BytesCopied += Math.Max(extraBytes, 0);
+                state.FilesCopied += Math.Max(extraFiles, 0);
                 state.CurrentName = fileName;
                 Report(progress, state, fileName);
                 return;
@@ -417,34 +422,73 @@ public sealed class FileService : IFileService
             throw new IOException("无法将文件夹复制到其自身");
         }
 
-        var files = Directory.GetFiles(sourceDir);
-        var dirs = Directory.GetDirectories(sourceDir)
-            .Where(dir => !PathsEqual(dir, destDir) && !IsUnder(dir, destDir))
-            .ToArray();
+        // Iterative copy avoids StackOverflowException on deep trees / junction cycles.
+        var stack = new Stack<(string Source, string Destination)>();
+        stack.Push((sourceDir, destDir));
 
-        Directory.CreateDirectory(destDir);
-
-        foreach (var file in files)
+        while (stack.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var destFile = Path.Combine(destDir, Path.GetFileName(file));
-            if (PathsEqual(file, destFile))
+            var (currentSource, currentDest) = stack.Pop();
+            currentSource = Path.GetFullPath(currentSource);
+            currentDest = Path.GetFullPath(currentDest);
+
+            if (PathsEqual(currentSource, currentDest))
             {
                 continue;
             }
 
-            CopyFile(file, destFile, state, progress, cancellationToken);
-        }
+            Directory.CreateDirectory(currentDest);
 
-        foreach (var subDir in dirs)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            CopyDirectory(
-                subDir,
-                Path.Combine(destDir, Path.GetFileName(subDir)),
-                state,
-                progress,
-                cancellationToken);
+            string[] files;
+            try
+            {
+                files = Directory.GetFiles(currentSource);
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var file in files)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var destFile = Path.Combine(currentDest, Path.GetFileName(file));
+                if (PathsEqual(file, destFile))
+                {
+                    continue;
+                }
+
+                CopyFile(file, destFile, state, progress, cancellationToken);
+            }
+
+            IEnumerable<string> dirs;
+            try
+            {
+                dirs = Directory.EnumerateDirectories(currentSource);
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var subDir in dirs)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (IsReparsePoint(subDir))
+                {
+                    // Skip junctions/symlinks so a link back to an ancestor cannot
+                    // recurse forever and crash the process.
+                    continue;
+                }
+
+                if (PathsEqual(subDir, currentDest) || IsUnder(subDir, currentDest))
+                {
+                    continue;
+                }
+
+                stack.Push((subDir, Path.Combine(currentDest, Path.GetFileName(subDir))));
+            }
         }
     }
 
@@ -458,11 +502,24 @@ public sealed class FileService : IFileService
         state.CurrentName = Path.GetFileName(sourcePath);
         Report(progress, state, state.CurrentName);
 
-        const int bufferSize = 256 * 1024;
+        // 1 MB buffer keeps throughput high for multi-GB files without loading the file into memory.
+        const int bufferSize = 1024 * 1024;
         try
         {
-            using var input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan);
-            using var output = new FileStream(destinationPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize, FileOptions.SequentialScan);
+            using var input = new FileStream(
+                sourcePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize,
+                FileOptions.SequentialScan);
+            using var output = new FileStream(
+                destinationPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize,
+                FileOptions.SequentialScan);
             var buffer = new byte[bufferSize];
             int read;
             while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
@@ -483,53 +540,119 @@ public sealed class FileService : IFileService
         Report(progress, state, state.CurrentName);
     }
 
-    private static (long Bytes, int Files) Measure(IEnumerable<string> paths)
+    private static (long Bytes, int Files) Measure(
+        IEnumerable<string> paths,
+        IProgress<FileTransferProgress>? progress,
+        TransferState? state,
+        CancellationToken cancellationToken)
     {
         long bytes = 0;
         var files = 0;
+        var stack = new Stack<string>();
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var path in paths)
         {
-            MeasurePath(path, ref bytes, ref files);
+            stack.Push(path);
+        }
+
+        while (stack.Count > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var path = stack.Pop();
+
+            string full;
+            try
+            {
+                full = Path.GetFullPath(path);
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (!visited.Add(full))
+            {
+                continue;
+            }
+
+            try
+            {
+                if (File.Exists(full))
+                {
+                    bytes += new FileInfo(full).Length;
+                    files++;
+                    ReportMeasure(progress, state, bytes, files);
+                    continue;
+                }
+
+                if (!Directory.Exists(full))
+                {
+                    continue;
+                }
+
+                foreach (var file in Directory.EnumerateFiles(full))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
+                    {
+                        bytes += new FileInfo(file).Length;
+                        files++;
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                ReportMeasure(progress, state, bytes, files);
+
+                foreach (var dir in Directory.EnumerateDirectories(full))
+                {
+                    if (IsReparsePoint(dir))
+                    {
+                        continue;
+                    }
+
+                    stack.Push(dir);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+            }
         }
 
         return (bytes, files);
     }
 
-    private static void MeasurePath(string path, ref long bytes, ref int files)
+    private static void ReportMeasure(
+        IProgress<FileTransferProgress>? progress,
+        TransferState? state,
+        long bytes,
+        int files)
+    {
+        if (state is null)
+        {
+            return;
+        }
+
+        state.TotalBytes = Math.Max(bytes, 1);
+        state.TotalFiles = Math.Max(files, 1);
+        Report(progress, state, "正在准备…");
+    }
+
+    private static bool IsReparsePoint(string path)
     {
         try
         {
-            if (File.Exists(path))
-            {
-                bytes += new FileInfo(path).Length;
-                files++;
-                return;
-            }
-
-            if (!Directory.Exists(path))
-            {
-                return;
-            }
-
-            foreach (var file in Directory.EnumerateFiles(path))
-            {
-                try
-                {
-                    bytes += new FileInfo(file).Length;
-                    files++;
-                }
-                catch
-                {
-                }
-            }
-
-            foreach (var dir in Directory.EnumerateDirectories(path))
-            {
-                MeasurePath(dir, ref bytes, ref files);
-            }
+            return (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
         }
         catch
         {
+            return false;
         }
     }
 
