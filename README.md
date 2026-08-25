@@ -5,6 +5,8 @@
 
 <img width="1355" height="858" alt="FolderSail" src="https://github.com/user-attachments/assets/e9b74122-0c73-4aa5-aad1-8dbd468a1f9f" />
 
+dotnet run --project src\FolderSail\FolderSail.csproj
+
 # FolderSail
 
 A lightweight multi-pane file manager for Windows. The UI is close to Finder: color tags, split views, and a unified top bar for everyday file work.
