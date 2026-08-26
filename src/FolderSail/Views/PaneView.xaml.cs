@@ -240,7 +240,7 @@ public partial class PaneView : UserControl
         // Double-click anywhere on the bar → type the path (Explorer-style).
         if (e.ClickCount >= 2)
         {
-            _pane.BeginEditAddressCommand.Execute(null);
+            BeginAddressEdit(selectAll: true);
             e.Handled = true;
             return;
         }
@@ -251,9 +251,29 @@ public partial class PaneView : UserControl
             return;
         }
 
-        // Single-click empty space in the bar → edit the path.
-        _pane.BeginEditAddressCommand.Execute(null);
+        // Single-click empty space (right gutter or scroll viewport padding) → select full path.
+        BeginAddressEdit(selectAll: true);
         e.Handled = true;
+    }
+
+    private void BeginAddressEdit(bool selectAll)
+    {
+        if (_pane == null)
+        {
+            return;
+        }
+
+        _pane.BeginEditAddressCommand.Execute(null);
+        if (!selectAll)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            AddressInput.Focus();
+            AddressInput.SelectAll();
+        }, DispatcherPriority.Input);
     }
 
     private static bool IsBreadcrumbSegment(DependencyObject? origin)

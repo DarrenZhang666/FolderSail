@@ -204,9 +204,19 @@
                         ToolTip="{DynamicResource Loc.EditPath}"
                         PreviewMouseLeftButtonDown="OnBreadcrumbMouseDown"
                         Visibility="{Binding IsAddressEditing, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden"
-                                  VerticalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding Breadcrumbs}" VerticalAlignment="Center">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="0" />
+                            <!-- Explorer-style: always keep empty space on the right to click and select the full path. -->
+                            <ColumnDefinition Width="Auto" MinWidth="48" />
+                        </Grid.ColumnDefinitions>
+                        <ScrollViewer Grid.Column="0"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Disabled"
+                                      HorizontalAlignment="Stretch">
+                            <ItemsControl ItemsSource="{Binding Breadcrumbs}"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <StackPanel Orientation="Horizontal" />
@@ -229,7 +239,13 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </ScrollViewer>
+                        </ScrollViewer>
+                        <Border Grid.Column="1"
+                                MinWidth="48"
+                                Background="Transparent"
+                                Cursor="IBeam"
+                                ToolTip="{DynamicResource Loc.EditPath}" />
+                    </Grid>
                 </Border>
 
                 <!-- Editable path -->
