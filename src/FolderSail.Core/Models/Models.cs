@@ -283,3 +283,48 @@ public sealed class FileTransferProgress
     public int FilesCopied { get; init; }
     public int TotalFiles { get; init; }
 }
+
+public sealed class WorkspaceDocument
+{
+    public int Version { get; set; } = 1;
+    public string Name { get; set; } = string.Empty;
+    public DateTime SavedAtUtc { get; set; } = DateTime.UtcNow;
+    public LayoutMode LayoutMode { get; set; } = LayoutMode.Dual;
+    public int ActivePaneIndex { get; set; }
+    public double SidebarWidth { get; set; } = 228;
+    public Dictionary<string, List<PaneBounds>> LayoutPaneBounds { get; set; } = [];
+    public List<PaneSessionState> Panes { get; set; } = [];
+    public WindowGeometry? Window { get; set; }
+}
+
+public sealed class PaneSessionState
+{
+    public int ActiveTabIndex { get; set; }
+    public List<double> ColumnWidths { get; set; } = [];
+    public List<TabSessionState> Tabs { get; set; } = [];
+}
+
+public sealed class TabSessionState
+{
+    public string Path { get; set; } = "ThisPC";
+    public int SortColumn { get; set; }
+    public bool SortDescending { get; set; }
+    public bool FoldersFirst { get; set; } = true;
+}
+
+public sealed class WindowGeometry
+{
+    public double Left { get; set; }
+    public double Top { get; set; }
+    public double Width { get; set; } = 1360;
+    public double Height { get; set; } = 860;
+    public bool IsMaximized { get; set; }
+}
+
+public sealed class WorkspaceEntry
+{
+    public string Name { get; init; } = string.Empty;
+    public string FilePath { get; init; } = string.Empty;
+    public DateTime SavedAtUtc { get; init; }
+    public DateTime LastOpenedUtc { get; init; }
+}

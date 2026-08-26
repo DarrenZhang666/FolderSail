@@ -1058,6 +1058,7 @@ public sealed class PaneViewModel : ObservableObject
         if (tab != null && Tabs.Contains(tab))
         {
             ActiveTab = tab;
+            ViewStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -1078,6 +1079,7 @@ public sealed class PaneViewModel : ObservableObject
         var insertAt = Tabs.IndexOf(tab) + 1;
         Tabs.Insert(insertAt, duplicate);
         ActiveTab = duplicate;
+        ViewStateChanged?.Invoke(this, EventArgs.Empty);
         StatusMessage?.Invoke(this, Loc.Get("Loc.TabDuplicated"));
     }
 
@@ -1105,6 +1107,7 @@ public sealed class PaneViewModel : ObservableObject
             ActiveTab = Tabs[Math.Clamp(closingIndex, 0, Tabs.Count - 1)];
         }
 
+        ViewStateChanged?.Invoke(this, EventArgs.Empty);
         StatusMessage?.Invoke(this, Loc.Get("Loc.TabClosed"));
     }
 
@@ -1122,6 +1125,7 @@ public sealed class PaneViewModel : ObservableObject
         }
 
         ActiveTab = tab;
+        ViewStateChanged?.Invoke(this, EventArgs.Empty);
         StatusMessage?.Invoke(this, Loc.Get("Loc.OtherTabsClosed"));
     }
 
@@ -1131,6 +1135,7 @@ public sealed class PaneViewModel : ObservableObject
         var remaining = new PaneTabViewModel(NavigationHistory.ThisPcToken, _tags);
         Tabs.Add(remaining);
         ActiveTab = remaining;
+        ViewStateChanged?.Invoke(this, EventArgs.Empty);
         StatusMessage?.Invoke(this, Loc.Get("Loc.AllTabsClosed"));
     }
 
@@ -1160,6 +1165,51 @@ public sealed class PaneViewModel : ObservableObject
 
         Tabs.Add(tab);
         ActiveTab = tab;
+        ViewStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public PaneSessionState CaptureSessionState()
+    {
+        var activeIndex = ActiveTab == null ? 0 : Math.Max(0, Tabs.IndexOf(ActiveTab));
+        return new PaneSessionState
+        {
+            ActiveTabIndex = activeIndex,
+            ColumnWidths = GetColumnWidths().ToList(),
+            Tabs = Tabs.Select(tab => new TabSessionState
+            {
+                Path = tab.Path,
+                SortColumn = (int)tab.SortColumn,
+                SortDescending = tab.SortDescending,
+                FoldersFirst = tab.FoldersFirst
+            }).ToList()
+        };
+    }
+
+    public void ApplySessionState(PaneSessionState state)
+    {
+        Tabs.Clear();
+        foreach (var tabState in state.Tabs)
+        {
+            if (string.IsNullOrWhiteSpace(tabState.Path))
+            {
+                continue;
+            }
+
+            Tabs.Add(new PaneTabViewModel(tabState.Path, _tags)
+            {
+                SortColumn = (FileSortColumn)Math.Clamp(tabState.SortColumn, 0, 3),
+                SortDescending = tabState.SortDescending,
+                FoldersFirst = tabState.FoldersFirst
+            });
+        }
+
+        if (Tabs.Count == 0)
+        {
+            Tabs.Add(new PaneTabViewModel(NavigationHistory.ThisPcToken, _tags));
+        }
+
+        ActiveTab = Tabs[Math.Clamp(state.ActiveTabIndex, 0, Tabs.Count - 1)];
+        ApplyColumnWidths(state.ColumnWidths);
     }
 
     public IReadOnlyList<string> GetSelectedPathsForDrag(string fallback)

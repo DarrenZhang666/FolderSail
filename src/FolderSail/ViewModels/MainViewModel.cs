@@ -2,6 +2,7 @@ using FolderSail.Core.Models;
 using FolderSail.Core.Services;
 using FolderSail.Helpers;
 using FolderSail.Mvvm;
+using FolderSail.Views;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
@@ -14,6 +15,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     private readonly IFileSearchService _searchService;
     private readonly IFavoriteStore _favoriteStore;
     private readonly ISettingsStore _settingsStore;
+    private readonly IWorkspaceStore _workspaceStore;
+    private readonly IRecentWorkspaceStore _recentStore;
     private readonly FavoritesDocument _favoritesDocument;
     private readonly List<PaneViewModel> _allPanes = [];
     private LayoutMode _layoutMode = LayoutMode.Dual;
@@ -29,6 +32,8 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     private readonly List<bool> _paneFoldersFirst;
     private readonly List<List<double>> _paneColumnWidths;
     private readonly Dictionary<string, List<PaneBounds>> _layoutPaneBounds;
+    private string? _currentWorkspacePath;
+    private string _workspaceName = string.Empty;
 
     public const double SidebarMinWidth = 156;
     public const double SidebarMaxWidth = 520;
@@ -40,7 +45,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     }
 
     public MainViewModel(IFileService fileService, IFavoriteStore favoriteStore, ISettingsStore settingsStore)
-        : this(fileService, new SearchService(fileService), favoriteStore, settingsStore)
+        : this(fileService, new SearchService(fileService), favoriteStore, settingsStore, new WorkspaceStore(), new RecentWorkspaceStore())
     {
     }
 
@@ -49,11 +54,24 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         IFileSearchService searchService,
         IFavoriteStore favoriteStore,
         ISettingsStore settingsStore)
+        : this(fileService, searchService, favoriteStore, settingsStore, new WorkspaceStore(), new RecentWorkspaceStore())
+    {
+    }
+
+    public MainViewModel(
+        IFileService fileService,
+        IFileSearchService searchService,
+        IFavoriteStore favoriteStore,
+        ISettingsStore settingsStore,
+        IWorkspaceStore workspaceStore,
+        IRecentWorkspaceStore recentStore)
     {
         _fileService = fileService;
         _searchService = searchService;
         _favoriteStore = favoriteStore;
         _settingsStore = settingsStore;
+        _workspaceStore = workspaceStore;
+        _recentStore = recentStore;
         _favoritesDocument = _favoriteStore.Load();
         var settings = _settingsStore.Load();
 
@@ -92,8 +110,15 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         ClearSearchCommand = new RelayCommand(ClearSearch, () => HasSearchText);
         ToggleThemeCommand = new RelayCommand(ToggleTheme);
         ToggleLanguageCommand = new RelayCommand(ToggleLanguage);
+        OpenWorkspaceCommand = new RelayCommand(OpenWorkspace);
+        SaveWorkspaceCommand = new RelayCommand(SaveWorkspace);
+        SaveWorkspaceAsCommand = new RelayCommand(SaveWorkspaceAs);
+        OpenRecentWorkspaceCommand = new RelayCommand<string?>(OpenRecentWorkspace);
         LanguageManager.Changed += (_, _) => RefreshLocalization();
         _statusMessage = Loc.Get("Loc.Ready");
+        UpdateWorkspaceTitle();
+        _recentStore.SeedIfEmpty(_workspaceStore.List());
+        RefreshRecentWorkspaces();
     }
 
     public ObservableCollection<PaneViewModel> Panes { get; } = [];
@@ -238,6 +263,105 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public ICommand ClearSearchCommand { get; }
     public ICommand ToggleThemeCommand { get; }
     public ICommand ToggleLanguageCommand { get; }
+    public ICommand OpenWorkspaceCommand { get; }
+    public ICommand SaveWorkspaceCommand { get; }
+    public ICommand SaveWorkspaceAsCommand { get; }
+    public ICommand OpenRecentWorkspaceCommand { get; }
+
+    public ObservableCollection<WorkspaceEntry> RecentWorkspaces { get; } = [];
+
+    public string WorkspaceTitle =>
+        string.IsNullOrWhiteSpace(_workspaceName)
+            ? "FolderSail"
+            : $"FolderSail - {_workspaceName}";
+
+    public string? CurrentWorkspacePath => _currentWorkspacePath;
+
+    public IReadOnlyList<WorkspaceEntry> ListWorkspaces() => _workspaceStore.List();
+
+    public void LoadWorkspace(string filePath, WindowGeometry? windowGeometry = null, bool applyGeometry = true)
+    {
+        var document = _workspaceStore.Load(filePath);
+        ApplyWorkspaceDocument(
+            document,
+            filePath,
+            applyGeometry ? windowGeometry ?? document.Window : null);
+        RecordWorkspaceAccess(filePath, _workspaceName);
+        StatusMessage = Loc.Format("Loc.WorkspaceOpened", _workspaceName);
+    }
+
+    public void ResetToDefaultSession()
+    {
+        var settings = _settingsStore.Load();
+        _currentWorkspacePath = null;
+        SetWorkspaceName(string.Empty);
+        ReplaceLayoutPaneBounds(settings.LayoutPaneBounds);
+        SidebarWidth = ClampSidebarWidth(settings.SidebarWidth);
+        _layoutMode = settings.LayoutMode;
+        OnPropertyChanged(nameof(LayoutMode));
+        UpdateLayoutPresetSelection();
+        RebuildPanes(settings.ActivePaneIndex, settings.PanePaths, null);
+        StatusMessage = Loc.Get("Loc.WorkspaceNewWindow");
+    }
+
+    public bool SaveWorkspace(Window? owner, WindowGeometry? geometry)
+    {
+        if (string.IsNullOrWhiteSpace(_currentWorkspacePath))
+        {
+            return SaveWorkspaceAs(owner, geometry);
+        }
+
+        return SaveWorkspaceToPath(_currentWorkspacePath, WorkspaceNameFromPath(_currentWorkspacePath, _workspaceName), geometry);
+    }
+
+    public bool SaveWorkspaceAs(Window? owner, WindowGeometry? geometry)
+    {
+        var defaultName = string.IsNullOrWhiteSpace(_workspaceName)
+            ? "foldersail_workspace"
+            : _workspaceName;
+        var name = PromptForText(Loc.Get("Loc.SaveWorkspaceTitle"), Loc.Get("Loc.WorkspaceName"), defaultName);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        var trimmed = name.Trim();
+        var targetPath = _workspaceStore.ResolvePath(trimmed);
+        if (_workspaceStore.Exists(trimmed) &&
+            (_currentWorkspacePath == null ||
+             !string.Equals(targetPath, _currentWorkspacePath, StringComparison.OrdinalIgnoreCase)))
+        {
+            var overwrite = MessageBox.Show(
+                Loc.Format("Loc.WorkspaceOverwrite", trimmed),
+                "FolderSail",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (overwrite != MessageBoxResult.Yes)
+            {
+                return false;
+            }
+        }
+
+        return SaveWorkspaceToPath(targetPath, trimmed, geometry);
+    }
+
+    public void SaveOnExit(WindowGeometry? geometry)
+    {
+        if (!string.IsNullOrWhiteSpace(_currentWorkspacePath))
+        {
+            try
+            {
+                SaveWorkspaceToPath(_currentWorkspacePath, _workspaceName, geometry, notify: false);
+            }
+            catch
+            {
+                // Best effort on exit.
+            }
+        }
+
+        SaveSettings();
+        PersistFavorites();
+    }
 
     public void SubmitSearch()
     {
@@ -533,10 +657,248 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public string? GetTagName(Guid tagId) =>
         Tags.FirstOrDefault(tag => tag.Id == tagId)?.Name;
 
-    public void SaveOnExit()
+    private void OpenWorkspace()
     {
-        SaveSettings();
-        PersistFavorites();
+        var workspaces = _workspaceStore.List();
+        var picker = new WorkspacePickerWindow(workspaces);
+        var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive)
+            ?? Application.Current.MainWindow;
+        if (owner is { IsVisible: true })
+        {
+            picker.Owner = owner;
+        }
+
+        if (picker.ShowDialog() != true || string.IsNullOrWhiteSpace(picker.SelectedPath))
+        {
+            return;
+        }
+
+        LoadWorkspace(picker.SelectedPath, applyGeometry: false);
+    }
+
+    private void OpenRecentWorkspace(string? filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return;
+        }
+
+        LoadWorkspace(filePath, applyGeometry: false);
+    }
+
+    public void RefreshRecentWorkspaces()
+    {
+        RecentWorkspaces.Clear();
+        foreach (var entry in _recentStore.List())
+        {
+            RecentWorkspaces.Add(entry);
+        }
+    }
+
+    private void RecordWorkspaceAccess(string filePath, string name)
+    {
+        _recentStore.RecordOpened(filePath, name);
+        RefreshRecentWorkspaces();
+    }
+
+    private void SaveWorkspace()
+    {
+        var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive)
+            ?? Application.Current.MainWindow;
+        if (!SaveWorkspace(owner, CaptureWindowGeometry(owner)))
+        {
+            return;
+        }
+    }
+
+    private void SaveWorkspaceAs()
+    {
+        var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive)
+            ?? Application.Current.MainWindow;
+        SaveWorkspaceAs(owner, CaptureWindowGeometry(owner));
+    }
+
+    private bool SaveWorkspaceToPath(string filePath, string name, WindowGeometry? geometry, bool notify = true)
+    {
+        var document = CaptureWorkspace(name, geometry);
+        _workspaceStore.Save(filePath, document);
+        _currentWorkspacePath = filePath;
+        SetWorkspaceName(name);
+        if (notify)
+        {
+            StatusMessage = Loc.Format("Loc.WorkspaceSaved", name);
+        }
+
+        RecordWorkspaceAccess(filePath, name);
+        return true;
+    }
+
+    private WorkspaceDocument CaptureWorkspace(string name, WindowGeometry? geometry)
+    {
+        return new WorkspaceDocument
+        {
+            Name = name,
+            LayoutMode = LayoutMode,
+            ActivePaneIndex = ActivePaneIndex,
+            SidebarWidth = SidebarWidth,
+            LayoutPaneBounds = _layoutPaneBounds.ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value.Select(bounds => bounds.Clone()).ToList()),
+            Panes = _allPanes.Select(pane => pane.CaptureSessionState()).ToList(),
+            Window = geometry
+        };
+    }
+
+    private void ApplyWorkspaceDocument(WorkspaceDocument document, string filePath, WindowGeometry? windowGeometry)
+    {
+        _currentWorkspacePath = filePath;
+        SetWorkspaceName(string.IsNullOrWhiteSpace(document.Name)
+            ? WorkspaceNameFromPath(filePath, string.Empty)
+            : document.Name);
+        ReplaceLayoutPaneBounds(document.LayoutPaneBounds);
+        SidebarWidth = ClampSidebarWidth(document.SidebarWidth);
+        _layoutMode = document.LayoutMode;
+        OnPropertyChanged(nameof(LayoutMode));
+        UpdateLayoutPresetSelection();
+
+        var panePaths = document.Panes
+            .Select(pane => pane.Tabs.ElementAtOrDefault(Math.Clamp(pane.ActiveTabIndex, 0, Math.Max(0, pane.Tabs.Count - 1)))?.Path
+                ?? pane.Tabs.FirstOrDefault()?.Path
+                ?? "ThisPC")
+            .ToList();
+
+        RebuildPanes(document.ActivePaneIndex, panePaths, document.Panes);
+
+        if (windowGeometry != null)
+        {
+            ApplyWindowGeometryRequested?.Invoke(this, windowGeometry);
+        }
+    }
+
+    public event EventHandler<WindowGeometry>? ApplyWindowGeometryRequested;
+
+    private void RebuildPanes(int activeIndex, IList<string>? savedPaths, IList<PaneSessionState>? paneStates)
+    {
+        _allPanes.Clear();
+        Panes.Clear();
+
+        var visibleCount = LayoutMode.GetDefinition().PaneCount;
+        var poolTarget = Math.Max(visibleCount, Math.Max(savedPaths?.Count ?? 0, paneStates?.Count ?? 0));
+
+        for (var i = 0; i < poolTarget; i++)
+        {
+            string path;
+            if (savedPaths != null && i < savedPaths.Count && !string.IsNullOrWhiteSpace(savedPaths[i]))
+            {
+                path = savedPaths[i];
+            }
+            else if (paneStates != null && i < paneStates.Count && paneStates[i].Tabs.Count > 0)
+            {
+                path = paneStates[i].Tabs[Math.Clamp(paneStates[i].ActiveTabIndex, 0, paneStates[i].Tabs.Count - 1)].Path;
+            }
+            else
+            {
+                path = i == 0 ? _fileService.GetDefaultPath() : "ThisPC";
+            }
+
+            var pane = CreatePane(i, path);
+            if (paneStates != null && i < paneStates.Count)
+            {
+                pane.ApplySessionState(paneStates[i]);
+            }
+
+            _allPanes.Add(pane);
+        }
+
+        for (var i = 0; i < visibleCount; i++)
+        {
+            Panes.Add(_allPanes[i]);
+        }
+
+        ActivePaneIndex = Math.Clamp(activeIndex, 0, Panes.Count - 1);
+        for (var i = 0; i < _allPanes.Count; i++)
+        {
+            _allPanes[i].IsActive = i == ActivePaneIndex && i < Panes.Count;
+        }
+    }
+
+    private PaneViewModel CreatePane(int index, string path)
+    {
+        var pane = new PaneViewModel(index, _fileService, path, this, _searchService);
+        pane.StatusMessage += (_, message) => StatusMessage = message;
+        pane.ViewStateChanged += (_, _) =>
+        {
+            SaveSettings();
+            if (!string.IsNullOrWhiteSpace(_currentWorkspacePath))
+            {
+                // Keep named workspaces fresh while editing.
+            }
+        };
+
+        if (index < _paneSortColumns.Count)
+        {
+            var column = (FileSortColumn)Math.Clamp(_paneSortColumns[index], 0, 3);
+            var descending = index < _paneSortDescending.Count && _paneSortDescending[index];
+            var foldersFirst = index >= _paneFoldersFirst.Count || _paneFoldersFirst[index];
+            pane.ApplySort(column, descending, foldersFirst);
+        }
+
+        if (index < _paneColumnWidths.Count)
+        {
+            pane.ApplyColumnWidths(_paneColumnWidths[index]);
+        }
+
+        return pane;
+    }
+
+    private void UpdateWorkspaceTitle() =>
+        OnPropertyChanged(nameof(WorkspaceTitle));
+
+    private void SetWorkspaceName(string name)
+    {
+        _workspaceName = name;
+        UpdateWorkspaceTitle();
+    }
+
+    private static string WorkspaceNameFromPath(string filePath, string fallback) =>
+        string.IsNullOrWhiteSpace(fallback)
+            ? Path.GetFileNameWithoutExtension(filePath)
+            : fallback;
+
+    public static WindowGeometry? CaptureWindowGeometry(Window? window)
+    {
+        if (window == null)
+        {
+            return null;
+        }
+
+        return new WindowGeometry
+        {
+            Left = window.RestoreBounds.Left,
+            Top = window.RestoreBounds.Top,
+            Width = window.RestoreBounds.Width,
+            Height = window.RestoreBounds.Height,
+            IsMaximized = window.WindowState == WindowState.Maximized
+        };
+    }
+
+    public static void ApplyWindowGeometry(Window window, WindowGeometry geometry)
+    {
+        if (geometry.IsMaximized)
+        {
+            window.WindowState = WindowState.Maximized;
+            return;
+        }
+
+        window.WindowState = WindowState.Normal;
+        if (geometry.Width >= window.MinWidth && geometry.Height >= window.MinHeight)
+        {
+            window.Width = geometry.Width;
+            window.Height = geometry.Height;
+        }
+
+        window.Left = geometry.Left;
+        window.Top = geometry.Top;
     }
 
     private void ApplyLayout(int activeIndex, IList<string>? savedPaths)
@@ -559,23 +921,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
                 path = i == 0 ? defaultPath : "ThisPC";
             }
 
-            var pane = new PaneViewModel(i, _fileService, path, this, _searchService);
-            pane.StatusMessage += (_, message) => StatusMessage = message;
-            pane.ViewStateChanged += (_, _) => SaveSettings();
-            if (i < _paneSortColumns.Count)
-            {
-                var column = (FileSortColumn)Math.Clamp(_paneSortColumns[i], 0, 3);
-                var descending = i < _paneSortDescending.Count && _paneSortDescending[i];
-                var foldersFirst = i >= _paneFoldersFirst.Count || _paneFoldersFirst[i];
-                pane.ApplySort(column, descending, foldersFirst);
-            }
-
-            if (i < _paneColumnWidths.Count)
-            {
-                pane.ApplyColumnWidths(_paneColumnWidths[i]);
-            }
-
-            _allPanes.Add(pane);
+            _allPanes.Add(CreatePane(i, path));
         }
 
         Panes.Clear();
@@ -630,6 +976,20 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     }
 
     private static string LayoutKey(LayoutMode mode) => ((int)mode).ToString();
+
+    private void ReplaceLayoutPaneBounds(Dictionary<string, List<PaneBounds>>? source)
+    {
+        _layoutPaneBounds.Clear();
+        if (source == null)
+        {
+            return;
+        }
+
+        foreach (var pair in source)
+        {
+            _layoutPaneBounds[pair.Key] = pair.Value.Select(bounds => bounds.Clone()).ToList();
+        }
+    }
 
     private void ApplyTagChildExpansion(bool expanded)
     {

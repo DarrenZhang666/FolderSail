@@ -163,4 +163,22 @@
     <sys:String x:Key="Loc.AboutMinutes">约 {0} 分钟</sys:String>
     <sys:String x:Key="Loc.AboutHours">约 {0} 小时</sys:String>
     <sys:String x:Key="Loc.Cancelling">正在取消…</sys:String>
+    <sys:String x:Key="Loc.FileMenu">文件</sys:String>
+    <sys:String x:Key="Loc.WorkspaceNew">新建 FolderSail</sys:String>
+    <sys:String x:Key="Loc.WorkspaceOpen">打开…</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSave">保存</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSaveAs">另存为…</sys:String>
+    <sys:String x:Key="Loc.WorkspaceRecent">最近打开</sys:String>
+    <sys:String x:Key="Loc.WorkspaceRecentSection">最近打开</sys:String>
+    <sys:String x:Key="Loc.WorkspaceRecentEmpty">（暂无历史记录）</sys:String>
+    <sys:String x:Key="Loc.OpenWorkspaceTitle">打开工作区</sys:String>
+    <sys:String x:Key="Loc.OpenWorkspaceHint">选择一个已保存的 FolderSail 工作区，恢复布局与各窗格中的文件夹标签页。</sys:String>
+    <sys:String x:Key="Loc.SaveWorkspaceTitle">保存工作区</sys:String>
+    <sys:String x:Key="Loc.WorkspaceName">工作区名称</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSaved">已保存工作区：{0}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceOpened">已打开工作区：{0}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceNewWindow">已新建 FolderSail 窗口</sys:String>
+    <sys:String x:Key="Loc.WorkspaceOverwrite">工作区“{0}”已存在，是否覆盖？</sys:String>
+    <sys:String x:Key="Loc.WorkspaceListItem">{0} · {1:g}</sys:String>
+    <sys:String x:Key="Loc.Open">打开</sys:String>
 </ResourceDictionary>

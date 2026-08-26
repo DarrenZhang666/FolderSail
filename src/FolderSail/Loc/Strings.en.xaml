@@ -163,4 +163,22 @@
     <sys:String x:Key="Loc.AboutMinutes">About {0} minutes</sys:String>
     <sys:String x:Key="Loc.AboutHours">About {0} hours</sys:String>
     <sys:String x:Key="Loc.Cancelling">Cancelling…</sys:String>
+    <sys:String x:Key="Loc.FileMenu">File</sys:String>
+    <sys:String x:Key="Loc.WorkspaceNew">New FolderSail</sys:String>
+    <sys:String x:Key="Loc.WorkspaceOpen">Open…</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSave">Save</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSaveAs">Save As…</sys:String>
+    <sys:String x:Key="Loc.WorkspaceRecent">Recent</sys:String>
+    <sys:String x:Key="Loc.WorkspaceRecentSection">Recent</sys:String>
+    <sys:String x:Key="Loc.WorkspaceRecentEmpty">(No recent workspaces)</sys:String>
+    <sys:String x:Key="Loc.OpenWorkspaceTitle">Open Workspace</sys:String>
+    <sys:String x:Key="Loc.OpenWorkspaceHint">Pick a saved FolderSail workspace to restore the layout and folder tabs in each pane.</sys:String>
+    <sys:String x:Key="Loc.SaveWorkspaceTitle">Save Workspace</sys:String>
+    <sys:String x:Key="Loc.WorkspaceName">Workspace name</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSaved">Workspace saved: {0}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceOpened">Workspace opened: {0}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceNewWindow">New FolderSail window</sys:String>
+    <sys:String x:Key="Loc.WorkspaceOverwrite">Workspace "{0}" already exists. Overwrite?</sys:String>
+    <sys:String x:Key="Loc.WorkspaceListItem">{0} · {1:g}</sys:String>
+    <sys:String x:Key="Loc.Open">Open</sys:String>
 </ResourceDictionary>

@@ -5,7 +5,7 @@
         xmlns:models="clr-namespace:FolderSail.Core.Models;assembly=FolderSail.Core"
         xmlns:vm="clr-namespace:FolderSail.ViewModels"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        Title="FolderSail"
+        Title="{Binding WorkspaceTitle}"
         Icon="pack://application:,,,/Assets/app.ico"
         Width="1360"
         Height="860"
@@ -442,6 +442,29 @@
                                    Visibility="{Binding IsDarkTheme, Converter={StaticResource BoolToVisibility}}" />
                     </Grid>
                 </Button>
+
+                <Menu VerticalAlignment="Center"
+                      Margin="0,0,12,0"
+                      Background="Transparent"
+                      shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <MenuItem x:Name="FileMenuRoot"
+                              Header="{DynamicResource Loc.FileMenu}"
+                              Padding="10,4"
+                              SubmenuOpened="OnFileMenuOpened">
+                        <MenuItem Header="{DynamicResource Loc.WorkspaceNew}"
+                                  InputGestureText="Ctrl+N"
+                                  Click="OnNewWorkspace" />
+                        <MenuItem Header="{DynamicResource Loc.WorkspaceOpen}"
+                                  InputGestureText="Ctrl+O"
+                                  Command="{Binding OpenWorkspaceCommand}" />
+                        <Separator />
+                        <MenuItem Header="{DynamicResource Loc.WorkspaceSave}"
+                                  InputGestureText="Ctrl+S"
+                                  Command="{Binding SaveWorkspaceCommand}" />
+                        <MenuItem Header="{DynamicResource Loc.WorkspaceSaveAs}"
+                                  Command="{Binding SaveWorkspaceAsCommand}" />
+                    </MenuItem>
+                </Menu>
 
                 <Border Background="{DynamicResource Surface.Hover}"
                         CornerRadius="8"

@@ -1,8 +1,10 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using FolderSail.Core.Models;
 using FolderSail.Helpers;
 using FolderSail.ViewModels;
 
@@ -10,21 +12,121 @@ namespace FolderSail.Views;
 
 public partial class MainWindow : Window
 {
+    private MainViewModel ViewModel => (MainViewModel)DataContext;
+
     public MainWindow()
+        : this(null)
+    {
+    }
+
+    public MainWindow(string? workspacePath)
     {
         InitializeComponent();
         var viewModel = new MainViewModel();
         DataContext = viewModel;
         SidebarColumn.Width = new GridLength(viewModel.SidebarWidth);
         Helpers.WindowBackdrop.TryEnable(this);
-        Loaded += (_, _) => UpdateSearchPlaceholder();
+        Loaded += OnLoaded;
         Helpers.ThemeManager.Changed += OnThemeChanged;
-        Closing += (_, _) =>
+        Closing += OnClosing;
+
+        viewModel.ApplyWindowGeometryRequested += (_, geometry) =>
+            MainViewModel.ApplyWindowGeometry(this, geometry);
+
+        if (!string.IsNullOrWhiteSpace(workspacePath) && File.Exists(workspacePath))
         {
-            Helpers.ThemeManager.Changed -= OnThemeChanged;
-            viewModel.SidebarWidth = SidebarColumn.ActualWidth;
-            viewModel.SaveOnExit();
+            viewModel.LoadWorkspace(workspacePath);
+        }
+
+        viewModel.RefreshRecentWorkspaces();
+    }
+
+    public static void OpenNewWindow()
+    {
+        var window = new MainWindow();
+        window.Show();
+    }
+
+    public static void OpenWorkspaceWindow(string workspacePath)
+    {
+        var window = new MainWindow(workspacePath);
+        window.Show();
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        UpdateSearchPlaceholder();
+        Title = ViewModel.WorkspaceTitle;
+        ViewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MainViewModel.WorkspaceTitle))
+            {
+                Title = ViewModel.WorkspaceTitle;
+            }
         };
+    }
+
+    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        Helpers.ThemeManager.Changed -= OnThemeChanged;
+        ViewModel.SidebarWidth = SidebarColumn.ActualWidth;
+        ViewModel.SaveOnExit(MainViewModel.CaptureWindowGeometry(this));
+    }
+
+    private void OnNewWorkspace(object sender, RoutedEventArgs e) => OpenNewWindow();
+
+    private void OnFileMenuOpened(object sender, RoutedEventArgs e)
+    {
+        ViewModel.RefreshRecentWorkspaces();
+        RebuildRecentMenuSection();
+    }
+
+    private void RebuildRecentMenuSection()
+    {
+        for (var i = FileMenuRoot.Items.Count - 1; i >= 0; i--)
+        {
+            if (FileMenuRoot.Items[i] is FrameworkElement element &&
+                element.Tag is string tag &&
+                tag.StartsWith("recent", StringComparison.Ordinal))
+            {
+                FileMenuRoot.Items.RemoveAt(i);
+            }
+        }
+
+        var recents = ViewModel.RecentWorkspaces;
+        FileMenuRoot.Items.Add(new Separator { Tag = "recent-sep" });
+
+        if (recents.Count == 0)
+        {
+            FileMenuRoot.Items.Add(new MenuItem
+            {
+                Tag = "recent-empty",
+                Header = Loc.Get("Loc.WorkspaceRecentEmpty"),
+                IsEnabled = false,
+                Foreground = (Brush)FindResource("Text.Tertiary")
+            });
+            return;
+        }
+
+        FileMenuRoot.Items.Add(new MenuItem
+        {
+            Tag = "recent-label",
+            Header = Loc.Get("Loc.WorkspaceRecentSection"),
+            IsEnabled = false,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)FindResource("Text.Secondary")
+        });
+
+        foreach (var entry in recents)
+        {
+            FileMenuRoot.Items.Add(new MenuItem
+            {
+                Tag = "recent-item",
+                Header = Loc.Format("Loc.WorkspaceListItem", entry.Name, entry.LastOpenedUtc.ToLocalTime()),
+                Command = ViewModel.OpenRecentWorkspaceCommand,
+                CommandParameter = entry.FilePath
+            });
+        }
     }
 
     private void OnThemeChanged(object? sender, EventArgs e) =>
@@ -90,7 +192,31 @@ public partial class MainWindow : Window
 
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (DataContext is not MainViewModel vm || vm.ActivePane is not PaneViewModel pane)
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        if (Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            switch (e.Key)
+            {
+                case Key.N:
+                    OpenNewWindow();
+                    e.Handled = true;
+                    return;
+                case Key.O:
+                    vm.OpenWorkspaceCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                case Key.S:
+                    vm.SaveWorkspaceCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+            }
+        }
+
+        if (vm.ActivePane is not PaneViewModel pane)
         {
             return;
         }
