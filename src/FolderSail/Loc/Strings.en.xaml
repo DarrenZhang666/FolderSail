@@ -115,6 +115,7 @@
     <sys:String x:Key="Loc.CopiedMany">Copied {0} item(s)</sys:String>
     <sys:String x:Key="Loc.CutOne">Cut to clipboard</sys:String>
     <sys:String x:Key="Loc.CutMany">Cut {0} item(s)</sys:String>
+    <sys:String x:Key="Loc.CutCancelled">Cut cancelled</sys:String>
     <sys:String x:Key="Loc.Moving">Moving…</sys:String>
     <sys:String x:Key="Loc.Copying">Copying…</sys:String>
     <sys:String x:Key="Loc.MoveDone">Move complete</sys:String>

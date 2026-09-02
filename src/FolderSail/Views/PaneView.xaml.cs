@@ -45,6 +45,7 @@ public partial class PaneView : UserControl
                 _pane.PropertyChanged -= OnPanePropertyChanged;
                 _pane.InlineRenameStarted -= OnInlineRenameStarted;
                 _pane.FilterFocusRequested -= OnFilterFocusRequested;
+                _pane.SelectionCleared -= OnSelectionCleared;
             }
         };
         FolderSail.Helpers.ThemeManager.Changed += OnThemeChanged;
@@ -59,6 +60,7 @@ public partial class PaneView : UserControl
             _pane.PropertyChanged -= OnPanePropertyChanged;
             _pane.InlineRenameStarted -= OnInlineRenameStarted;
             _pane.FilterFocusRequested -= OnFilterFocusRequested;
+            _pane.SelectionCleared -= OnSelectionCleared;
         }
 
         _pane = e.NewValue as PaneViewModel;
@@ -68,10 +70,17 @@ public partial class PaneView : UserControl
             _pane.PropertyChanged += OnPanePropertyChanged;
             _pane.InlineRenameStarted += OnInlineRenameStarted;
             _pane.FilterFocusRequested += OnFilterFocusRequested;
+            _pane.SelectionCleared += OnSelectionCleared;
         }
 
         ApplyActiveVisual();
         ApplyHeaderColumnWidths();
+    }
+
+    private void OnSelectionCleared(object? sender, EventArgs e)
+    {
+        FilesList.SelectedItems.Clear();
+        FilesList.SelectedItem = null;
     }
 
     private void OnPanePropertyChanged(object? sender, PropertyChangedEventArgs e)

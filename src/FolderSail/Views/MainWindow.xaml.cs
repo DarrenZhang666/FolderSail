@@ -288,6 +288,10 @@ public partial class MainWindow : Window
 
         switch (e.Key)
         {
+            case Key.Escape:
+                HandleEscape(vm, pane);
+                e.Handled = true;
+                break;
             case Key.Delete:
                 pane.DeleteSelectedCommand.Execute(null);
                 e.Handled = true;
@@ -301,6 +305,32 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
         }
+    }
+
+    /// <summary>
+    /// Match Explorer Esc priority: cancel rename → clear filter → cancel cut dimming → clear selection.
+    /// </summary>
+    private static void HandleEscape(MainViewModel vm, PaneViewModel pane)
+    {
+        if (pane.IsInlineRenaming)
+        {
+            pane.CancelInlineRename();
+            return;
+        }
+
+        if (pane.HasFilter)
+        {
+            pane.ClearFilterCommand.Execute(null);
+            return;
+        }
+
+        if (FileClipboard.CancelCut())
+        {
+            vm.StatusMessage = Loc.Get("Loc.CutCancelled");
+            return;
+        }
+
+        pane.ClearSelection();
     }
 
     private void OnSearchPreviewKeyDown(object sender, KeyEventArgs e)

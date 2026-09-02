@@ -13,12 +13,14 @@ public sealed class FileItemViewModel : ObservableObject
     private bool _sizeRequested;
     private bool _isRenaming;
     private bool _isDropTarget;
+    private bool _isCut;
     private string _renameText = string.Empty;
 
     public FileItemViewModel(FileItem item)
     {
         Item = item;
         _size = item.Kind == FileItemKind.Directory ? -1 : item.Size;
+        _isCut = FileClipboard.IsCut(item.FullPath);
     }
 
     public FileItem Item { get; }
@@ -45,6 +47,14 @@ public sealed class FileItemViewModel : ObservableObject
         get => _isDropTarget;
         set => SetProperty(ref _isDropTarget, value);
     }
+
+    public bool IsCut
+    {
+        get => _isCut;
+        private set => SetProperty(ref _isCut, value);
+    }
+
+    public void RefreshCutState() => IsCut = FileClipboard.IsCut(FullPath);
 
     public void EnsureIcon(CancellationToken cancellationToken = default)
     {

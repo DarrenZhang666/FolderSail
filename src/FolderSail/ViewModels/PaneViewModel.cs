@@ -83,6 +83,18 @@ public sealed class PaneViewModel : ObservableObject
         Tabs.Add(initialTab);
         ActiveTab = initialTab;
         RebuildBreadcrumbs();
+        FileClipboard.CutStateChanged += OnClipboardCutStateChanged;
+    }
+
+    private void OnClipboardCutStateChanged(object? sender, EventArgs e) =>
+        System.Windows.Application.Current?.Dispatcher.BeginInvoke(RefreshCutAppearance);
+
+    private void RefreshCutAppearance()
+    {
+        foreach (var item in Items)
+        {
+            item.RefreshCutState();
+        }
     }
 
     public int Index { get; }
@@ -1229,6 +1241,16 @@ public sealed class PaneViewModel : ObservableObject
         SelectedItems.AddRange(items);
         CommandManager.InvalidateRequerySuggested();
     }
+
+    public void ClearSelection()
+    {
+        SelectedItems.Clear();
+        SelectedItem = null;
+        SelectionCleared?.Invoke(this, EventArgs.Empty);
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    public event EventHandler? SelectionCleared;
 
     private bool HasSelection() => SelectedItems.Count > 0 || SelectedItem != null;
 

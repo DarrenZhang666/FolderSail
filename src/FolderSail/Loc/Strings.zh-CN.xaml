@@ -115,6 +115,7 @@
     <sys:String x:Key="Loc.CopiedMany">已复制 {0} 项</sys:String>
     <sys:String x:Key="Loc.CutOne">已剪切到剪贴板</sys:String>
     <sys:String x:Key="Loc.CutMany">已剪切 {0} 项</sys:String>
+    <sys:String x:Key="Loc.CutCancelled">已取消剪切</sys:String>
     <sys:String x:Key="Loc.Moving">正在移动…</sys:String>
     <sys:String x:Key="Loc.Copying">正在复制…</sys:String>
     <sys:String x:Key="Loc.MoveDone">移动完成</sys:String>

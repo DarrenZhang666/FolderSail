@@ -16,6 +16,30 @@ internal static class FileClipboard
     private const int ClipboardRetryCount = 8;
     private const int ClipboardRetryDelayMs = 40;
 
+    private static readonly HashSet<string> CutPaths = new(StringComparer.OrdinalIgnoreCase);
+
+    public static event EventHandler? CutStateChanged;
+
+    public static bool HasCutItems => CutPaths.Count > 0;
+
+    public static bool IsCut(string path) =>
+        !string.IsNullOrWhiteSpace(path) && CutPaths.Contains(path);
+
+    /// <summary>
+    /// Explorer Esc: keep paths on the clipboard but clear the move (cut) flag,
+    /// so dimming disappears and a later paste becomes copy.
+    /// </summary>
+    public static bool CancelCut()
+    {
+        if (!HasCutItems)
+        {
+            return false;
+        }
+
+        ClearCutMark();
+        return true;
+    }
+
     public static void SetFiles(IReadOnlyList<string> paths, bool cut)
     {
         // Only keep path strings on the clipboard (CF_HDROP). Never read file contents.
@@ -40,13 +64,15 @@ internal static class FileClipboard
         // copy: false = delayed rendering (Explorer-style). copy: true calls OleFlushClipboard
         // and blocks the UI while every clipboard listener inspects the drop list — some of
         // them open/hash the referenced files, which freezes or kills the app on large files.
+        var written = false;
         for (var attempt = 0; attempt < ClipboardRetryCount; attempt++)
         {
             try
             {
                 var data = CreateDataObject(files, cut);
                 Clipboard.SetDataObject(data, copy: false);
-                return;
+                written = true;
+                break;
             }
             catch (COMException) when (attempt < ClipboardRetryCount - 1)
             {
@@ -59,9 +85,17 @@ internal static class FileClipboard
             catch (Exception)
             {
                 TrySetFileDropList(files);
-                return;
+                written = true;
+                break;
             }
         }
+
+        if (!written)
+        {
+            return;
+        }
+
+        RememberCutState(existing, cut);
     }
 
     public static (IReadOnlyList<string> Paths, bool Cut) GetFiles()
@@ -95,6 +129,12 @@ internal static class FileClipboard
                 }
             }
 
+            // Prefer local cut mark when clipboard drop-effect is missing (fallback write).
+            if (!cut && paths.Count > 0 && paths.All(IsCut))
+            {
+                cut = true;
+            }
+
             return (paths, cut);
         }
         catch (Exception)
@@ -120,10 +160,36 @@ internal static class FileClipboard
         var (paths, cut) = GetFiles();
         if (!cut || paths.Count == 0)
         {
+            ClearCutState();
             return;
         }
 
         SetFiles(paths, cut: false);
+    }
+
+    public static void ClearCutState()
+    {
+        if (CutPaths.Count == 0)
+        {
+            return;
+        }
+
+        CutPaths.Clear();
+        CutStateChanged?.Invoke(null, EventArgs.Empty);
+    }
+
+    private static void RememberCutState(IReadOnlyList<string> paths, bool cut)
+    {
+        CutPaths.Clear();
+        if (cut)
+        {
+            foreach (var path in paths)
+            {
+                CutPaths.Add(path);
+            }
+        }
+
+        CutStateChanged?.Invoke(null, EventArgs.Empty);
     }
 
     private static DataObject CreateDataObject(StringCollection files, bool cut)

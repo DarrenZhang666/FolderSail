@@ -431,6 +431,9 @@
                             <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Accent.Base}" />
                             <Setter TargetName="Chrome" Property="BorderThickness" Value="1" />
                         </DataTrigger>
+                        <DataTrigger Binding="{Binding IsCut}" Value="True">
+                            <Setter Property="Opacity" Value="0.42" />
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
