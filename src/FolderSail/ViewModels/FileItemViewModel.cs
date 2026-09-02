@@ -12,6 +12,7 @@ public sealed class FileItemViewModel : ObservableObject
     private bool _iconRequested;
     private bool _sizeRequested;
     private bool _isRenaming;
+    private bool _isDropTarget;
     private string _renameText = string.Empty;
 
     public FileItemViewModel(FileItem item)
@@ -37,6 +38,12 @@ public sealed class FileItemViewModel : ObservableObject
     {
         get => _icon;
         private set => SetProperty(ref _icon, value);
+    }
+
+    public bool IsDropTarget
+    {
+        get => _isDropTarget;
+        set => SetProperty(ref _isDropTarget, value);
     }
 
     public void EnsureIcon(CancellationToken cancellationToken = default)

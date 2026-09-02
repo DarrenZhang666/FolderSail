@@ -328,25 +328,43 @@ public partial class PaneView : UserControl
         }
     }
 
+    private FileItemViewModel? _dropTargetFolder;
+
     private void OnDragOver(object sender, DragEventArgs e)
     {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
         {
-            var move = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
-            e.Effects = move ? DragDropEffects.Move : DragDropEffects.Copy;
-            Card.BorderBrush = (Brush)FindResource("Accent.Base");
-        }
-        else
-        {
+            ClearDropTargetHighlight();
             e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
         }
 
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] paths || paths.Length == 0)
+        {
+            ClearDropTargetHighlight();
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        UpdateDropTargetHighlight(e);
+        var destination = ResolveDropDestinationPath(paths, ResolveDropTargetFolder(e)?.FullPath);
+        var move = ShouldMoveLikeExplorer(paths, destination);
+        e.Effects = move ? DragDropEffects.Move : DragDropEffects.Copy;
+        Card.BorderBrush = (Brush)FindResource("Accent.Base");
         e.Handled = true;
     }
 
     private void OnDragLeave(object sender, DragEventArgs e)
     {
-        ApplyActiveVisual();
+        // DragLeave fires when entering child elements; only clear when truly leaving the pane.
+        var pos = e.GetPosition(this);
+        if (pos.X < 0 || pos.Y < 0 || pos.X > ActualWidth || pos.Y > ActualHeight)
+        {
+            ClearDropTargetHighlight();
+            ApplyActiveVisual();
+        }
     }
 
     private void OnDrop(object sender, DragEventArgs e)
@@ -355,16 +373,153 @@ public partial class PaneView : UserControl
 
         if (!e.Data.GetDataPresent(DataFormats.FileDrop) || _pane == null)
         {
+            ClearDropTargetHighlight();
             return;
         }
 
         if (e.Data.GetData(DataFormats.FileDrop) is not string[] paths || paths.Length == 0)
         {
+            ClearDropTargetHighlight();
             return;
         }
 
-        var move = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
-        _pane.HandleDrop(paths, move);
+        var targetFolder = ResolveDropTargetFolder(e);
+        ClearDropTargetHighlight();
+
+        var destination = ResolveDropDestinationPath(paths, targetFolder?.FullPath);
+        var move = ShouldMoveLikeExplorer(paths, destination);
+        _pane.HandleDrop(paths, move, targetFolder?.FullPath);
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// Windows Explorer rules:
+    /// Ctrl = copy, Shift = move;
+    /// otherwise move on the same volume, copy across volumes.
+    /// </summary>
+    private static bool ShouldMoveLikeExplorer(IReadOnlyList<string> sources, string destination)
+    {
+        var modifiers = Keyboard.Modifiers;
+        if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            return false;
+        }
+
+        if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(destination) || sources.Count == 0)
+        {
+            return true;
+        }
+
+        return sources.All(source => SameVolume(source, destination));
+    }
+
+    private string ResolveDropDestinationPath(IReadOnlyList<string> paths, string? preferredFolder)
+    {
+        if (_pane == null)
+        {
+            return preferredFolder ?? string.Empty;
+        }
+
+        // Mirror PaneViewModel destination resolution for modifier preview during DragOver.
+        if (!string.IsNullOrWhiteSpace(preferredFolder) && Directory.Exists(preferredFolder))
+        {
+            try
+            {
+                var fullPreferred = Path.GetFullPath(preferredFolder);
+                var blocked = paths.Any(path =>
+                {
+                    try
+                    {
+                        var full = Path.GetFullPath(path);
+                        if (string.Equals(full, fullPreferred, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+
+                        var prefix = full.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+                        var dest = fullPreferred.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+                        return dest.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                });
+
+                if (!blocked)
+                {
+                    return fullPreferred;
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        return _pane.IsVirtualView
+            ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+            : _pane.CurrentPath;
+    }
+
+    private static bool SameVolume(string left, string right)
+    {
+        try
+        {
+            var a = Path.GetPathRoot(Path.GetFullPath(left));
+            var b = Path.GetPathRoot(Path.GetFullPath(right));
+            return !string.IsNullOrEmpty(a) &&
+                   string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void UpdateDropTargetHighlight(DragEventArgs e)
+    {
+        var folder = ResolveDropTargetFolder(e);
+        if (ReferenceEquals(folder, _dropTargetFolder))
+        {
+            return;
+        }
+
+        if (_dropTargetFolder != null)
+        {
+            _dropTargetFolder.IsDropTarget = false;
+        }
+
+        _dropTargetFolder = folder;
+        if (_dropTargetFolder != null)
+        {
+            _dropTargetFolder.IsDropTarget = true;
+        }
+    }
+
+    private void ClearDropTargetHighlight()
+    {
+        if (_dropTargetFolder != null)
+        {
+            _dropTargetFolder.IsDropTarget = false;
+            _dropTargetFolder = null;
+        }
+    }
+
+    private FileItemViewModel? ResolveDropTargetFolder(DragEventArgs e)
+    {
+        var hit = FilesList.InputHitTest(e.GetPosition(FilesList)) as DependencyObject;
+        var item = FindFileItem(hit);
+        if (item?.Kind is FileItemKind.Directory or FileItemKind.Drive)
+        {
+            return item;
+        }
+
+        return null;
     }
 
     private void OnFilesPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -386,8 +541,8 @@ public partial class PaneView : UserControl
         _listGesture = ListGestureKind.Pending;
 
         // Own the gesture so Explorer-like rules apply:
-        // - drag from empty / unselected → rubber-band multi-select
-        // - drag from already-selected → file drag-drop
+        // - drag from a file/folder → start file drag-drop
+        // - drag from empty space → rubber-band multi-select
         // - click without drag → normal selection on mouse up
         FilesList.Focus();
         Mouse.Capture(FilesList);
@@ -404,15 +559,17 @@ public partial class PaneView : UserControl
         var position = e.GetPosition(FilesList);
         if (_listGesture == ListGestureKind.Pending)
         {
-            if (Math.Abs(position.X - _gestureOrigin.X) < SystemParameters.MinimumHorizontalDragDistance &&
-                Math.Abs(position.Y - _gestureOrigin.Y) < SystemParameters.MinimumVerticalDragDistance)
+            // Slightly below the system default so a short press-and-drag feels responsive.
+            const double dragThreshold = 3;
+            if (Math.Abs(position.X - _gestureOrigin.X) < dragThreshold &&
+                Math.Abs(position.Y - _gestureOrigin.Y) < dragThreshold)
             {
                 return;
             }
 
-            // Same as Explorer: only an already-selected item starts a file drag.
-            // Otherwise rubber-band select so a left-drag multi-selects instead of copying.
-            if (_gestureItem != null && _gestureStartedOnSelected)
+            // Any item under the cursor starts a file drag (Explorer behaviour).
+            // Marquee only when the gesture begins on empty list space.
+            if (_gestureItem != null)
             {
                 BeginFileDragDrop();
                 return;
@@ -469,6 +626,16 @@ public partial class PaneView : UserControl
             ResetListGesture();
             return;
         }
+
+        // Dragging an unselected item selects it first (unless it is already part of a multi-selection).
+        if (!_gestureStartedOnSelected)
+        {
+            FilesList.SelectedItems.Clear();
+            FilesList.SelectedItems.Add(_gestureItem);
+            FilesList.SelectedItem = _gestureItem;
+        }
+
+        _pane.SetSelectedItems(FilesList.SelectedItems.OfType<FileItemViewModel>());
 
         _listGesture = ListGestureKind.DragDrop;
         var paths = _pane.GetSelectedPathsForDrag(_gestureItem.FullPath).ToArray();

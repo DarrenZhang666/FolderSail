@@ -273,7 +273,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public string WorkspaceTitle =>
         string.IsNullOrWhiteSpace(_workspaceName)
             ? "FolderSail"
-            : $"FolderSail - {_workspaceName}";
+            : $"FolderSail_{_workspaceName}";
 
     public string? CurrentWorkspacePath => _currentWorkspacePath;
 
@@ -317,22 +317,53 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public bool SaveWorkspaceAs(Window? owner, WindowGeometry? geometry)
     {
         var defaultName = string.IsNullOrWhiteSpace(_workspaceName)
-            ? "foldersail_workspace"
-            : _workspaceName;
-        var name = PromptForText(Loc.Get("Loc.SaveWorkspaceTitle"), Loc.Get("Loc.WorkspaceName"), defaultName);
-        if (string.IsNullOrWhiteSpace(name))
+            ? "GUI"
+            : StripFolderSailPrefix(_workspaceName);
+        var defaultFolder = !string.IsNullOrWhiteSpace(_currentWorkspacePath)
+            ? Path.GetDirectoryName(_currentWorkspacePath) ?? Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)
+            : Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+
+        var dialog = new WorkspaceSaveAsWindow(defaultName, defaultFolder);
+        if (owner is { IsVisible: true })
+        {
+            dialog.Owner = owner;
+        }
+
+        if (dialog.ShowDialog() != true)
         {
             return false;
         }
 
-        var trimmed = name.Trim();
-        var targetPath = _workspaceStore.ResolvePath(trimmed);
-        if (_workspaceStore.Exists(trimmed) &&
-            (_currentWorkspacePath == null ||
-             !string.Equals(targetPath, _currentWorkspacePath, StringComparison.OrdinalIgnoreCase)))
+        var trimmed = SanitizeWorkspaceName(dialog.WorkspaceName);
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return false;
+        }
+
+        var folder = dialog.FolderPath.Trim();
+        try
+        {
+            Directory.CreateDirectory(folder);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                Loc.Format("Loc.WorkspaceFolderCreateFailed", folder, ex.Message),
+                "FolderSail",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return false;
+        }
+
+        var displayName = $"FolderSail_{trimmed}";
+        var workspaceFile = Path.Combine(folder, displayName + ".foldersail");
+        var shortcutFile = Path.Combine(folder, displayName + ".lnk");
+
+        if ((File.Exists(workspaceFile) || File.Exists(shortcutFile)) &&
+            !string.Equals(workspaceFile, _currentWorkspacePath, StringComparison.OrdinalIgnoreCase))
         {
             var overwrite = MessageBox.Show(
-                Loc.Format("Loc.WorkspaceOverwrite", trimmed),
+                Loc.Format("Loc.WorkspaceOverwrite", displayName),
                 "FolderSail",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
@@ -342,7 +373,57 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
             }
         }
 
-        return SaveWorkspaceToPath(targetPath, trimmed, geometry);
+        if (!SaveWorkspaceToPath(workspaceFile, trimmed, geometry))
+        {
+            return false;
+        }
+
+        try
+        {
+            var exePath = ResolveCurrentExecutable();
+            ShortcutHelper.CreateWorkspaceShortcut(
+                shortcutFile,
+                exePath,
+                workspaceFile,
+                Loc.Format("Loc.WorkspaceShortcutTip", displayName));
+            StatusMessage = Loc.Format("Loc.WorkspaceSavedWithShortcut", displayName, folder);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = Loc.Format("Loc.WorkspaceSavedShortcutFailed", trimmed, ex.Message);
+        }
+
+        return true;
+    }
+
+    private static string StripFolderSailPrefix(string name)
+    {
+        const string prefix = "FolderSail_";
+        return name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? name[prefix.Length..]
+            : name;
+    }
+
+    private static string SanitizeWorkspaceName(string name)
+    {
+        var trimmed = StripFolderSailPrefix(name.Trim());
+        foreach (var invalid in Path.GetInvalidFileNameChars())
+        {
+            trimmed = trimmed.Replace(invalid, '_');
+        }
+
+        return trimmed.Trim().Trim('_');
+    }
+
+    private static string ResolveCurrentExecutable()
+    {
+        var processPath = Environment.ProcessPath;
+        if (!string.IsNullOrWhiteSpace(processPath) && File.Exists(processPath))
+        {
+            return Path.GetFullPath(processPath);
+        }
+
+        return Path.GetFullPath(Environment.GetCommandLineArgs()[0]);
     }
 
     public void SaveOnExit(WindowGeometry? geometry)
@@ -860,10 +941,13 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         UpdateWorkspaceTitle();
     }
 
-    private static string WorkspaceNameFromPath(string filePath, string fallback) =>
-        string.IsNullOrWhiteSpace(fallback)
+    private static string WorkspaceNameFromPath(string filePath, string fallback)
+    {
+        var raw = string.IsNullOrWhiteSpace(fallback)
             ? Path.GetFileNameWithoutExtension(filePath)
             : fallback;
+        return StripFolderSailPrefix(raw);
+    }
 
     public static WindowGeometry? CaptureWindowGeometry(Window? window)
     {

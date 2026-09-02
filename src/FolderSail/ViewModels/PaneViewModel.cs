@@ -1393,14 +1393,20 @@ public sealed class PaneViewModel : ObservableObject
             ? _fileService.GetDefaultPath()
             : CurrentPath;
 
-    public async void HandleDrop(string[] paths, bool move)
+    public async void HandleDrop(string[] paths, bool move, string? targetDirectory = null)
     {
         if (_isPasting || paths.Length == 0)
         {
             return;
         }
 
-        var targetDir = ResolveWritableDirectory();
+        var targetDir = ResolveDropDestination(paths, targetDirectory);
+        if (string.IsNullOrWhiteSpace(targetDir))
+        {
+            StatusMessage?.Invoke(this, Loc.Get("Loc.CannotDropHere"));
+            return;
+        }
+
         _isPasting = true;
         CommandManager.InvalidateRequerySuggested();
         StatusMessage?.Invoke(this, move ? Loc.Get("Loc.Moving") : Loc.Get("Loc.Copying"));
@@ -1431,6 +1437,57 @@ public sealed class PaneViewModel : ObservableObject
             _isPasting = false;
             CommandManager.InvalidateRequerySuggested();
         }
+    }
+
+    private string ResolveDropDestination(IReadOnlyList<string> paths, string? preferredFolder)
+    {
+        var fallback = ResolveWritableDirectory();
+        if (string.IsNullOrWhiteSpace(preferredFolder))
+        {
+            return fallback;
+        }
+
+        try
+        {
+            preferredFolder = Path.GetFullPath(preferredFolder);
+        }
+        catch
+        {
+            return fallback;
+        }
+
+        if (!Directory.Exists(preferredFolder))
+        {
+            return fallback;
+        }
+
+        // Do not drop a folder into itself or into one of its descendants.
+        foreach (var path in paths)
+        {
+            string full;
+            try
+            {
+                full = Path.GetFullPath(path);
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (string.Equals(full, preferredFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                return fallback;
+            }
+
+            var prefix = full.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+            var dest = preferredFolder.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+            if (dest.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return fallback;
+            }
+        }
+
+        return preferredFolder;
     }
 
     public string GetExportPath() => CurrentPath;

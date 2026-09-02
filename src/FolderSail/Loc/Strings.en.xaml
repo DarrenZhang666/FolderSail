@@ -10,7 +10,7 @@
     <sys:String x:Key="Loc.SearchThisPcTip">Search this PC by file name (Enter to search, Ctrl+F to focus)</sys:String>
     <sys:String x:Key="Loc.ClearSearch">Clear search</sys:String>
     <sys:String x:Key="Loc.Ready">Ready</sys:String>
-    <sys:String x:Key="Loc.Shortcuts">Type to filter · Ctrl+F search PC · Drag to select · Drag selected to copy · F2 rename · F5 refresh</sys:String>
+    <sys:String x:Key="Loc.Shortcuts">Type to filter · Ctrl+F search PC · Drag to select · Same-drive move / cross-drive copy (Ctrl copy · Shift move) · F2 rename · F5 refresh</sys:String>
     <sys:String x:Key="Loc.Minimize">Minimize</sys:String>
     <sys:String x:Key="Loc.Maximize">Maximize</sys:String>
     <sys:String x:Key="Loc.Close">Close</sys:String>
@@ -90,6 +90,7 @@
     <sys:String x:Key="Loc.RemovedFromTag">Removed from “{0}” (files were not deleted)</sys:String>
     <sys:String x:Key="Loc.ClearedTag">Cleared “{0}”</sys:String>
     <sys:String x:Key="Loc.CannotTagHere">Cannot tag this location</sys:String>
+    <sys:String x:Key="Loc.CannotDropHere">Cannot drop here</sys:String>
     <sys:String x:Key="Loc.TagHasItems">“{0}” · {1} item(s)</sys:String>
     <sys:String x:Key="Loc.TagEmptyHint">“{0}” is empty. Drop folders on the tag to add them.</sys:String>
     <sys:String x:Key="Loc.RemainingItemsFmt">{0} item(s) ({1})</sys:String>
@@ -173,8 +174,17 @@
     <sys:String x:Key="Loc.WorkspaceRecentEmpty">(No recent workspaces)</sys:String>
     <sys:String x:Key="Loc.OpenWorkspaceTitle">Open Workspace</sys:String>
     <sys:String x:Key="Loc.OpenWorkspaceHint">Pick a saved FolderSail workspace to restore the layout and folder tabs in each pane.</sys:String>
-    <sys:String x:Key="Loc.SaveWorkspaceTitle">Save Workspace</sys:String>
+    <sys:String x:Key="Loc.SaveWorkspaceTitle">Save Workspace As</sys:String>
     <sys:String x:Key="Loc.WorkspaceName">Workspace name</sys:String>
+    <sys:String x:Key="Loc.WorkspaceFolder">Save location</sys:String>
+    <sys:String x:Key="Loc.Browse">Browse…</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSaveAsHint">Creates FolderSail_Name.lnk in that folder. Double-click the shortcut to open this workspace.</sys:String>
+    <sys:String x:Key="Loc.WorkspaceNameRequired">Please enter a workspace name.</sys:String>
+    <sys:String x:Key="Loc.WorkspaceFolderRequired">Please choose a save location.</sys:String>
+    <sys:String x:Key="Loc.WorkspaceFolderCreateFailed">Could not create folder: {0}\n{1}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSavedWithShortcut">Saved {0} to {1}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSavedShortcutFailed">Workspace saved, but shortcut failed: {1}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceShortcutTip">Open FolderSail workspace {0}</sys:String>
     <sys:String x:Key="Loc.WorkspaceSaved">Workspace saved: {0}</sys:String>
     <sys:String x:Key="Loc.WorkspaceOpened">Workspace opened: {0}</sys:String>
     <sys:String x:Key="Loc.WorkspaceNewWindow">New FolderSail window</sys:String>

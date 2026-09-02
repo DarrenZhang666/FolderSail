@@ -411,6 +411,8 @@
                 <ControlTemplate TargetType="ListBoxItem">
                     <Border x:Name="Chrome"
                             Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
                             CornerRadius="4"
                             Padding="4,1"
                             Margin="2,1"
@@ -424,6 +426,11 @@
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Surface.RowSelected}" />
                         </Trigger>
+                        <DataTrigger Binding="{Binding IsDropTarget}" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Accent.Soft}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Accent.Base}" />
+                            <Setter TargetName="Chrome" Property="BorderThickness" Value="1" />
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

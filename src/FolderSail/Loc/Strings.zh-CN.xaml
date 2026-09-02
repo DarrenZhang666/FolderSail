@@ -10,7 +10,7 @@
     <sys:String x:Key="Loc.SearchThisPcTip">按文件名搜索此电脑（Enter 立即搜索，Ctrl+F 聚焦）</sys:String>
     <sys:String x:Key="Loc.ClearSearch">清除搜索</sys:String>
     <sys:String x:Key="Loc.Ready">就绪</sys:String>
-    <sys:String x:Key="Loc.Shortcuts">列表打字过滤 · Ctrl+F 全盘搜索 · 拖动框选 · 选中后拖拽复制 · F2 重命名 · F5 刷新</sys:String>
+    <sys:String x:Key="Loc.Shortcuts">列表打字过滤 · Ctrl+F 全盘搜索 · 拖动框选 · 同盘拖拽移动 / 跨盘复制（Ctrl 复制 · Shift 移动） · F2 重命名 · F5 刷新</sys:String>
     <sys:String x:Key="Loc.Minimize">最小化</sys:String>
     <sys:String x:Key="Loc.Maximize">最大化</sys:String>
     <sys:String x:Key="Loc.Close">关闭</sys:String>
@@ -90,6 +90,7 @@
     <sys:String x:Key="Loc.RemovedFromTag">已从「{0}」移除（本地文件未删除）</sys:String>
     <sys:String x:Key="Loc.ClearedTag">已清空「{0}」</sys:String>
     <sys:String x:Key="Loc.CannotTagHere">当前位置无法添加标签</sys:String>
+    <sys:String x:Key="Loc.CannotDropHere">无法拖放到此位置</sys:String>
     <sys:String x:Key="Loc.TagHasItems">「{0}」共 {1} 项</sys:String>
     <sys:String x:Key="Loc.TagEmptyHint">「{0}」还没有内容，把文件夹拖到标签上即可</sys:String>
     <sys:String x:Key="Loc.RemainingItemsFmt">{0} 个项目 ({1})</sys:String>
@@ -173,8 +174,17 @@
     <sys:String x:Key="Loc.WorkspaceRecentEmpty">（暂无历史记录）</sys:String>
     <sys:String x:Key="Loc.OpenWorkspaceTitle">打开工作区</sys:String>
     <sys:String x:Key="Loc.OpenWorkspaceHint">选择一个已保存的 FolderSail 工作区，恢复布局与各窗格中的文件夹标签页。</sys:String>
-    <sys:String x:Key="Loc.SaveWorkspaceTitle">保存工作区</sys:String>
+    <sys:String x:Key="Loc.SaveWorkspaceTitle">另存为工作区</sys:String>
     <sys:String x:Key="Loc.WorkspaceName">工作区名称</sys:String>
+    <sys:String x:Key="Loc.WorkspaceFolder">保存位置</sys:String>
+    <sys:String x:Key="Loc.Browse">浏览…</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSaveAsHint">将在该文件夹生成 FolderSail_名称.lnk 快捷方式，双击即可打开对应工作区。</sys:String>
+    <sys:String x:Key="Loc.WorkspaceNameRequired">请输入工作区名称。</sys:String>
+    <sys:String x:Key="Loc.WorkspaceFolderRequired">请选择保存位置。</sys:String>
+    <sys:String x:Key="Loc.WorkspaceFolderCreateFailed">无法创建文件夹：{0}\n{1}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSavedWithShortcut">已保存 {0} 到 {1}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceSavedShortcutFailed">工作区已保存，但快捷方式创建失败：{1}</sys:String>
+    <sys:String x:Key="Loc.WorkspaceShortcutTip">打开 FolderSail 工作区 {0}</sys:String>
     <sys:String x:Key="Loc.WorkspaceSaved">已保存工作区：{0}</sys:String>
     <sys:String x:Key="Loc.WorkspaceOpened">已打开工作区：{0}</sys:String>
     <sys:String x:Key="Loc.WorkspaceNewWindow">已新建 FolderSail 窗口</sys:String>
