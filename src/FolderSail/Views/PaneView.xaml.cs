@@ -26,8 +26,11 @@ public partial class PaneView : UserControl
     private ListGestureKind _listGesture;
     private Point _gestureOrigin;
     private FileItemViewModel? _gestureItem;
+    private FileItemViewModel? _selectionAnchor;
+    private ModifierKeys _gestureModifiers;
     private bool _gestureStartedOnSelected;
     private bool _gestureAdditive;
+    private bool _syncingSelection;
     private bool _ignoreRenameLostFocus;
     private bool _updatingColumnWidths;
     private bool _cancellingAddressEdit;
@@ -79,8 +82,17 @@ public partial class PaneView : UserControl
 
     private void OnSelectionCleared(object? sender, EventArgs e)
     {
-        FilesList.SelectedItems.Clear();
-        FilesList.SelectedItem = null;
+        _syncingSelection = true;
+        try
+        {
+            FilesList.SelectedItems.Clear();
+        }
+        finally
+        {
+            _syncingSelection = false;
+        }
+
+        _selectionAnchor = null;
     }
 
     private void OnPanePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -533,10 +545,9 @@ public partial class PaneView : UserControl
 
     private void OnFilesPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Leave double-click / rename / Ctrl·Shift clicks to the ListBox defaults.
+        // Leave double-click / rename editing to the ListBox / rename box.
         if (e.ClickCount > 1 ||
             _pane?.IsInlineRenaming == true ||
-            Keyboard.Modifiers is ModifierKeys.Control or ModifierKeys.Shift or (ModifierKeys.Control | ModifierKeys.Shift) ||
             IsInsideRenameBox(e.OriginalSource as DependencyObject))
         {
             ResetListGesture();
@@ -546,13 +557,18 @@ public partial class PaneView : UserControl
         _gestureOrigin = e.GetPosition(FilesList);
         _gestureItem = FindFileItem(e.OriginalSource as DependencyObject);
         _gestureStartedOnSelected = _gestureItem != null && FilesList.SelectedItems.Contains(_gestureItem);
-        _gestureAdditive = false;
+        _gestureModifiers = Keyboard.Modifiers;
+        _gestureAdditive = (_gestureModifiers & ModifierKeys.Control) == ModifierKeys.Control;
         _listGesture = ListGestureKind.Pending;
 
-        // Own the gesture so Explorer-like rules apply:
-        // - drag from a file/folder → start file drag-drop
-        // - drag from empty space → rubber-band multi-select
-        // - click without drag → normal selection on mouse up
+        // Shift/Ctrl range·toggle apply on press (Explorer), then allow a short
+        // drag without starting file DnD / marquee.
+        if (_gestureItem != null &&
+            (_gestureModifiers & (ModifierKeys.Shift | ModifierKeys.Control)) != ModifierKeys.None)
+        {
+            ApplyClickSelection();
+        }
+
         FilesList.Focus();
         Mouse.Capture(FilesList);
         e.Handled = true;
@@ -572,6 +588,12 @@ public partial class PaneView : UserControl
             const double dragThreshold = 3;
             if (Math.Abs(position.X - _gestureOrigin.X) < dragThreshold &&
                 Math.Abs(position.Y - _gestureOrigin.Y) < dragThreshold)
+            {
+                return;
+            }
+
+            // Shift/Ctrl clicks are selection-only — do not start a drag/marquee.
+            if ((_gestureModifiers & (ModifierKeys.Shift | ModifierKeys.Control)) != ModifierKeys.None)
             {
                 return;
             }
@@ -606,7 +628,8 @@ public partial class PaneView : UserControl
             return;
         }
 
-        if (_listGesture == ListGestureKind.Pending)
+        if (_listGesture == ListGestureKind.Pending &&
+            (_gestureModifiers & (ModifierKeys.Shift | ModifierKeys.Control)) == ModifierKeys.None)
         {
             ApplyClickSelection();
         }
@@ -639,12 +662,21 @@ public partial class PaneView : UserControl
         // Dragging an unselected item selects it first (unless it is already part of a multi-selection).
         if (!_gestureStartedOnSelected)
         {
-            FilesList.SelectedItems.Clear();
-            FilesList.SelectedItems.Add(_gestureItem);
-            FilesList.SelectedItem = _gestureItem;
+            _syncingSelection = true;
+            try
+            {
+                FilesList.SelectedItems.Clear();
+                FilesList.SelectedItems.Add(_gestureItem);
+            }
+            finally
+            {
+                _syncingSelection = false;
+            }
+
+            _selectionAnchor = _gestureItem;
         }
 
-        _pane.SetSelectedItems(FilesList.SelectedItems.OfType<FileItemViewModel>());
+        SyncSelectionToPane();
 
         _listGesture = ListGestureKind.DragDrop;
         var paths = _pane.GetSelectedPathsForDrag(_gestureItem.FullPath).ToArray();
@@ -667,13 +699,110 @@ public partial class PaneView : UserControl
     {
         if (_gestureItem == null)
         {
-            FilesList.SelectedItems.Clear();
+            _syncingSelection = true;
+            try
+            {
+                FilesList.SelectedItems.Clear();
+            }
+            finally
+            {
+                _syncingSelection = false;
+            }
+
+            _selectionAnchor = null;
+            SyncSelectionToPane();
             return;
         }
 
+        var shift = (_gestureModifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+        var control = (_gestureModifiers & ModifierKeys.Control) == ModifierKeys.Control;
+
+        _syncingSelection = true;
+        try
+        {
+            if (shift)
+            {
+                ApplyShiftRangeSelection(_gestureItem);
+            }
+            else if (control)
+            {
+                ApplyControlToggleSelection(_gestureItem);
+            }
+            else
+            {
+                FilesList.SelectedItems.Clear();
+                FilesList.SelectedItems.Add(_gestureItem);
+                _selectionAnchor = _gestureItem;
+            }
+        }
+        finally
+        {
+            _syncingSelection = false;
+        }
+
+        SyncSelectionToPane();
+    }
+
+    private void ApplyShiftRangeSelection(FileItemViewModel target)
+    {
+        var anchor = _selectionAnchor
+            ?? FilesList.SelectedItems.OfType<FileItemViewModel>().FirstOrDefault()
+            ?? target;
+        var anchorIndex = FilesList.Items.IndexOf(anchor);
+        var targetIndex = FilesList.Items.IndexOf(target);
+        if (anchorIndex < 0 || targetIndex < 0)
+        {
+            FilesList.SelectedItems.Clear();
+            FilesList.SelectedItems.Add(target);
+            _selectionAnchor = target;
+            return;
+        }
+
+        var start = Math.Min(anchorIndex, targetIndex);
+        var end = Math.Max(anchorIndex, targetIndex);
+
+        // Do NOT assign ListBox.SelectedItem here — in Extended mode that clears
+        // the multi-selection down to a single item.
         FilesList.SelectedItems.Clear();
-        FilesList.SelectedItems.Add(_gestureItem);
-        FilesList.SelectedItem = _gestureItem;
+        for (var i = start; i <= end; i++)
+        {
+            if (FilesList.Items[i] is FileItemViewModel item)
+            {
+                FilesList.SelectedItems.Add(item);
+            }
+        }
+
+        _selectionAnchor = anchor;
+    }
+
+    private void ApplyControlToggleSelection(FileItemViewModel target)
+    {
+        if (FilesList.SelectedItems.Contains(target))
+        {
+            FilesList.SelectedItems.Remove(target);
+        }
+        else
+        {
+            FilesList.SelectedItems.Add(target);
+        }
+
+        _selectionAnchor ??= target;
+    }
+
+    private void SyncSelectionToPane()
+    {
+        if (_pane == null)
+        {
+            return;
+        }
+
+        var selected = FilesList.SelectedItems.OfType<FileItemViewModel>().ToList();
+        _pane.SetSelectedItems(selected);
+        _pane.SelectedItem = selected.Count > 0
+            ? (_gestureItem is not null && selected.Contains(_gestureItem)
+                ? _gestureItem
+                : selected[^1])
+            : null;
     }
 
     private void UpdateMarqueeVisual(Point current)
@@ -801,6 +930,7 @@ public partial class PaneView : UserControl
         _gestureItem = null;
         _gestureStartedOnSelected = false;
         _gestureAdditive = false;
+        _gestureModifiers = ModifierKeys.None;
         _gestureOrigin = default;
         MarqueeRect.Visibility = Visibility.Collapsed;
         MarqueeRect.Width = 0;
@@ -849,12 +979,12 @@ public partial class PaneView : UserControl
 
     private void OnFilesSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_pane == null)
+        if (_pane == null || _syncingSelection)
         {
             return;
         }
 
-        _pane.SetSelectedItems(FilesList.SelectedItems.OfType<FileItemViewModel>());
+        SyncSelectionToPane();
     }
 
     private void OnFilterFocusRequested(object? sender, EventArgs e) =>
@@ -907,6 +1037,12 @@ public partial class PaneView : UserControl
 
     private void OnFilesPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // Inline rename / any focused TextBox owns typing and Ctrl+A / Backspace.
+        if (_pane?.IsInlineRenaming == true || Keyboard.FocusedElement is TextBox)
+        {
+            return;
+        }
+
         if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
         {
             FilesList.SelectAll();
@@ -1020,7 +1156,22 @@ public partial class PaneView : UserControl
             return;
         }
 
-        _pane?.CommitInlineRename();
+        // Defer: ListBoxItem may briefly steal focus on the same click that targets the box.
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (_ignoreRenameLostFocus || _pane?.IsInlineRenaming != true)
+            {
+                return;
+            }
+
+            var box = FindRenameBox(FilesList);
+            if (box != null && box.IsKeyboardFocusWithin)
+            {
+                return;
+            }
+
+            _pane.CommitInlineRename();
+        }, DispatcherPriority.Input);
     }
 
     private void OnRenameBoxPreviewKeyDown(object sender, KeyEventArgs e)
@@ -1045,6 +1196,12 @@ public partial class PaneView : UserControl
             e.Handled = true;
         }
     }
+
+    // After TextBox places the caret / selection, stop the event so ListBoxItem
+    // cannot steal keyboard focus (which would end rename via LostFocus).
+    private void OnRenameBoxMouseLeftButtonDown(object sender, MouseButtonEventArgs e) => e.Handled = true;
+
+    private void OnRenameBoxMouseLeftButtonUp(object sender, MouseButtonEventArgs e) => e.Handled = true;
 
     private void OnRenameBoxMouseMove(object sender, MouseEventArgs e) => e.Handled = true;
 

@@ -342,7 +342,6 @@
                 <ListBox x:Name="FilesList"
                          ItemsSource="{Binding VisibleItems}"
                          PreviewTextInput="OnFilesTextInput"
-                         SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                          SelectionMode="Extended"
                          ItemContainerStyle="{StaticResource FileRow}"
                          FocusVisualStyle="{x:Null}"
@@ -407,7 +406,9 @@
                                              IsVisibleChanged="OnRenameBoxIsVisibleChanged"
                                              LostFocus="OnRenameBoxLostFocus"
                                              PreviewKeyDown="OnRenameBoxPreviewKeyDown"
-                                             PreviewMouseMove="OnRenameBoxMouseMove" />
+                                             MouseLeftButtonDown="OnRenameBoxMouseLeftButtonDown"
+                                             MouseLeftButtonUp="OnRenameBoxMouseLeftButtonUp"
+                                             MouseMove="OnRenameBoxMouseMove" />
                                 </Grid>
 
                                 <TextBlock x:Name="SizeText"

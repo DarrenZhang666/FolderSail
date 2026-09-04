@@ -339,9 +339,16 @@ public sealed class FileService : IFileService
 
     public void OpenWithDefaultApp(string path)
     {
+        path = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(path);
         var psi = new System.Diagnostics.ProcessStartInfo(path)
         {
-            UseShellExecute = true
+            // Match Explorer: scripts (.bat/.cmd) and many tools resolve relative
+            // paths against the file's folder, not FolderSail's process cwd.
+            UseShellExecute = true,
+            WorkingDirectory = string.IsNullOrWhiteSpace(directory)
+                ? Environment.CurrentDirectory
+                : directory
         };
         System.Diagnostics.Process.Start(psi);
     }
