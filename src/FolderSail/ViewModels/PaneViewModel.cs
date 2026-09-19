@@ -26,9 +26,9 @@ public sealed class PaneViewModel : ObservableObject
     private bool _isSearching;
     private string _filterText = string.Empty;
     private bool _filterOpen;
-    private double _sizeColumnWidth = 72;
-    private double _modifiedColumnWidth = 56;
-    private double _kindColumnWidth = 96;
+    private double _sizeColumnWidth = 80;
+    private double _modifiedColumnWidth = 168;
+    private double _kindColumnWidth = 140;
     private int _filterEpoch;
     private CancellationTokenSource? _listCts;
     private CancellationTokenSource _iconCts = new();
@@ -59,10 +59,16 @@ public sealed class PaneViewModel : ObservableObject
         NewFolderCommand = new RelayCommand(NewFolder);
         RefreshCommand = new RelayCommand(RefreshItems);
         OpenInExplorerCommand = new RelayCommand(OpenInExplorer);
-        BeginEditAddressCommand = new RelayCommand(() => IsAddressEditing = true);
+        BeginEditAddressCommand = new RelayCommand(() =>
+        {
+            AddressText = CurrentPath;
+            NotifyAddressText();
+            IsAddressEditing = true;
+        });
         CancelEditAddressCommand = new RelayCommand(() =>
         {
             AddressText = CurrentPath;
+            NotifyAddressText();
             IsAddressEditing = false;
         });
         NewTabCommand = new RelayCommand(NewTab);
@@ -127,8 +133,12 @@ public sealed class PaneViewModel : ObservableObject
     public string AddressText
     {
         get => _addressText;
-        set => SetProperty(ref _addressText, value);
+        // No PropertyChanged echo — preserves AddressInput Undo (Ctrl+Z).
+        set => SetField(ref _addressText, value);
     }
+
+    /// <summary>Push AddressText to the view (code-driven changes only).</summary>
+    public void NotifyAddressText() => OnPropertyChanged(nameof(AddressText));
 
     public bool IsAddressEditing
     {
@@ -158,7 +168,7 @@ public sealed class PaneViewModel : ObservableObject
             CurrentPath = value.Path;
             _switchingTab = false;
             IsAddressEditing = false;
-            FilterText = string.Empty;
+            SetFilterTextFromCode(string.Empty);
             _filterOpen = false;
             OnPropertyChanged(nameof(ShowFilterChrome));
             SelectedItem = null;
@@ -286,33 +296,49 @@ public sealed class PaneViewModel : ObservableObject
     public string FilterText
     {
         get => _filterText;
-        set
+        set => SetFilterText(value, pushToView: false);
+    }
+
+    /// <summary>Update filter from code and sync the FilterBox text.</summary>
+    public void SetFilterTextFromCode(string value) => SetFilterText(value, pushToView: true);
+
+    private void SetFilterText(string value, bool pushToView)
+    {
+        if (!SetField(ref _filterText, value))
         {
-            if (!SetProperty(ref _filterText, value))
+            if (pushToView)
+            {
+                OnPropertyChanged(nameof(FilterText));
+            }
+
+            return;
+        }
+
+        // Never echo FilterText on every keystroke — that clears TextBox Undo.
+        if (pushToView)
+        {
+            OnPropertyChanged(nameof(FilterText));
+        }
+
+        OnPropertyChanged(nameof(HasFilter));
+        OnPropertyChanged(nameof(ShowFilterChrome));
+        var epoch = Interlocked.Increment(ref _filterEpoch);
+        _ = Task.Delay(80).ContinueWith(_ =>
+        {
+            if (epoch != _filterEpoch)
             {
                 return;
             }
 
-            OnPropertyChanged(nameof(HasFilter));
-            OnPropertyChanged(nameof(ShowFilterChrome));
-            var epoch = Interlocked.Increment(ref _filterEpoch);
-            _ = Task.Delay(80).ContinueWith(_ =>
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            dispatcher?.Invoke(() =>
             {
-                if (epoch != _filterEpoch)
+                if (epoch == _filterEpoch)
                 {
-                    return;
+                    RebuildVisible();
                 }
-
-                var dispatcher = System.Windows.Application.Current?.Dispatcher;
-                dispatcher?.Invoke(() =>
-                {
-                    if (epoch == _filterEpoch)
-                    {
-                        RebuildVisible();
-                    }
-                });
             });
-        }
+        });
     }
 
     public bool HasFilter => !string.IsNullOrWhiteSpace(_filterText);
@@ -361,7 +387,19 @@ public sealed class PaneViewModel : ObservableObject
     public IReadOnlyList<double> GetColumnWidths() =>
         [SizeColumnWidth, ModifiedColumnWidth, KindColumnWidth];
 
-    public void ApplyColumnWidths(IReadOnlyList<double>? widths)
+    public void ApplyColumnWidths(IReadOnlyList<double>? widths) =>
+        SetColumnWidths(widths, expandLegacy: true);
+
+    public void PreviewColumnWidths(double size, double modified, double kind) =>
+        SetColumnWidths([size, modified, kind], expandLegacy: false);
+
+    public void CommitColumnWidths(double size, double modified, double kind)
+    {
+        SetColumnWidths([size, modified, kind], expandLegacy: false);
+        ViewStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void SetColumnWidths(IReadOnlyList<double>? widths, bool expandLegacy)
     {
         if (widths is not { Count: >= 3 })
         {
@@ -369,19 +407,22 @@ public sealed class PaneViewModel : ObservableObject
         }
 
         SizeColumnWidth = ClampColumnWidth(widths[0], 40, 320);
-        ModifiedColumnWidth = ClampColumnWidth(widths[1], 40, 220);
-        KindColumnWidth = widths[2] <= 48
-            ? 96
-            : ClampColumnWidth(widths[2], 48, 280);
-    }
 
-    public void PreviewColumnWidths(double size, double modified, double kind) =>
-        ApplyColumnWidths([size, modified, kind]);
+        var modified = widths[1];
+        if (expandLegacy && modified < 120)
+        {
+            modified = 168;
+        }
 
-    public void CommitColumnWidths(double size, double modified, double kind)
-    {
-        ApplyColumnWidths([size, modified, kind]);
-        ViewStateChanged?.Invoke(this, EventArgs.Empty);
+        ModifiedColumnWidth = ClampColumnWidth(modified, 120, 320);
+
+        var kind = widths[2];
+        if (expandLegacy && kind <= 96)
+        {
+            kind = 140;
+        }
+
+        KindColumnWidth = ClampColumnWidth(kind, 72, 320);
     }
 
     private static double ClampColumnWidth(double width, double min, double max)
@@ -461,7 +502,7 @@ public sealed class PaneViewModel : ObservableObject
 
     private void ClearFilter()
     {
-        FilterText = string.Empty;
+        SetFilterTextFromCode(string.Empty);
         _filterOpen = false;
         OnPropertyChanged(nameof(ShowFilterChrome));
     }
@@ -1318,6 +1359,11 @@ public sealed class PaneViewModel : ObservableObject
             if (cut)
             {
                 FileClipboard.ClearCutMark();
+                foreach (var path in paths)
+                {
+                    var dest = Path.Combine(targetDir, Path.GetFileName(path));
+                    FileUndoStack.PushMove(path, dest);
+                }
             }
 
             RefreshItems();
@@ -1349,7 +1395,12 @@ public sealed class PaneViewModel : ObservableObject
 
         try
         {
-            _fileService.DeleteToRecycleBin(paths);
+            var recycled = _fileService.DeleteToRecycleBinTracked(paths);
+            if (recycled.Count > 0)
+            {
+                FileUndoStack.PushDelete(recycled);
+            }
+
             RefreshItems();
             StatusMessage?.Invoke(this, Loc.Get("Loc.RecycleBin"));
         }
@@ -1368,7 +1419,12 @@ public sealed class PaneViewModel : ObservableObject
 
         try
         {
-            _fileService.Rename(SelectedItem.FullPath, newName.Trim());
+            var oldPath = SelectedItem.FullPath;
+            var trimmed = newName.Trim();
+            _fileService.Rename(oldPath, trimmed);
+            var parent = Path.GetDirectoryName(oldPath) ?? string.Empty;
+            var newPath = Path.Combine(parent, trimmed);
+            FileUndoStack.PushRename(oldPath, newPath);
             RefreshItems();
             StatusMessage?.Invoke(this, Loc.Get("Loc.Renamed"));
         }
@@ -1441,6 +1497,15 @@ public sealed class PaneViewModel : ObservableObject
                 paths,
                 targetDir,
                 move).ConfigureAwait(true);
+
+            if (move)
+            {
+                foreach (var path in paths)
+                {
+                    var dest = Path.Combine(targetDir, Path.GetFileName(path));
+                    FileUndoStack.PushMove(path, dest);
+                }
+            }
 
             RefreshItems();
             StatusMessage?.Invoke(this, move ? Loc.Get("Loc.MoveDone") : Loc.Get("Loc.CopyDone"));

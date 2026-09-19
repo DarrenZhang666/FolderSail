@@ -10,7 +10,7 @@
     <sys:String x:Key="Loc.SearchThisPcTip">Search this PC by file name (Enter to search, Ctrl+F to focus)</sys:String>
     <sys:String x:Key="Loc.ClearSearch">Clear search</sys:String>
     <sys:String x:Key="Loc.Ready">Ready</sys:String>
-    <sys:String x:Key="Loc.Shortcuts">Type to filter · Ctrl+F search PC · Drag to select · Same-drive move / cross-drive copy (Ctrl copy · Shift move) · F2 rename · F5 refresh</sys:String>
+    <sys:String x:Key="Loc.Shortcuts">Type to filter · Ctrl+F search PC · Drag to select · Same-drive move / cross-drive copy (Ctrl copy · Shift move) · F2 rename · Delete · Ctrl+Z undo · F5 refresh</sys:String>
     <sys:String x:Key="Loc.Minimize">Minimize</sys:String>
     <sys:String x:Key="Loc.Maximize">Maximize</sys:String>
     <sys:String x:Key="Loc.Close">Close</sys:String>
@@ -60,7 +60,7 @@
     <sys:String x:Key="Loc.FoldersFirst">Folders first</sys:String>
     <sys:String x:Key="Loc.Name">Name</sys:String>
     <sys:String x:Key="Loc.Size">Size</sys:String>
-    <sys:String x:Key="Loc.Modified">Modified</sys:String>
+    <sys:String x:Key="Loc.Modified">Date modified</sys:String>
     <sys:String x:Key="Loc.Type">Type</sys:String>
     <sys:String x:Key="Loc.Searching">Searching…</sys:String>
     <sys:String x:Key="Loc.ClearFilter">Clear filter</sys:String>
@@ -71,10 +71,14 @@
     <sys:String x:Key="Loc.Copy">Copy (Ctrl+C)</sys:String>
     <sys:String x:Key="Loc.Cut">Cut (Ctrl+X)</sys:String>
     <sys:String x:Key="Loc.Paste">Paste (Ctrl+V)</sys:String>
-    <sys:String x:Key="Loc.Delete">Delete (Delete)</sys:String>
+    <sys:String x:Key="Loc.Delete">Delete (Delete · Ctrl+Z undo)</sys:String>
     <sys:String x:Key="Loc.Folder">Folder</sys:String>
+    <sys:String x:Key="Loc.File">File</sys:String>
     <sys:String x:Key="Loc.TypedFile">{0} File</sys:String>
     <sys:String x:Key="Loc.Drive">Drive</sys:String>
+    <sys:String x:Key="Loc.Shortcut">Shortcut</sys:String>
+    <sys:String x:Key="Loc.Application">Application</sys:String>
+    <sys:String x:Key="Loc.ApplicationExtension">Application extension</sys:String>
     <sys:String x:Key="Loc.JustNow">Just now</sys:String>
     <sys:String x:Key="Loc.Hours">{0}h</sys:String>
     <sys:String x:Key="Loc.Days">{0}d</sys:String>
@@ -123,6 +127,11 @@
     <sys:String x:Key="Loc.CopyDone">Copy complete</sys:String>
     <sys:String x:Key="Loc.Cancelled">Cancelled</sys:String>
     <sys:String x:Key="Loc.RecycleBin">Moved to Recycle Bin</sys:String>
+    <sys:String x:Key="Loc.UndoDelete">Delete undone</sys:String>
+    <sys:String x:Key="Loc.UndoRename">Rename undone</sys:String>
+    <sys:String x:Key="Loc.UndoMove">Move undone</sys:String>
+    <sys:String x:Key="Loc.UndoNothing">Nothing to undo</sys:String>
+    <sys:String x:Key="Loc.UndoFailed">Undo failed: {0}</sys:String>
     <sys:String x:Key="Loc.Renamed">Renamed</sys:String>
     <sys:String x:Key="Loc.FolderCreated">Folder created</sys:String>
     <sys:String x:Key="Loc.OpenInNewTab">Open in a new FolderSail tab</sys:String>

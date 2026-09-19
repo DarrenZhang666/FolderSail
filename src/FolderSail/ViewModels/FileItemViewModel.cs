@@ -114,7 +114,8 @@ public sealed class FileItemViewModel : ObservableObject
     public string RenameText
     {
         get => _renameText;
-        set => SetProperty(ref _renameText, value);
+        // Do not raise PropertyChanged: binding echo clears TextBox Undo (Ctrl+Z).
+        set => SetField(ref _renameText, value);
     }
 
     public int RenameSelectLength

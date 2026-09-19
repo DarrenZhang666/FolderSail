@@ -16,6 +16,7 @@ public interface IFileService
         IProgress<FileTransferProgress>? progress,
         CancellationToken cancellationToken);
     void DeleteToRecycleBin(IEnumerable<string> paths);
+    IReadOnlyList<RecycledItem> DeleteToRecycleBinTracked(IEnumerable<string> paths);
     void Rename(string path, string newName);
     void CreateDirectory(string parentPath, string folderName);
     void OpenWithDefaultApp(string path);
@@ -294,16 +295,11 @@ public sealed class FileService : IFileService
         CopyFile(sourcePath, copyDest, state, progress, cancellationToken);
     }
 
-    public void DeleteToRecycleBin(IEnumerable<string> paths)
-    {
-        var existing = paths.Where(p => File.Exists(p) || Directory.Exists(p)).ToList();
-        if (existing.Count == 0)
-        {
-            return;
-        }
+    public void DeleteToRecycleBin(IEnumerable<string> paths) =>
+        RecycleBinHelper.SendToRecycleBin(paths);
 
-        RecycleBinHelper.SendToRecycleBin(existing);
-    }
+    public IReadOnlyList<RecycledItem> DeleteToRecycleBinTracked(IEnumerable<string> paths) =>
+        RecycleBinHelper.SendToRecycleBin(paths);
 
     public void Rename(string path, string newName)
     {

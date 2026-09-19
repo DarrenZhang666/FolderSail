@@ -114,6 +114,10 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
         SaveWorkspaceCommand = new RelayCommand(SaveWorkspace);
         SaveWorkspaceAsCommand = new RelayCommand(SaveWorkspaceAs);
         OpenRecentWorkspaceCommand = new RelayCommand<string?>(OpenRecentWorkspace);
+        UndoFileCommand = new RelayCommand(UndoFile, CanUndoFile);
+        FileUndoStack.Changed += (_, _) =>
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(
+                CommandManager.InvalidateRequerySuggested);
         LanguageManager.Changed += (_, _) => RefreshLocalization();
         _statusMessage = Loc.Get("Loc.Ready");
         UpdateWorkspaceTitle();
@@ -183,16 +187,30 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public string SearchText
     {
         get => _searchText;
-        set
+        set => SetSearchText(value, pushToView: false);
+    }
+
+    public void SetSearchTextFromCode(string value) => SetSearchText(value, pushToView: true);
+
+    private void SetSearchText(string value, bool pushToView)
+    {
+        if (!SetField(ref _searchText, value))
         {
-            if (!SetProperty(ref _searchText, value))
+            if (pushToView)
             {
-                return;
+                OnPropertyChanged(nameof(SearchText));
             }
 
-            OnPropertyChanged(nameof(HasSearchText));
-            ScheduleLiveSearch();
+            return;
         }
+
+        if (pushToView)
+        {
+            OnPropertyChanged(nameof(SearchText));
+        }
+
+        OnPropertyChanged(nameof(HasSearchText));
+        ScheduleLiveSearch();
     }
 
     public bool HasSearchText => !string.IsNullOrWhiteSpace(_searchText);
@@ -266,6 +284,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public ICommand OpenWorkspaceCommand { get; }
     public ICommand SaveWorkspaceCommand { get; }
     public ICommand SaveWorkspaceAsCommand { get; }
+    public ICommand UndoFileCommand { get; }
     public ICommand OpenRecentWorkspaceCommand { get; }
 
     public ObservableCollection<WorkspaceEntry> RecentWorkspaces { get; } = [];
@@ -459,8 +478,48 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
     public void ClearSearch()
     {
         Interlocked.Increment(ref _searchEpoch);
-        SearchText = string.Empty;
+        SetSearchTextFromCode(string.Empty);
     }
+
+    /// <summary>
+    /// Explorer-like Ctrl+Z: undo the last FolderSail file operation (delete / rename / move).
+    /// </summary>
+    public bool TryUndoFileOperation()
+    {
+        if (!FileUndoStack.CanUndo)
+        {
+            StatusMessage = Loc.Get("Loc.UndoNothing");
+            return false;
+        }
+
+        if (!FileUndoStack.TryUndo(out var kind, out _, out var error))
+        {
+            StatusMessage = error == "nothing"
+                ? Loc.Get("Loc.UndoNothing")
+                : Loc.Format("Loc.UndoFailed", error ?? Loc.Get("Loc.UnknownError"));
+            return false;
+        }
+
+        foreach (var pane in _allPanes)
+        {
+            pane.RefreshItems();
+        }
+
+        StatusMessage = kind switch
+        {
+            FileUndoKind.Delete => Loc.Get("Loc.UndoDelete"),
+            FileUndoKind.Rename => Loc.Get("Loc.UndoRename"),
+            FileUndoKind.Move => Loc.Get("Loc.UndoMove"),
+            _ => Loc.Get("Loc.UndoDelete")
+        };
+        return true;
+    }
+
+    private void UndoFile() => TryUndoFileOperation();
+
+    private static bool CanUndoFile() =>
+        Keyboard.FocusedElement is not System.Windows.Controls.TextBox &&
+        FileUndoStack.CanUndo;
 
     private void ToggleTheme() => IsDarkTheme = !IsDarkTheme;
 
@@ -472,6 +531,7 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
 
     private void RefreshLocalization()
     {
+        ShellIconHelper.ClearTypeCache();
         OnPropertyChanged(nameof(ThemeToggleTip));
         OnPropertyChanged(nameof(LanguageToggleTip));
         OnPropertyChanged(nameof(ExpandTagChildrenOnStartupTip));

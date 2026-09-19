@@ -356,6 +356,8 @@
         <Setter Property="SelectionBrush" Value="{DynamicResource Accent.Base}" />
         <Setter Property="Height" Value="26" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="IsUndoEnabled" Value="True" />
+        <Setter Property="UndoLimit" Value="100" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
@@ -389,6 +391,8 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="IsUndoEnabled" Value="True" />
+        <Setter Property="UndoLimit" Value="100" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
@@ -453,6 +457,8 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="IsUndoEnabled" Value="True" />
+        <Setter Property="UndoLimit" Value="100" />
     </Style>
 
     <!-- ============ Sidebar entries ============ -->

@@ -21,6 +21,9 @@
         SnapsToDevicePixels="True"
         PreviewKeyDown="OnWindowPreviewKeyDown"
         PreviewMouseDown="OnWindowPreviewMouseDown">
+    <Window.InputBindings>
+        <KeyBinding Key="Z" Modifiers="Control" Command="{Binding UndoFileCommand}" />
+    </Window.InputBindings>
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="52"
                             ResizeBorderThickness="6"

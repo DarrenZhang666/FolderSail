@@ -285,11 +285,11 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MinWidth="100" />
                         <ColumnDefinition Width="10" />
-                        <ColumnDefinition x:Name="SizeColumnDef" Width="72" MinWidth="40" />
+                        <ColumnDefinition x:Name="SizeColumnDef" Width="80" MinWidth="40" />
                         <ColumnDefinition Width="10" />
-                        <ColumnDefinition x:Name="ModifiedColumnDef" Width="56" MinWidth="40" />
+                        <ColumnDefinition x:Name="ModifiedColumnDef" Width="168" MinWidth="120" />
                         <ColumnDefinition Width="10" />
-                        <ColumnDefinition x:Name="KindColumnDef" Width="96" MinWidth="48" />
+                        <ColumnDefinition x:Name="KindColumnDef" Width="140" MinWidth="72" />
                     </Grid.ColumnDefinitions>
                     <Button Grid.Column="0" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
@@ -318,7 +318,7 @@
                     <Button Grid.Column="4" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Modified}">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                             <TextBlock Style="{StaticResource ColumnLabel}" Text="{DynamicResource Loc.Modified}" />
                             <TextBlock Text="{Binding ModifiedSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
@@ -330,7 +330,7 @@
                     <Button Grid.Column="6" Style="{StaticResource ColumnHeaderButton}"
                             Command="{Binding SortByCommand}"
                             CommandParameter="{x:Static models:FileSortColumn.Kind}">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                             <TextBlock Style="{StaticResource ColumnLabel}" Text="{DynamicResource Loc.Type}" />
                             <TextBlock Text="{Binding KindSortGlyph}" Style="{StaticResource ColumnSortGlyph}" />
                         </StackPanel>
@@ -375,9 +375,9 @@
                                     <ColumnDefinition Width="10" />
                                     <ColumnDefinition Width="{Binding DataContext.SizeColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="40" />
                                     <ColumnDefinition Width="10" />
-                                    <ColumnDefinition Width="{Binding DataContext.ModifiedColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="40" />
+                                    <ColumnDefinition Width="{Binding DataContext.ModifiedColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="120" />
                                     <ColumnDefinition Width="10" />
-                                    <ColumnDefinition Width="{Binding DataContext.KindColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="48" />
+                                    <ColumnDefinition Width="{Binding DataContext.KindColumnWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource DoubleToGridLength}}" MinWidth="72" />
                                 </Grid.ColumnDefinitions>
 
                                 <Grid Grid.Column="0" VerticalAlignment="Center">
@@ -423,19 +423,22 @@
                                 <TextBlock x:Name="TimeText"
                                            Grid.Column="4"
                                            Text="{Binding ModifiedUtc, Converter={StaticResource RelativeTime}}"
-                                           Foreground="{DynamicResource Text.Secondary}"
-                                           FontSize="11"
-                                           TextAlignment="Center"
-                                           VerticalAlignment="Center" />
+                                           Foreground="{DynamicResource Text.Primary}"
+                                           FontSize="{StaticResource Size.FontBody}"
+                                           TextAlignment="Left"
+                                           TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center"
+                                           Margin="2,0,8,0" />
 
                                 <TextBlock x:Name="KindText"
                                            Grid.Column="6"
                                            Text="{Binding TypeName}"
-                                           Foreground="{DynamicResource Text.Secondary}"
-                                           FontSize="11"
+                                           Foreground="{DynamicResource Text.Primary}"
+                                           FontSize="{StaticResource Size.FontBody}"
+                                           TextAlignment="Left"
                                            TextTrimming="CharacterEllipsis"
                                            VerticalAlignment="Center"
-                                           Margin="0,0,4,0" />
+                                           Margin="2,0,8,0" />
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

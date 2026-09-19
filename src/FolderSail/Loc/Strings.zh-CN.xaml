@@ -10,7 +10,7 @@
     <sys:String x:Key="Loc.SearchThisPcTip">按文件名搜索此电脑（Enter 立即搜索，Ctrl+F 聚焦）</sys:String>
     <sys:String x:Key="Loc.ClearSearch">清除搜索</sys:String>
     <sys:String x:Key="Loc.Ready">就绪</sys:String>
-    <sys:String x:Key="Loc.Shortcuts">列表打字过滤 · Ctrl+F 全盘搜索 · 拖动框选 · 同盘拖拽移动 / 跨盘复制（Ctrl 复制 · Shift 移动） · F2 重命名 · F5 刷新</sys:String>
+    <sys:String x:Key="Loc.Shortcuts">列表打字过滤 · Ctrl+F 全盘搜索 · 拖动框选 · 同盘拖拽移动 / 跨盘复制（Ctrl 复制 · Shift 移动） · F2 重命名 · Delete 删除 · Ctrl+Z 撤销 · F5 刷新</sys:String>
     <sys:String x:Key="Loc.Minimize">最小化</sys:String>
     <sys:String x:Key="Loc.Maximize">最大化</sys:String>
     <sys:String x:Key="Loc.Close">关闭</sys:String>
@@ -60,7 +60,7 @@
     <sys:String x:Key="Loc.FoldersFirst">文件夹置顶</sys:String>
     <sys:String x:Key="Loc.Name">名称</sys:String>
     <sys:String x:Key="Loc.Size">大小</sys:String>
-    <sys:String x:Key="Loc.Modified">更新</sys:String>
+    <sys:String x:Key="Loc.Modified">修改日期</sys:String>
     <sys:String x:Key="Loc.Type">类型</sys:String>
     <sys:String x:Key="Loc.Searching">正在搜索…</sys:String>
     <sys:String x:Key="Loc.ClearFilter">清除过滤</sys:String>
@@ -71,10 +71,14 @@
     <sys:String x:Key="Loc.Copy">复制 (Ctrl+C)</sys:String>
     <sys:String x:Key="Loc.Cut">剪切 (Ctrl+X)</sys:String>
     <sys:String x:Key="Loc.Paste">粘贴 (Ctrl+V)</sys:String>
-    <sys:String x:Key="Loc.Delete">删除 (Delete)</sys:String>
+    <sys:String x:Key="Loc.Delete">删除 (Delete · Ctrl+Z 撤销)</sys:String>
     <sys:String x:Key="Loc.Folder">文件夹</sys:String>
+    <sys:String x:Key="Loc.File">文件</sys:String>
     <sys:String x:Key="Loc.TypedFile">{0} 文件</sys:String>
     <sys:String x:Key="Loc.Drive">驱动器</sys:String>
+    <sys:String x:Key="Loc.Shortcut">快捷方式</sys:String>
+    <sys:String x:Key="Loc.Application">应用程序</sys:String>
+    <sys:String x:Key="Loc.ApplicationExtension">应用程序扩展</sys:String>
     <sys:String x:Key="Loc.JustNow">刚刚</sys:String>
     <sys:String x:Key="Loc.Hours">{0} 时</sys:String>
     <sys:String x:Key="Loc.Days">{0} 天</sys:String>
@@ -123,6 +127,11 @@
     <sys:String x:Key="Loc.CopyDone">复制完成</sys:String>
     <sys:String x:Key="Loc.Cancelled">已取消</sys:String>
     <sys:String x:Key="Loc.RecycleBin">已移到回收站</sys:String>
+    <sys:String x:Key="Loc.UndoDelete">已撤销删除</sys:String>
+    <sys:String x:Key="Loc.UndoRename">已撤销重命名</sys:String>
+    <sys:String x:Key="Loc.UndoMove">已撤销移动</sys:String>
+    <sys:String x:Key="Loc.UndoNothing">没有可撤销的操作</sys:String>
+    <sys:String x:Key="Loc.UndoFailed">撤销失败：{0}</sys:String>
     <sys:String x:Key="Loc.Renamed">重命名完成</sys:String>
     <sys:String x:Key="Loc.FolderCreated">已创建文件夹</sys:String>
     <sys:String x:Key="Loc.OpenInNewTab">在 FolderSail 新标签页中打开</sys:String>

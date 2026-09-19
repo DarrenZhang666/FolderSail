@@ -79,7 +79,8 @@ public sealed class LayoutModeToBoolConverter : IValueConverter
 }
 
 /// <summary>
-/// Turns a UTC timestamp into a compact age label such as "今天", "3 天", "5 月".
+/// Explorer "Date modified": Windows short date + short time (e.g. 9/19/2026 11:07 AM).
+/// Uses the OS regional format, not the in-app language.
 /// </summary>
 public sealed class RelativeTimeConverter : IValueConverter
 {
@@ -90,29 +91,8 @@ public sealed class RelativeTimeConverter : IValueConverter
             return string.Empty;
         }
 
-        var span = DateTime.UtcNow - utc;
-
-        if (span.TotalMinutes < 60)
-        {
-            return Loc.Get("Loc.JustNow");
-        }
-
-        if (span.TotalHours < 24)
-        {
-            return Loc.Format("Loc.Hours", (int)span.TotalHours);
-        }
-
-        if (span.TotalDays < 31)
-        {
-            return Loc.Format("Loc.Days", (int)span.TotalDays);
-        }
-
-        if (span.TotalDays < 365)
-        {
-            return Loc.Format("Loc.Months", (int)(span.TotalDays / 30));
-        }
-
-        return Loc.Format("Loc.Years", (int)(span.TotalDays / 365));
+        var local = utc.Kind == DateTimeKind.Local ? utc : utc.ToLocalTime();
+        return local.ToString("g", CultureInfo.CurrentCulture);
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>

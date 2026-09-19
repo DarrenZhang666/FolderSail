@@ -225,44 +225,189 @@ public static class ShellIconHelper
 
     public static string GetTypeName(string path, bool isDirectory, bool isDrive = false)
     {
-        var key = isDrive
-            ? ":drive:"
-            : CacheKey(path, isDirectory);
+        var key = TypeCacheKey(path, isDirectory, isDrive);
         return TypeCache.GetOrAdd(key, _ => QueryTypeName(path, isDirectory, isDrive));
     }
 
+    public static void ClearTypeCache() => TypeCache.Clear();
+
+    private static string TypeCacheKey(string path, bool isDirectory, bool isDrive) =>
+        $"{LanguageManager.Current}|{(isDrive ? ":drive:" : CacheKey(path, isDirectory))}";
+
     /// <summary>
-    /// Same lookup Explorer uses: file associations, then the shell, then
-    /// "EXT File" for anything that has no registered type.
+    /// Prefer the in-app language for type labels. Shell/registry names follow the
+    /// OS locale (often Chinese on CN Windows) and would ignore English UI mode.
     /// </summary>
     private static string QueryTypeName(string path, bool isDirectory, bool isDrive)
     {
         if (isDrive)
         {
-            return QueryShellTypeName(path, 0, SHGFI_TYPENAME)
-                   ?? Loc.Get("Loc.Drive");
+            return Loc.Get("Loc.Drive");
         }
 
         if (isDirectory)
         {
-            return QueryShellTypeName(@"C:\Windows", FILE_ATTRIBUTE_DIRECTORY, SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES)
-                   ?? QueryShellTypeName(path, FILE_ATTRIBUTE_DIRECTORY, SHGFI_TYPENAME)
-                   ?? Loc.Get("Loc.Folder");
+            return Loc.Get("Loc.Folder");
         }
 
         var extension = Path.GetExtension(path);
-        if (!string.IsNullOrWhiteSpace(extension))
+        if (string.IsNullOrWhiteSpace(extension))
         {
-            return QueryFriendlyDocName(extension)
-                   ?? QueryRegistryTypeName(extension)
-                   ?? QueryShellTypeName("file" + extension, FILE_ATTRIBUTE_NORMAL, SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES)
-                   ?? QueryShellTypeName(path, 0, SHGFI_TYPENAME)
-                   ?? Loc.Format("Loc.TypedFile", extension.TrimStart('.').ToUpperInvariant());
+            return AlignTypeNameToAppLanguage(
+                QueryShellTypeName(path, FILE_ATTRIBUTE_NORMAL, SHGFI_TYPENAME),
+                extension: null);
         }
 
-        return QueryShellTypeName(path, FILE_ATTRIBUTE_NORMAL, SHGFI_TYPENAME)
-               ?? Loc.Get("Loc.File");
+        var ext = extension.ToLowerInvariant();
+        if (TryGetLocalizedWellKnownType(ext, out var wellKnown))
+        {
+            return wellKnown;
+        }
+
+        if (LanguageManager.IsEnglish && EnglishTypeNames.TryGetValue(ext, out var englishName))
+        {
+            return englishName;
+        }
+
+        var shellName = QueryFriendlyDocName(extension)
+                        ?? QueryRegistryTypeName(extension)
+                        ?? QueryShellTypeName("file" + extension, FILE_ATTRIBUTE_NORMAL, SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES)
+                        ?? QueryShellTypeName(path, 0, SHGFI_TYPENAME);
+
+        return AlignTypeNameToAppLanguage(shellName, extension);
     }
+
+    private static bool TryGetLocalizedWellKnownType(string extension, out string name)
+    {
+        switch (extension)
+        {
+            case ".lnk":
+                name = Loc.Get("Loc.Shortcut");
+                return true;
+            case ".exe":
+            case ".com":
+            case ".msi":
+                name = Loc.Get("Loc.Application");
+                return true;
+            case ".dll":
+            case ".ocx":
+            case ".sys":
+                name = Loc.Get("Loc.ApplicationExtension");
+                return true;
+            default:
+                name = string.Empty;
+                return false;
+        }
+    }
+
+    private static string AlignTypeNameToAppLanguage(string? shellName, string? extension)
+    {
+        if (string.IsNullOrWhiteSpace(shellName))
+        {
+            return FallbackTypedFile(extension);
+        }
+
+        var trimmed = shellName.Trim();
+        var hasCjk = ContainsCjk(trimmed);
+
+        // English UI on a Chinese OS: drop Shell's Chinese labels.
+        if (LanguageManager.IsEnglish && hasCjk)
+        {
+            return FallbackTypedFile(extension);
+        }
+
+        // Chinese UI on an English OS: prefer Loc for generic folder-like leftovers only.
+        if (!LanguageManager.IsEnglish && !hasCjk && LooksLikeGenericEnglishType(trimmed))
+        {
+            return FallbackTypedFile(extension);
+        }
+
+        return trimmed;
+    }
+
+    private static string FallbackTypedFile(string? extension)
+    {
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return Loc.Get("Loc.File");
+        }
+
+        var token = extension.TrimStart('.').ToUpperInvariant();
+        return string.IsNullOrEmpty(token)
+            ? Loc.Get("Loc.File")
+            : Loc.Format("Loc.TypedFile", token);
+    }
+
+    private static bool LooksLikeGenericEnglishType(string name) =>
+        name.Equals("File", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("Folder", StringComparison.OrdinalIgnoreCase) ||
+        name.EndsWith(" File", StringComparison.OrdinalIgnoreCase);
+
+    private static bool ContainsCjk(string text)
+    {
+        foreach (var ch in text)
+        {
+            if (ch is >= '\u3040' and <= '\u30FF' or >= '\u3400' and <= '\u9FFF' or >= '\uF900' and <= '\uFAFF')
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Common Explorer English type names when the OS shell speaks Chinese.
+    private static readonly Dictionary<string, string> EnglishTypeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [".txt"] = "Text Document",
+        [".rtf"] = "Rich Text Format",
+        [".pdf"] = "PDF Document",
+        [".doc"] = "Microsoft Word Document",
+        [".docx"] = "Microsoft Word Document",
+        [".docm"] = "Microsoft Word Macro-Enabled Document",
+        [".dotx"] = "Microsoft Word Template",
+        [".xls"] = "Microsoft Excel Spreadsheet",
+        [".xlsx"] = "Microsoft Excel Spreadsheet",
+        [".xlsm"] = "Microsoft Excel Macro-Enabled Spreadsheet",
+        [".csv"] = "CSV File",
+        [".ppt"] = "Microsoft PowerPoint Presentation",
+        [".pptx"] = "Microsoft PowerPoint Presentation",
+        [".pptm"] = "Microsoft PowerPoint Macro-Enabled Presentation",
+        [".png"] = "PNG File",
+        [".jpg"] = "JPEG Image",
+        [".jpeg"] = "JPEG Image",
+        [".gif"] = "GIF Image",
+        [".bmp"] = "Bitmap Image",
+        [".webp"] = "WEBP File",
+        [".svg"] = "SVG File",
+        [".ico"] = "Icon",
+        [".mp3"] = "MP3 File",
+        [".wav"] = "WAV File",
+        [".flac"] = "FLAC File",
+        [".mp4"] = "MP4 File",
+        [".mkv"] = "MKV File",
+        [".avi"] = "AVI File",
+        [".mov"] = "MOV File",
+        [".zip"] = "Compressed (zipped) Folder",
+        [".7z"] = "7Z File",
+        [".rar"] = "RAR File",
+        [".gz"] = "GZ File",
+        [".json"] = "JSON File",
+        [".xml"] = "XML File",
+        [".html"] = "HTML Document",
+        [".htm"] = "HTML Document",
+        [".css"] = "Cascading Style Sheet",
+        [".js"] = "JavaScript File",
+        [".ts"] = "TypeScript File",
+        [".cs"] = "C# Source File",
+        [".py"] = "Python File",
+        [".md"] = "Markdown File",
+        [".bat"] = "Windows Batch File",
+        [".cmd"] = "Windows Command Script",
+        [".ps1"] = "Windows PowerShell Script",
+        [".url"] = "Internet Shortcut",
+        [".iso"] = "Disc Image File",
+    };
 
     private static string? QueryFriendlyDocName(string extension)
     {

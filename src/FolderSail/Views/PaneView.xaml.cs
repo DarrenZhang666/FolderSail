@@ -1016,7 +1016,7 @@ public partial class PaneView : UserControl
             return;
         }
 
-        _pane.FilterText += e.Text;
+        _pane.SetFilterTextFromCode(_pane.FilterText + e.Text);
         e.Handled = true;
     }
 
@@ -1060,7 +1060,7 @@ public partial class PaneView : UserControl
         if (e.Key == Key.Back && _pane?.HasFilter == true && Keyboard.Modifiers == ModifierKeys.None)
         {
             var text = _pane.FilterText;
-            _pane.FilterText = text.Length <= 1 ? string.Empty : text[..^1];
+            _pane.SetFilterTextFromCode(text.Length <= 1 ? string.Empty : text[..^1]);
             if (string.IsNullOrEmpty(_pane.FilterText))
             {
                 _pane.CloseFilterIfEmpty();
@@ -1213,8 +1213,17 @@ public partial class PaneView : UserControl
             return;
         }
 
+        if (box.DataContext is FileItemViewModel item)
+        {
+            // Push initial name without binding echo (RenameText does not notify).
+            if (!string.Equals(box.Text, item.RenameText, StringComparison.Ordinal))
+            {
+                box.Text = item.RenameText;
+            }
+        }
+
         box.Focus();
-        var length = box.DataContext is FileItemViewModel item ? item.RenameSelectLength : box.Text.Length;
+        var length = box.DataContext is FileItemViewModel row ? row.RenameSelectLength : box.Text.Length;
         length = Math.Clamp(length, 0, box.Text.Length);
         box.Select(0, length);
         box.BringIntoView();

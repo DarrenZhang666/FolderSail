@@ -221,22 +221,28 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (Keyboard.Modifiers == ModifierKeys.Control)
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
-            if (e.Key is Key.F or Key.K)
+            var key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (key is Key.F or Key.K)
             {
                 FocusGlobalSearch();
                 e.Handled = true;
                 return;
             }
 
+            // Leave Ctrl+Z/X/C/V/A to the focused TextBox (rename / address / search).
             if (Keyboard.FocusedElement is TextBox)
             {
                 return;
             }
 
-            switch (e.Key)
+            switch (key)
             {
+                case Key.Z:
+                    vm.TryUndoFileOperation();
+                    e.Handled = true;
+                    break;
                 case Key.C:
                     if (pane.CopySelectedCommand.CanExecute(null))
                     {
