@@ -569,7 +569,7 @@ public partial class PaneView : UserControl
             ApplyClickSelection();
         }
 
-        FilesList.Focus();
+        WindowClickActivation.FocusWithoutRaising(FilesList);
         Mouse.Capture(FilesList);
         e.Handled = true;
     }

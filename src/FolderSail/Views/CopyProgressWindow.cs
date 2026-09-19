@@ -9,92 +9,92 @@ using FolderSail.Helpers;
 namespace FolderSail.Views;
 
 /// <summary>
-/// Explorer-style copy/move progress window.
+/// Compact copy/move progress dialog modeled on Windows File Explorer.
 /// </summary>
 public sealed class CopyProgressWindow : Window
 {
-    private readonly TextBlock _titleText;
-    private readonly TextBlock _destText;
-    private readonly ProgressBar _bar;
+    // Explorer copy dialog uses a solid green bar (not the app accent).
+    private static readonly SolidColorBrush ExplorerProgressBrush = FreezeBrush(Color.FromRgb(0x06, 0xB0, 0x25));
+    private static readonly SolidColorBrush ExplorerTrackBrush = FreezeBrush(Color.FromRgb(0xE6, 0xE6, 0xE6));
+
     private readonly TextBlock _percentText;
-    private readonly TextBlock _nameText;
-    private readonly TextBlock _timeText;
-    private readonly TextBlock _remainText;
+    private readonly ProgressBar _bar;
+    private readonly TextBlock _nameValue;
+    private readonly TextBlock _timeValue;
+    private readonly TextBlock _itemsValue;
+    private readonly TextBlock _speedValue;
     private readonly Button _cancel;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private readonly CancellationTokenSource _cts = new();
     private long _lastBytes;
+    private double _lastSampleSeconds;
     private double _bytesPerSecond;
 
     public CopyProgressWindow(bool move, int itemCount, string destination)
     {
-        Title = move ? Loc.Get("Loc.MoveTitle") : Loc.Get("Loc.CopyTitle");
-        Width = 440;
-        MinHeight = 220;
+        var noun = itemCount == 1 ? Loc.Get("Loc.OneItem") : Loc.Format("Loc.ManyItems", itemCount);
+        var action = Loc.Format(move ? "Loc.MovingItems" : "Loc.CopyingItems", noun);
+        var destName = string.IsNullOrWhiteSpace(destination)
+            ? destination
+            : (System.IO.Path.GetFileName(destination.TrimEnd('\\', '/')) is { Length: > 0 } name
+                ? name
+                : destination);
+
+        Title = $"{action} · {Loc.Format("Loc.ToPath", destName)}";
+        Width = 384;
         SizeToContent = SizeToContent.Height;
+        MinHeight = 0;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = true;
         WindowStyle = WindowStyle.SingleBorderWindow;
         Background = TryBrush("Surface.Card", Brushes.White);
         FontFamily = TryFindResource("Font.Ui") as FontFamily ?? FontFamily;
-        FontSize = 13;
+        FontSize = 12;
         Foreground = TryBrush("Text.Primary", Brushes.Black);
-
-        var noun = itemCount == 1 ? Loc.Get("Loc.OneItem") : Loc.Format("Loc.ManyItems", itemCount);
-        _titleText = new TextBlock
-        {
-            Text = Loc.Format(move ? "Loc.MovingItems" : "Loc.CopyingItems", noun),
-            FontSize = 20,
-            FontWeight = FontWeights.SemiBold,
-            Margin = new Thickness(0, 0, 0, 6)
-        };
-
-        _destText = new TextBlock
-        {
-            Text = Loc.Format("Loc.ToPath", destination),
-            Foreground = TryBrush("Text.Secondary", Brushes.Gray),
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            Margin = new Thickness(0, 0, 0, 16)
-        };
 
         _bar = new ProgressBar
         {
-            Height = 6,
+            Height = 16,
             Minimum = 0,
             Maximum = 100,
             Value = 0,
             IsIndeterminate = true,
-            Foreground = TryBrush("Accent.Base", Brushes.SteelBlue),
-            Background = TryBrush("Line.Soft", Brushes.LightGray),
-            BorderThickness = new Thickness(0)
+            Foreground = ExplorerProgressBrush,
+            Background = ExplorerTrackBrush,
+            BorderThickness = new Thickness(0),
+            Margin = new Thickness(0, 0, 0, 6)
         };
 
         _percentText = new TextBlock
         {
             Text = Loc.Get("Loc.Preparing"),
-            Margin = new Thickness(0, 8, 0, 18),
-            Foreground = TryBrush("Text.Secondary", Brushes.Gray)
+            FontSize = 12,
+            Foreground = TryBrush("Text.Secondary", Brushes.DimGray),
+            Margin = new Thickness(0, 0, 0, 12)
         };
 
-        _nameText = Field(Loc.Get("Loc.Name"), Loc.Get("Loc.Preparing"));
-        _timeText = Field(Loc.Get("Loc.RemainingTime"), Loc.Get("Loc.Calculating"));
-        _remainText = Field(Loc.Get("Loc.RemainingItems"), Loc.Get("Loc.Calculating"));
+        _nameValue = ValueBlock(Loc.Get("Loc.Preparing"));
+        _timeValue = ValueBlock(Loc.Get("Loc.Calculating"));
+        _itemsValue = ValueBlock(Loc.Get("Loc.Calculating"));
+        _speedValue = ValueBlock(Loc.Get("Loc.Calculating"));
 
         _cancel = new Button
         {
             Content = Loc.Get("Loc.Cancel"),
-            Width = 88,
-            Height = 32,
+            MinWidth = 80,
+            Height = 28,
+            Padding = new Thickness(14, 0, 14, 0),
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 18, 0, 0),
+            Margin = new Thickness(0, 10, 0, 0),
             IsCancel = true
         };
         if (TryFindResource("GhostButton") is Style ghost)
         {
             _cancel.Style = ghost;
-            _cancel.Width = 88;
-            _cancel.Height = 32;
+            _cancel.MinWidth = 80;
+            _cancel.Height = 28;
+            _cancel.Padding = new Thickness(14, 0, 14, 0);
         }
 
         _cancel.Click += (_, _) =>
@@ -104,18 +104,17 @@ public sealed class CopyProgressWindow : Window
             _cancel.Content = Loc.Get("Loc.Cancelling");
         };
 
-        var root = new StackPanel { Margin = new Thickness(22, 18, 22, 18) };
-        root.Children.Add(_titleText);
-        root.Children.Add(_destText);
+        var root = new StackPanel { Margin = new Thickness(16, 14, 16, 14) };
         root.Children.Add(_bar);
         root.Children.Add(_percentText);
-        root.Children.Add(LabelAbove(Loc.Get("Loc.Name"), _nameText));
-        root.Children.Add(LabelAbove(Loc.Get("Loc.RemainingTime"), _timeText));
-        root.Children.Add(LabelAbove(Loc.Get("Loc.RemainingItems"), _remainText));
+        root.Children.Add(DetailRow(Loc.Get("Loc.Name"), _nameValue));
+        root.Children.Add(DetailRow(Loc.Get("Loc.RemainingTime"), _timeValue));
+        root.Children.Add(DetailRow(Loc.Get("Loc.RemainingItems"), _itemsValue));
+        root.Children.Add(DetailRow(Loc.Get("Loc.Speed"), _speedValue));
         root.Children.Add(_cancel);
         Content = root;
 
-        Closing += (_, e) =>
+        Closing += (_, _) =>
         {
             if (!_cts.IsCancellationRequested && _bar.Value < 100)
             {
@@ -130,7 +129,7 @@ public sealed class CopyProgressWindow : Window
     {
         var startedCopying = progress.BytesCopied > 0 ||
             (!string.IsNullOrWhiteSpace(progress.CurrentName) &&
-             !string.Equals(progress.CurrentName, "正在准备…", StringComparison.Ordinal));
+             !string.Equals(progress.CurrentName, Loc.Get("Loc.Preparing"), StringComparison.Ordinal));
 
         if (_bar.IsIndeterminate && startedCopying)
         {
@@ -148,25 +147,27 @@ public sealed class CopyProgressWindow : Window
 
         if (!string.IsNullOrWhiteSpace(progress.CurrentName))
         {
-            _nameText.Text = progress.CurrentName;
+            _nameValue.Text = progress.CurrentName;
         }
 
         var elapsed = _clock.Elapsed.TotalSeconds;
-        if (elapsed > 0.4 && progress.BytesCopied > _lastBytes)
+        if (elapsed > 0.35 && progress.BytesCopied >= _lastBytes)
         {
-            var instant = (progress.BytesCopied - _lastBytes) / Math.Max(elapsed - _lastSampleSeconds, 0.2);
-            _bytesPerSecond = _bytesPerSecond <= 0 ? instant : (_bytesPerSecond * 0.7) + (instant * 0.3);
+            var dt = Math.Max(elapsed - _lastSampleSeconds, 0.2);
+            var instant = (progress.BytesCopied - _lastBytes) / dt;
+            _bytesPerSecond = _bytesPerSecond <= 0 ? instant : (_bytesPerSecond * 0.72) + (instant * 0.28);
             _lastSampleSeconds = elapsed;
             _lastBytes = progress.BytesCopied;
         }
 
         var remainingBytes = Math.Max(0, progress.TotalBytes - progress.BytesCopied);
-        _timeText.Text = FormatRemainingWithSpeed(remainingBytes);
+        _timeValue.Text = FormatRemaining(remainingBytes);
         var leftFiles = Math.Max(0, progress.TotalFiles - progress.FilesCopied);
-        _remainText.Text = Loc.Format("Loc.RemainingItemsFmt", leftFiles, FormatSize(remainingBytes));
+        _itemsValue.Text = Loc.Format("Loc.RemainingItemsFmt", leftFiles, FormatSize(remainingBytes));
+        _speedValue.Text = _bytesPerSecond < 1024
+            ? Loc.Get("Loc.Calculating")
+            : Loc.Format("Loc.SpeedFmt", FormatSize((long)_bytesPerSecond));
     }
-
-    private double _lastSampleSeconds;
 
     public static async Task RunAsync(
         Window? owner,
@@ -193,7 +194,7 @@ public sealed class CopyProgressWindow : Window
             dialog._bar.IsIndeterminate = false;
             dialog._bar.Value = 100;
             dialog._percentText.Text = Loc.Format("Loc.PercentDone", 100);
-            await Task.Delay(180).ConfigureAwait(true);
+            await Task.Delay(160).ConfigureAwait(true);
             dialog.Close();
         }
         catch (OperationCanceledException)
@@ -212,29 +213,34 @@ public sealed class CopyProgressWindow : Window
         }
     }
 
-    private static TextBlock Field(string _, string value) =>
+    private static TextBlock ValueBlock(string text) =>
         new()
         {
-            Text = value,
+            Text = text,
             TextTrimming = TextTrimming.CharacterEllipsis,
-            Margin = new Thickness(0, 0, 0, 10)
+            VerticalAlignment = VerticalAlignment.Center
         };
 
-    private UIElement LabelAbove(string label, TextBlock value)
+    private UIElement DetailRow(string label, TextBlock value)
     {
-        var block = new StackPanel { Margin = new Thickness(0, 0, 0, 2) };
-        block.Children.Add(new TextBlock
+        var grid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(88) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var labelBlock = new TextBlock
         {
             Text = label,
-            FontSize = 11,
-            Foreground = TryBrush("Text.Tertiary", Brushes.Gray),
-            Margin = new Thickness(0, 0, 0, 2)
-        });
-        block.Children.Add(value);
-        return block;
+            Foreground = TryBrush("Text.Secondary", Brushes.DimGray),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(labelBlock, 0);
+        Grid.SetColumn(value, 1);
+        grid.Children.Add(labelBlock);
+        grid.Children.Add(value);
+        return grid;
     }
 
-    private string FormatRemainingWithSpeed(long remainingBytes)
+    private string FormatRemaining(long remainingBytes)
     {
         if (remainingBytes <= 0)
         {
@@ -268,7 +274,7 @@ public sealed class CopyProgressWindow : Window
     private static string FormatSize(long bytes)
     {
         string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double value = bytes;
+        double value = Math.Max(0, bytes);
         var order = 0;
         while (value >= 1024 && order < units.Length - 1)
         {
@@ -276,9 +282,16 @@ public sealed class CopyProgressWindow : Window
             order++;
         }
 
-        return order == 0 ? $"{bytes} {units[0]}" : $"{value:0.0} {units[order]}";
+        return order == 0 ? $"{bytes} {units[0]}" : $"{value:0.00} {units[order]}";
     }
 
     private Brush TryBrush(string key, Brush fallback) =>
         TryFindResource(key) as Brush ?? fallback;
+
+    private static SolidColorBrush FreezeBrush(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
 }

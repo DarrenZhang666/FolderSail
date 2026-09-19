@@ -26,6 +26,7 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         SidebarColumn.Width = new GridLength(viewModel.SidebarWidth);
         Helpers.WindowBackdrop.TryEnable(this);
+        Helpers.WindowClickActivation.Attach(this);
         Loaded += OnLoaded;
         Helpers.ThemeManager.Changed += OnThemeChanged;
         Closing += OnClosing;

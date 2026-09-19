@@ -167,6 +167,8 @@
     <sys:String x:Key="Loc.Preparing">正在准备…</sys:String>
     <sys:String x:Key="Loc.RemainingTime">剩余时间</sys:String>
     <sys:String x:Key="Loc.RemainingItems">剩余项目</sys:String>
+    <sys:String x:Key="Loc.Speed">速度</sys:String>
+    <sys:String x:Key="Loc.SpeedFmt">{0}/秒</sys:String>
     <sys:String x:Key="Loc.AlmostDone">即将完成</sys:String>
     <sys:String x:Key="Loc.Calculating">正在计算…</sys:String>
     <sys:String x:Key="Loc.Under5s">不到 5 秒</sys:String>

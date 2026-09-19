@@ -167,6 +167,8 @@
     <sys:String x:Key="Loc.Preparing">Preparing…</sys:String>
     <sys:String x:Key="Loc.RemainingTime">Time remaining</sys:String>
     <sys:String x:Key="Loc.RemainingItems">Items remaining</sys:String>
+    <sys:String x:Key="Loc.Speed">Speed</sys:String>
+    <sys:String x:Key="Loc.SpeedFmt">{0}/sec</sys:String>
     <sys:String x:Key="Loc.AlmostDone">Almost done</sys:String>
     <sys:String x:Key="Loc.Calculating">Calculating…</sys:String>
     <sys:String x:Key="Loc.Under5s">Less than 5 seconds</sys:String>
