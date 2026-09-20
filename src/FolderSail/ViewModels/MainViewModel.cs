@@ -920,6 +920,11 @@ public sealed class MainViewModel : ObservableObject, ITagLookup
 
     private void RebuildPanes(int activeIndex, IList<string>? savedPaths, IList<PaneSessionState>? paneStates)
     {
+        foreach (var pane in _allPanes)
+        {
+            pane.Dispose();
+        }
+
         _allPanes.Clear();
         Panes.Clear();
 

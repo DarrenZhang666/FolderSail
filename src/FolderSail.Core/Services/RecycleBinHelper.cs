@@ -61,7 +61,10 @@ internal static class RecycleBinHelper
         {
             wFunc = FileOperationFunc.Delete,
             pFrom = joined,
-            fFlags = FileOperationFlags.AllowUndo | FileOperationFlags.NoConfirmation | FileOperationFlags.NoErrorUI
+            fFlags = FileOperationFlags.Silent
+                | FileOperationFlags.AllowUndo
+                | FileOperationFlags.NoConfirmation
+                | FileOperationFlags.NoErrorUI
         };
 
         var result = SHFileOperation(ref fileOp);
@@ -70,8 +73,11 @@ internal static class RecycleBinHelper
             throw new IOException($"删除到回收站失败，错误码: {result}");
         }
 
+        var payloads = FindRecyclePayloads(existing);
         return existing
-            .Select(original => new RecycledItem(original, FindRecyclePayload(original)))
+            .Select(original => new RecycledItem(
+                original,
+                payloads.TryGetValue(original, out var payload) ? payload : null))
             .ToList();
     }
 
@@ -398,16 +404,44 @@ internal static class RecycleBinHelper
 
     private static string? FindRecyclePayload(string originalPath)
     {
-        try
-        {
-            var full = Path.GetFullPath(originalPath);
-            var root = Path.GetPathRoot(full);
-            if (string.IsNullOrEmpty(root))
-            {
-                return null;
-            }
+        var map = FindRecyclePayloads([originalPath]);
+        return map.TryGetValue(Path.GetFullPath(originalPath), out var payload) ? payload : null;
+    }
 
-            foreach (var recycleDir in EnumerateRecycleDirectories(root))
+    /// <summary>
+    /// Resolve $R payloads for many originals with a single recycle-bin scan per drive.
+    /// </summary>
+    private static Dictionary<string, string?> FindRecyclePayloads(IReadOnlyList<string> originalPaths)
+    {
+        var results = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        var remaining = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var path in originalPaths)
+        {
+            try
+            {
+                var full = Path.GetFullPath(path);
+                results[full] = null;
+                remaining.Add(full);
+            }
+            catch
+            {
+                // Skip invalid paths.
+            }
+        }
+
+        if (remaining.Count == 0)
+        {
+            return results;
+        }
+
+        foreach (var group in remaining
+                     .GroupBy(path => Path.GetPathRoot(path) ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                     .Where(g => !string.IsNullOrEmpty(g.Key)))
+        {
+            var pending = group.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var recycleDir in EnumerateRecycleDirectories(group.Key))
             {
                 IEnumerable<string> infoFiles;
                 try
@@ -422,7 +456,7 @@ internal static class RecycleBinHelper
                 foreach (var infoFile in infoFiles)
                 {
                     if (!TryReadOriginalPath(infoFile, out var original) ||
-                        !original.Equals(full, StringComparison.OrdinalIgnoreCase))
+                        !pending.Contains(original))
                     {
                         continue;
                     }
@@ -436,17 +470,29 @@ internal static class RecycleBinHelper
                     var payload = Path.Combine(recycleDir, "$R" + infoName[2..]);
                     if (File.Exists(payload) || Directory.Exists(payload))
                     {
-                        return payload;
+                        results[original] = payload;
+                        pending.Remove(original);
+                        remaining.Remove(original);
+                        if (pending.Count == 0)
+                        {
+                            break;
+                        }
                     }
                 }
+
+                if (pending.Count == 0)
+                {
+                    break;
+                }
+            }
+
+            if (remaining.Count == 0)
+            {
+                break;
             }
         }
-        catch
-        {
-            return null;
-        }
 
-        return null;
+        return results;
     }
 
     private static IEnumerable<string> EnumerateRecycleDirectories(string driveRoot)

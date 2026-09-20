@@ -9,14 +9,17 @@ using System.Windows.Input;
 
 namespace FolderSail.ViewModels;
 
-public sealed class PaneViewModel : ObservableObject
+public sealed class PaneViewModel : ObservableObject, IDisposable
 {
     private readonly IFileService _fileService;
     private readonly ITagLookup? _tags;
     private readonly IFileSearchService? _search;
+    private readonly DirectoryChangeWatcher _directoryWatcher;
     private CancellationTokenSource? _searchCts;
     private bool _switchingTab;
     private bool _isPasting;
+    private bool _isDeleting;
+    private bool _disposed;
     private string _currentPath = string.Empty;
     private string _addressText = string.Empty;
     private bool _isActive;
@@ -54,7 +57,7 @@ public sealed class PaneViewModel : ObservableObject
         CopySelectedCommand = new RelayCommand(CopySelected, HasSelection);
         CutSelectedCommand = new RelayCommand(CutSelected, HasSelection);
         PasteCommand = new RelayCommand(Paste, () => !_isPasting && FileClipboard.HasFiles());
-        DeleteSelectedCommand = new RelayCommand(DeleteSelected, HasSelection);
+        DeleteSelectedCommand = new RelayCommand(DeleteSelected, () => !_isDeleting && HasSelection());
         RenameSelectedCommand = new RelayCommand(RenameSelected);
         NewFolderCommand = new RelayCommand(NewFolder);
         RefreshCommand = new RelayCommand(RefreshItems);
@@ -85,11 +88,28 @@ public sealed class PaneViewModel : ObservableObject
         ClearFilterCommand = new RelayCommand(ClearFilter);
         OpenFilterCommand = new RelayCommand(OpenFilter);
 
+        _directoryWatcher = new DirectoryChangeWatcher(RefreshItemsFromWatcher);
+
         var initialTab = new PaneTabViewModel(initialPath, _tags);
         Tabs.Add(initialTab);
         ActiveTab = initialTab;
         RebuildBreadcrumbs();
         FileClipboard.CutStateChanged += OnClipboardCutStateChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        FileClipboard.CutStateChanged -= OnClipboardCutStateChanged;
+        _directoryWatcher.Dispose();
+        CancelSearch();
+        CancelListing();
+        ResetIconLoads();
     }
 
     private void OnClipboardCutStateChanged(object? sender, EventArgs e) =>
@@ -122,6 +142,7 @@ public sealed class PaneViewModel : ObservableObject
             }
             RebuildBreadcrumbs();
             RefreshItems();
+            UpdateDirectoryWatcher();
             OnPropertyChanged(nameof(CanGoBack));
             OnPropertyChanged(nameof(CanGoForward));
             OnPropertyChanged(nameof(DisplayTitle));
@@ -489,6 +510,18 @@ public sealed class PaneViewModel : ObservableObject
         FilterFocusRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>Show the filter chrome without stealing focus (type-to-filter handoff).</summary>
+    public void EnsureFilterChrome()
+    {
+        if (_filterOpen || HasFilter)
+        {
+            return;
+        }
+
+        _filterOpen = true;
+        OnPropertyChanged(nameof(ShowFilterChrome));
+    }
+
     public void CloseFilterIfEmpty()
     {
         if (HasFilter)
@@ -557,17 +590,48 @@ public sealed class PaneViewModel : ObservableObject
         }
     }
 
-    public void RefreshItems()
+    public void RefreshItems() => RefreshItems(quiet: false);
+
+    private void RefreshItemsFromWatcher()
     {
-        CancelInlineRename();
+        if (_disposed || _isPasting || _isDeleting || IsVirtualView)
+        {
+            return;
+        }
+
+        if (Items.Any(item => item.IsRenaming))
+        {
+            return;
+        }
+
+        RefreshItems(quiet: true);
+    }
+
+    private void RefreshItems(bool quiet)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (!quiet)
+        {
+            CancelInlineRename();
+            ResetIconLoads();
+            Items = [];
+            ReplaceVisible([]);
+        }
+
         CancelSearch();
         CancelListing();
-        ResetIconLoads();
-        Items = [];
-        ReplaceVisible([]);
 
         if (SearchPath.TryParse(CurrentPath, out var query))
         {
+            if (quiet)
+            {
+                return;
+            }
+
             BeginSearch(query);
             OnPropertyChanged(nameof(ItemSummary));
             return;
@@ -595,14 +659,25 @@ public sealed class PaneViewModel : ObservableObject
             .ContinueWith(task =>
             {
                 var dispatcher = System.Windows.Application.Current?.Dispatcher;
-                dispatcher?.Invoke(() => ApplyDirectoryListing(path, token, task));
+                dispatcher?.Invoke(() => ApplyDirectoryListing(path, token, task, preserveSelection: quiet));
             }, TaskScheduler.Default);
+    }
+
+    private void UpdateDirectoryWatcher()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _directoryWatcher.Watch(IsVirtualView ? null : CurrentPath);
     }
 
     private void ApplyDirectoryListing(
         string path,
         CancellationToken token,
-        Task<IReadOnlyList<FileItem>> task)
+        Task<IReadOnlyList<FileItem>> task,
+        bool preserveSelection = false)
     {
         if (token.IsCancellationRequested || !string.Equals(CurrentPath, path, StringComparison.OrdinalIgnoreCase))
         {
@@ -623,9 +698,39 @@ public sealed class PaneViewModel : ObservableObject
             return;
         }
 
+        var selectedPaths = preserveSelection ? GetSelectedPaths() : null;
+        var primaryPath = preserveSelection ? SelectedItem?.FullPath : null;
+
+        if (preserveSelection)
+        {
+            ResetIconLoads();
+        }
+
         Items = task.Result.Select(item => new FileItemViewModel(item)).ToList();
         RebuildVisible();
         OnPropertyChanged(nameof(ItemSummary));
+
+        if (selectedPaths is { Count: > 0 })
+        {
+            RestoreSelection(selectedPaths, primaryPath);
+        }
+    }
+
+    private void RestoreSelection(IReadOnlyList<string> selectedPaths, string? primaryPath)
+    {
+        var comparer = StringComparer.OrdinalIgnoreCase;
+        var restored = VisibleItems
+            .Where(item => selectedPaths.Contains(item.FullPath, comparer))
+            .ToList();
+        if (restored.Count == 0)
+        {
+            return;
+        }
+
+        SetSelectedItems(restored);
+        SelectedItem = restored.FirstOrDefault(item =>
+            primaryPath != null && comparer.Equals(item.FullPath, primaryPath))
+            ?? restored[0];
     }
 
     private void BeginSearch(string query)
@@ -1385,29 +1490,57 @@ public sealed class PaneViewModel : ObservableObject
         }
     }
 
-    private void DeleteSelected()
+    private async void DeleteSelected()
     {
+        if (_isDeleting)
+        {
+            return;
+        }
+
         var paths = GetSelectedPaths();
         if (paths.Count == 0)
         {
             return;
         }
 
+        _isDeleting = true;
+        CommandManager.InvalidateRequerySuggested();
+        RemoveItemsByPaths(paths);
+        ClearSelection();
+        StatusMessage?.Invoke(this, Loc.Get("Loc.RecycleBin"));
+
         try
         {
-            var recycled = _fileService.DeleteToRecycleBinTracked(paths);
+            var recycled = await Task.Run(() => _fileService.DeleteToRecycleBinTracked(paths))
+                .ConfigureAwait(true);
             if (recycled.Count > 0)
             {
                 FileUndoStack.PushDelete(recycled);
             }
-
-            RefreshItems();
-            StatusMessage?.Invoke(this, Loc.Get("Loc.RecycleBin"));
         }
         catch (Exception ex)
         {
+            RefreshItems(quiet: true);
             StatusMessage?.Invoke(this, ex.Message);
         }
+        finally
+        {
+            _isDeleting = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    private void RemoveItemsByPaths(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0)
+        {
+            return;
+        }
+
+        var remove = paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Items = Items.Where(item => !remove.Contains(item.FullPath)).ToList();
+        RebuildVisible();
+        OnPropertyChanged(nameof(ItemSummary));
     }
 
     private void RenameSelected(object? parameter)

@@ -1016,8 +1016,37 @@ public partial class PaneView : UserControl
             return;
         }
 
-        _pane.SetFilterTextFromCode(_pane.FilterText + e.Text);
+        // ListBox does not host IME well (Shift EN/中, composition). Hand off to FilterBox.
         e.Handled = true;
+        _pane.SetFilterTextFromCode(_pane.FilterText + e.Text);
+        FocusFilterForTyping();
+    }
+
+    /// <summary>
+    /// Move keyboard focus into the filter TextBox so Chinese IME (Shift toggle, pinyin)
+    /// works like a normal text field. Keep caret at end — do not SelectAll.
+    /// </summary>
+    private void FocusFilterForTyping()
+    {
+        _pane?.EnsureFilterChrome();
+
+        if (FilterBox.IsKeyboardFocusWithin)
+        {
+            return;
+        }
+
+        // Sync focus when possible so the current keystroke can land in FilterBox.
+        if (FilterBox.Focus())
+        {
+            FilterBox.CaretIndex = FilterBox.Text.Length;
+            return;
+        }
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            FilterBox.Focus();
+            FilterBox.CaretIndex = FilterBox.Text.Length;
+        }, DispatcherPriority.Input);
     }
 
     private void OnItemIconLoaded(object sender, RoutedEventArgs e) =>
@@ -1041,6 +1070,13 @@ public partial class PaneView : UserControl
         if (_pane?.IsInlineRenaming == true || Keyboard.FocusedElement is TextBox)
         {
             return;
+        }
+
+        // Move focus into FilterBox before text is committed so Shift EN/中 and
+        // subsequent IME composition run on a real TextBox (not the file list).
+        if (ShouldHandOffTypingToFilter(e))
+        {
+            FocusFilterForTyping();
         }
 
         if (e.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
@@ -1068,6 +1104,34 @@ public partial class PaneView : UserControl
 
             e.Handled = true;
         }
+    }
+
+    private static bool ShouldHandOffTypingToFilter(KeyEventArgs e)
+    {
+        if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0)
+        {
+            return false;
+        }
+
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+        // Leave bare Shift to the IME (EN/中 toggle) and to Shift+click selection.
+        if (key is Key.LeftShift or Key.RightShift or Key.LeftCtrl or Key.RightCtrl
+            or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin
+            or Key.Escape or Key.Enter or Key.Tab or Key.Back or Key.Delete
+            or Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End
+            or Key.PageUp or Key.PageDown or Key.F2 or Key.F5)
+        {
+            return false;
+        }
+
+        return key is Key.Space
+            or (>= Key.A and <= Key.Z)
+            or (>= Key.D0 and <= Key.D9)
+            or (>= Key.NumPad0 and <= Key.NumPad9)
+            or Key.OemMinus or Key.OemPeriod or Key.OemComma or Key.OemQuestion
+            or Key.OemQuotes or Key.OemSemicolon or Key.OemPlus
+            or Key.Divide or Key.Multiply or Key.Subtract or Key.Add or Key.Decimal;
     }
 
     private void OnFilesRightClick(object sender, MouseButtonEventArgs e)

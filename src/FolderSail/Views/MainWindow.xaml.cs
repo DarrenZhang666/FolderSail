@@ -12,7 +12,6 @@ namespace FolderSail.Views;
 
 public partial class MainWindow : Window
 {
-    private readonly EdgeAutoHide _edgeAutoHide;
     private MainViewModel ViewModel => (MainViewModel)DataContext;
 
     public MainWindow()
@@ -28,7 +27,6 @@ public partial class MainWindow : Window
         SidebarColumn.Width = new GridLength(viewModel.SidebarWidth);
         Helpers.WindowBackdrop.TryEnable(this);
         Helpers.WindowClickActivation.Attach(this);
-        _edgeAutoHide = new EdgeAutoHide(this);
         Loaded += OnLoaded;
         Helpers.ThemeManager.Changed += OnThemeChanged;
         Closing += OnClosing;
@@ -72,7 +70,6 @@ public partial class MainWindow : Window
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         Helpers.ThemeManager.Changed -= OnThemeChanged;
-        _edgeAutoHide.Dispose();
         ViewModel.SidebarWidth = SidebarColumn.ActualWidth;
         ViewModel.SaveOnExit(MainViewModel.CaptureWindowGeometry(this));
     }
