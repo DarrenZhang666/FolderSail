@@ -18,7 +18,7 @@ public sealed class PaneViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _searchCts;
     private bool _switchingTab;
     private bool _isPasting;
-    private bool _isDeleting;
+    private int _pendingDeletes;
     private bool _disposed;
     private string _currentPath = string.Empty;
     private string _addressText = string.Empty;
@@ -57,7 +57,7 @@ public sealed class PaneViewModel : ObservableObject, IDisposable
         CopySelectedCommand = new RelayCommand(CopySelected, HasSelection);
         CutSelectedCommand = new RelayCommand(CutSelected, HasSelection);
         PasteCommand = new RelayCommand(Paste, () => !_isPasting && FileClipboard.HasFiles());
-        DeleteSelectedCommand = new RelayCommand(DeleteSelected, () => !_isDeleting && HasSelection());
+        DeleteSelectedCommand = new RelayCommand(DeleteSelected, HasSelection);
         RenameSelectedCommand = new RelayCommand(RenameSelected);
         NewFolderCommand = new RelayCommand(NewFolder);
         RefreshCommand = new RelayCommand(RefreshItems);
@@ -594,7 +594,7 @@ public sealed class PaneViewModel : ObservableObject, IDisposable
 
     private void RefreshItemsFromWatcher()
     {
-        if (_disposed || _isPasting || _isDeleting || IsVirtualView)
+        if (_disposed || _isPasting || _pendingDeletes > 0 || IsVirtualView)
         {
             return;
         }
@@ -1492,19 +1492,14 @@ public sealed class PaneViewModel : ObservableObject, IDisposable
 
     private async void DeleteSelected()
     {
-        if (_isDeleting)
-        {
-            return;
-        }
-
         var paths = GetSelectedPaths();
         if (paths.Count == 0)
         {
             return;
         }
 
-        _isDeleting = true;
-        CommandManager.InvalidateRequerySuggested();
+        // Allow overlapping deletes: optimistic UI remove now, Shell work in parallel.
+        _pendingDeletes++;
         RemoveItemsByPaths(paths);
         ClearSelection();
         StatusMessage?.Invoke(this, Loc.Get("Loc.RecycleBin"));
@@ -1525,8 +1520,7 @@ public sealed class PaneViewModel : ObservableObject, IDisposable
         }
         finally
         {
-            _isDeleting = false;
-            CommandManager.InvalidateRequerySuggested();
+            _pendingDeletes = Math.Max(0, _pendingDeletes - 1);
         }
     }
 
